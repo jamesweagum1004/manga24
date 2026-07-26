@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#ffffff"/>
+  <rect x="70" y="80" width="500" height="800" rx="30" fill="#efe8da"/>
+  <circle cx="320" cy="320" r="150" fill="#d4482f"/>
+  <circle cx="320" cy="320" r="96" fill="#f6f4ef"/>
+  <rect x="160" y="540" width="320" height="56" rx="28" fill="#1f2428"/>
+  <text x="320" y="710" text-anchor="middle" font-family="Arial" font-size="56" font-weight="700" fill="#1f2428">Paper Moon</text>
+  <text x="320" y="770" text-anchor="middle" font-family="Arial" font-size="56" font-weight="700" fill="#1f2428">Cafe</text>
+</svg>

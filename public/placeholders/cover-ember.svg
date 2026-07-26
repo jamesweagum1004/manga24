@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#f4f5f7"/>
+  <rect x="70" y="86" width="500" height="790" rx="28" fill="#ffffff"/>
+  <rect x="165" y="180" width="310" height="460" rx="18" fill="#1f2428"/>
+  <rect x="205" y="230" width="230" height="70" rx="12" fill="#d4482f"/>
+  <rect x="205" y="338" width="230" height="230" rx="12" fill="#f6f4ef"/>
+  <text x="320" y="760" text-anchor="middle" font-family="Arial" font-size="56" font-weight="700" fill="#1f2428">Ember Library</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#f7f8fa"/>
+  <rect x="70" y="86" width="500" height="790" rx="28" fill="#202327"/>
+  <circle cx="320" cy="330" r="150" fill="#ffffff"/>
+  <circle cx="320" cy="330" r="88" fill="#31a6a2"/>
+  <path d="M146 330c80-120 268-120 348 0-80 120-268 120-348 0z" fill="none" stroke="#d4482f" stroke-width="28"/>
+  <text x="320" y="740" text-anchor="middle" font-family="Arial" font-size="58" font-weight="700" fill="#ffffff">Glass Orbit</text>
+</svg>

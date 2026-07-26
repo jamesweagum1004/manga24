@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#151719"/>
+  <rect x="74" y="88" width="492" height="784" rx="28" fill="#202327"/>
+  <path d="M120 670h400V330L320 210 120 330z" fill="#31a6a2"/>
+  <path d="M178 670V386l142-84 142 84v284z" fill="#f6f4ef"/>
+  <rect x="220" y="500" width="200" height="170" fill="#d4482f"/>
+  <text x="320" y="780" text-anchor="middle" font-family="Arial" font-size="58" font-weight="700" fill="#ffffff">Neon Shelter</text>
+</svg>

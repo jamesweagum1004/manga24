@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="1280" viewBox="0 0 820 1280" role="img" aria-label="Synthetic non-explicit manga page">
+  <rect width="820" height="1280" fill="#050505"/>
+  <rect x="0" y="0" width="820" height="640" fill="#202327"/>
+  <circle cx="250" cy="260" r="145" fill="#f6f4ef"/>
+  <rect x="450" y="150" width="250" height="300" fill="#d4482f"/>
+  <rect x="0" y="640" width="820" height="640" fill="#f6f4ef"/>
+  <rect x="90" y="760" width="640" height="360" fill="#1f2428"/>
+  <path d="M150 1050l170-220 140 150 80-90 130 160z" fill="#31a6a2"/>
+</svg>
