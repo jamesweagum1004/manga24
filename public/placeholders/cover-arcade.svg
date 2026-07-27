@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#151719"/>
+  <rect x="80" y="90" width="480" height="780" rx="28" fill="#202327"/>
+  <rect x="150" y="180" width="340" height="310" rx="18" fill="#f6f4ef"/>
+  <circle cx="240" cy="620" r="48" fill="#d4482f"/>
+  <circle cx="400" cy="620" r="48" fill="#31a6a2"/>
+  <rect x="205" y="260" width="230" height="54" rx="27" fill="#1f2428"/>
+  <text x="320" y="790" text-anchor="middle" font-family="Arial" font-size="58" font-weight="700" fill="#ffffff">Quiet Arcade</text>
+</svg>

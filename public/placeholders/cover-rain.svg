@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960" role="img" aria-label="Abstract cover placeholder">
+  <rect width="640" height="960" fill="#f4f6f8"/>
+  <rect x="76" y="92" width="488" height="776" rx="28" fill="#1f2428"/>
+  <g stroke="#c9d2da" stroke-width="10">
+    <path d="M180 170v520"/>
+    <path d="M270 130v590"/>
+    <path d="M360 170v520"/>
+    <path d="M450 130v590"/>
+  </g>
+  <circle cx="320" cy="410" r="120" fill="#d4482f"/>
+  <text x="320" y="755" text-anchor="middle" font-family="Arial" font-size="52" font-weight="700" fill="#ffffff">Silver Rain</text>
+  <text x="320" y="812" text-anchor="middle" font-family="Arial" font-size="52" font-weight="700" fill="#ffffff">Room</text>
+</svg>
