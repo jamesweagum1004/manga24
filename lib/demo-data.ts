@@ -29,8 +29,8 @@ export type DemoTitle = {
   cover: DemoAsset;
   author: string;
   originalLanguage: string;
-  publicationStatus: "Ongoing" | "Completed" | "Hiatus";
-  contentRating: "18+";
+  publicationStatus: "Ongoing" | "Completed" | "Hiatus" | "Cancelled";
+  contentRating: "Safe" | "18+";
   tags: string[];
   publishedAt: string;
   viewCount: number;

@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import { MangaCard } from "@/components/manga-card";
 import { RankingRail } from "@/components/ranking-rail";
 import { SiteShell } from "@/components/site-shell";
+import { getPopularCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { dictionary, popularTitles } from "@/lib/demo-data";
+import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
@@ -24,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PopularPage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const titles = popularTitles();
+  const titles = await getPopularCatalogTitles();
 
   return (
     <SiteShell locale={locale}>

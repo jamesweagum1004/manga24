@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/lib/i18n";
 
-export function generateStaticParams() {
-  return [{ locale: "en" }, { locale: "es" }];
-}
+export const dynamic = "force-dynamic";
 
 export default async function LocaleLayout({
   children,

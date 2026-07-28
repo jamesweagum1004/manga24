@@ -79,6 +79,7 @@ export const titleLocalizations = pgTable(
       .references(() => titles.id, { onDelete: "cascade" }),
     locale: localeEnum("locale").notNull(),
     title: varchar("title", { length: 240 }).notNull(),
+    slug: varchar("slug", { length: 180 }).notNull(),
     description: text("description").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

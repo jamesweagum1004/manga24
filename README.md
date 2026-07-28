@@ -9,13 +9,14 @@ This milestone uses synthetic demo metadata and non-explicit local placeholder i
 ```bash
 npm install
 cp .env.example .env
-docker compose up -d
-npm run db:migrate
-npm run db:seed
 npm run dev
 ```
 
 Open `http://localhost:3000/en`.
+
+The app can run without PostgreSQL. When `DATABASE_URL` is empty or missing, public pages and admin title lists use the
+synthetic demo data fallback. Admin create/edit forms render, but writes are disabled with the message:
+`Database is not configured. Set DATABASE_URL to enable writes.`
 
 ## Scripts
 
@@ -71,11 +72,43 @@ Local PostgreSQL is provided by Docker Compose:
 docker compose up -d
 ```
 
-The default local URL is:
+Use this local connection string in `.env`:
 
 ```text
 postgres://manga24:manga24@localhost:5432/manga24
 ```
+
+Example `.env` values for local database-backed development:
+
+```bash
+DATABASE_URL=postgres://manga24:manga24@localhost:5432/manga24
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-me-locally
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Apply Drizzle migrations:
+
+```bash
+npm run db:migrate
+```
+
+If you want synthetic records in the database, run the existing seed script after migrations:
+
+```bash
+npm run db:seed
+```
+
+`DATABASE_URL` is validated only when database access is required. Database commands and admin writes require it. Public
+routes keep working with demo data when it is missing.
+
+## Admin
+
+`/admin` and nested admin routes are protected by HTTP Basic Auth when both `ADMIN_USERNAME` and `ADMIN_PASSWORD` are
+configured.
+
+In production, admin access is blocked if either credential is missing. In development, admin routes are allowed without
+credentials and show a warning banner so local demo fallback can still be inspected.
 
 ## Storage
 

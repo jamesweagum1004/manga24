@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VerticalReader } from "@/components/vertical-reader";
+import { getCatalogChapterBySlug } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { dictionary, findChapter } from "@/lib/demo-data";
+import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 
@@ -10,10 +11,12 @@ type PageProps = {
   params: Promise<{ locale: string; slug: string; chapterSlug: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const result = findChapter(slug, chapterSlug);
+  const result = await getCatalogChapterBySlug(slug, chapterSlug);
   if (!result) {
     return buildMetadata({
       locale,
@@ -35,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ChapterReaderPage({ params }: PageProps) {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const result = findChapter(slug, chapterSlug);
+  const result = await getCatalogChapterBySlug(slug, chapterSlug);
   if (!result) {
     notFound();
   }

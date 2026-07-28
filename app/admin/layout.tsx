@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getAdminAuthStatus } from "@/lib/admin/auth";
 
 export const metadata: Metadata = {
   title: "Admin | Manga24",
@@ -16,6 +17,8 @@ const adminLinks = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const authStatus = getAdminAuthStatus();
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
@@ -32,6 +35,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
       </header>
+      {authStatus.developmentBypass ? (
+        <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          Admin auth is not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD to enable Basic Auth.
+        </div>
+      ) : null}
       {children}
     </div>
   );
