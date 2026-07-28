@@ -1,8 +1,15 @@
-import { findChapter, findTitle, latestTitles, popularTitles, demoTitles } from "@/lib/demo-data";
-import { getDbChapterBySlug } from "@/lib/db/queries/chapters";
+import { demoTags, demoTitles, findChapter, findTitle, latestTitles, popularTitles } from "@/lib/demo-data";
 import {
+  adminChapterListFromDemoTitles,
+  getDbChapterBySlug,
+  listDbAdminChapters
+} from "@/lib/db/queries/chapters";
+import { adminTagListFromDemoTags, listDbAdminTags } from "@/lib/db/queries/tags";
+import {
+  adminTitleListFromDemoTitles,
   getDbTitleForAdmin,
   getDbTitleBySlug,
+  listDbAdminTitles,
   listDbTitles,
   titleFormValuesFromDemoTitle
 } from "@/lib/db/queries/titles";
@@ -24,6 +31,14 @@ export async function getCatalogTitles() {
   }
 
   return demoTitles;
+}
+
+export async function getAdminTitleList() {
+  if (isDatabaseConfigured()) {
+    return listDbAdminTitles();
+  }
+
+  return adminTitleListFromDemoTitles(demoTitles);
 }
 
 export async function getLatestCatalogTitles() {
@@ -67,4 +82,20 @@ export async function getAdminTitleById(id: string) {
 
   const title = findTitle(id);
   return title ? { id: title.slug, values: titleFormValuesFromDemoTitle(title) } : null;
+}
+
+export async function getAdminChapterList() {
+  if (isDatabaseConfigured()) {
+    return listDbAdminChapters();
+  }
+
+  return adminChapterListFromDemoTitles(demoTitles);
+}
+
+export async function getAdminTagList() {
+  if (isDatabaseConfigured()) {
+    return listDbAdminTags();
+  }
+
+  return adminTagListFromDemoTags(demoTags);
 }

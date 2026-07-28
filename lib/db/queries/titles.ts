@@ -1,10 +1,15 @@
-import { eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import {
   assets,
+  chapterLocalizations,
+  chapterPages,
+  chapters,
   contentRatingEnum,
+  tags,
   titleLocalizations,
   titleStatusEnum,
   titles,
+  titleTags
 } from "@/db/schema";
 import type { DemoChapter, DemoTitle } from "@/lib/demo-data";
 import type { Locale } from "@/lib/i18n";
@@ -23,10 +28,55 @@ export type TitleFormValues = {
   esTitle: string;
   esSlug: string;
   esDescription: string;
+  tags: string;
+};
+
+export type AdminTitleListItem = {
+  id: string;
+  originalTitle: string;
+  canonicalSlug: string;
+  publicationStatus: string;
+  contentRating: string;
+  updatedAt: string;
+  enTitle: string;
+  esTitle: string;
 };
 
 type DbTitleStatus = (typeof titleStatusEnum.enumValues)[number];
 type DbContentRating = (typeof contentRatingEnum.enumValues)[number];
+
+type BaseTitleRow = {
+  id: string;
+  slug: string;
+  originalTitle: string;
+  originalLanguage: string;
+  authorName: string;
+  publicationStatus: DbTitleStatus;
+  contentRating: DbContentRating;
+  publishedAt: Date | null;
+  viewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  coverId: string | null;
+  coverPublicUrl: string | null;
+  coverAltText: string | null;
+  coverWidth: number | null;
+  coverHeight: number | null;
+};
+
+type LocalizationRow = typeof titleLocalizations.$inferSelect;
+type TagRow = { titleId: string; slug: string };
+type ChapterRow = typeof chapters.$inferSelect;
+type ChapterLocalizationRow = typeof chapterLocalizations.$inferSelect;
+type ChapterPageRow = {
+  chapterId: string;
+  pageNumber: number;
+  assetId: string;
+  publicUrl: string;
+  altText: string;
+  width: number;
+  height: number;
+};
 
 const fallbackCover = {
   id: "cover-static",
@@ -48,44 +98,67 @@ export const emptyTitleFormValues: TitleFormValues = {
   enDescription: "",
   esTitle: "",
   esSlug: "",
-  esDescription: ""
+  esDescription: "",
+  tags: ""
 };
 
 export async function listDbTitles() {
-  const db = getDb();
-  const rows = await db.query.titles.findMany({
-    with: titleReadWith,
-    orderBy: (table, { desc }) => [desc(table.publishedAt), desc(table.createdAt)]
-  });
+  const rows = await selectAllTitleRows();
+  return hydrateTitleRows(rows);
+}
 
-  return rows.map(mapTitleRow);
+export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
+  const rows = await selectAllTitleRows();
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const localizationsByTitle = await getLocalizationsByTitle(rows.map((row) => row.id));
+
+  return rows.map((row) => {
+    const localizations = getLocalizationMap(row, localizationsByTitle.get(row.id) ?? []);
+
+    return {
+      id: row.id,
+      originalTitle: row.originalTitle,
+      canonicalSlug: row.slug,
+      publicationStatus: displayStatus(row.publicationStatus),
+      contentRating: displayContentRating(row.contentRating),
+      updatedAt: formatDateTime(row.updatedAt),
+      enTitle: localizations.en.title,
+      esTitle: localizations.es.title
+    };
+  });
 }
 
 export async function getDbTitleBySlug(slug: string) {
-  const db = getDb();
-  const row = await db.query.titles.findFirst({
-    where: (table, { eq }) => eq(table.slug, slug),
-    with: titleReadWith
-  });
-
-  return row ? mapTitleRow(row) : null;
+  const rows = await selectTitleRowsBySlug(slug);
+  const hydrated = await hydrateTitleRows(rows);
+  return hydrated[0] ?? null;
 }
 
-export async function getDbTitleForAdmin(id: string) {
-  const db = getDb();
-  const row = await db.query.titles.findFirst({
-    where: (table, { eq }) => eq(table.id, id),
-    with: {
-      localizations: true
-    }
-  });
+export async function getDbTitleForAdmin(idOrSlug: string) {
+  const rows = isUuid(idOrSlug) ? await selectTitleRowsById(idOrSlug) : await selectTitleRowsBySlug(idOrSlug);
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
 
-  return row ? { id: row.id, values: mapTitleFormValues(row) } : null;
+  const [localizationsByTitle, tagsByTitle] = await Promise.all([
+    getLocalizationsByTitle([row.id]),
+    getTagSlugsByTitle([row.id])
+  ]);
+
+  return {
+    id: row.id,
+    values: mapTitleFormValues(row, localizationsByTitle.get(row.id) ?? [], tagsByTitle.get(row.id) ?? [])
+  };
 }
 
 export async function createDbTitle(values: TitleFormValues) {
   const db = getDb();
   const now = new Date();
+  const tagSlugs = parseTagSlugs(values.tags);
 
   return db.transaction(async (tx) => {
     const [title] = await tx
@@ -118,6 +191,8 @@ export async function createDbTitle(values: TitleFormValues) {
       }
     ]);
 
+    await attachTagsToTitle(tx, title.id, tagSlugs);
+
     return title.id;
   });
 }
@@ -125,6 +200,7 @@ export async function createDbTitle(values: TitleFormValues) {
 export async function updateDbTitle(id: string, values: TitleFormValues) {
   const db = getDb();
   const now = new Date();
+  const tagSlugs = parseTagSlugs(values.tags);
 
   await db.transaction(async (tx) => {
     await tx
@@ -161,6 +237,9 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
           }
         });
     }
+
+    await tx.delete(titleTags).where(eq(titleTags.titleId, id));
+    await attachTagsToTitle(tx, id, tagSlugs);
   });
 }
 
@@ -170,32 +249,171 @@ export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues 
     originalTitle: title.originalTitle,
     authorName: title.author,
     originalLanguage: title.originalLanguage === "English" ? "en" : title.originalLanguage,
-    contentRating: "mature_18",
+    contentRating: title.contentRating === "Safe" ? "safe" : "mature_18",
     publicationStatus: title.publicationStatus.toLowerCase() as TitleFormValues["publicationStatus"],
     enTitle: title.titles.en,
     enSlug: title.slug,
     enDescription: title.descriptions.en,
     esTitle: title.titles.es,
     esSlug: title.slug,
-    esDescription: title.descriptions.es
+    esDescription: title.descriptions.es,
+    tags: title.tags.join(", ")
   };
 }
 
-function mapTitleFormValues(row: {
-  slug: string;
-  originalTitle: string;
-  originalLanguage: string;
-  authorName: string;
-  publicationStatus: DbTitleStatus;
-  contentRating: DbContentRating;
-  localizations: Array<{
-    locale: Locale;
-    title: string;
-    slug: string;
-    description: string;
-  }>;
-}): TitleFormValues {
-  const localizations = getLocalizationMap(row);
+export function adminTitleListFromDemoTitles(titles: DemoTitle[]): AdminTitleListItem[] {
+  return titles.map((title) => ({
+    id: title.slug,
+    originalTitle: title.originalTitle,
+    canonicalSlug: title.slug,
+    publicationStatus: title.publicationStatus,
+    contentRating: title.contentRating,
+    updatedAt: title.publishedAt,
+    enTitle: title.titles.en,
+    esTitle: title.titles.es
+  }));
+}
+
+function selectBaseTitle() {
+  return getDb()
+    .select({
+      id: titles.id,
+      slug: titles.slug,
+      originalTitle: titles.originalTitle,
+      originalLanguage: titles.originalLanguage,
+      authorName: titles.authorName,
+      publicationStatus: titles.publicationStatus,
+      contentRating: titles.contentRating,
+      publishedAt: titles.publishedAt,
+      viewCount: titles.viewCount,
+      createdAt: titles.createdAt,
+      updatedAt: titles.updatedAt,
+      coverId: assets.id,
+      coverPublicUrl: assets.publicUrl,
+      coverAltText: assets.altText,
+      coverWidth: assets.width,
+      coverHeight: assets.height
+    })
+    .from(titles)
+    .leftJoin(assets, eq(titles.coverAssetId, assets.id));
+}
+
+async function selectAllTitleRows() {
+  return selectBaseTitle().orderBy(desc(titles.publishedAt), desc(titles.createdAt));
+}
+
+async function selectTitleRowsBySlug(slug: string) {
+  return selectBaseTitle().where(eq(titles.slug, slug)).limit(1);
+}
+
+async function selectTitleRowsById(id: string) {
+  return selectBaseTitle().where(eq(titles.id, id)).limit(1);
+}
+
+async function hydrateTitleRows(rows: BaseTitleRow[]): Promise<Array<DemoTitle & { id: string }>> {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const titleIds = rows.map((row) => row.id);
+  const [localizationsByTitle, tagsByTitle, chaptersByTitle] = await Promise.all([
+    getLocalizationsByTitle(titleIds),
+    getTagSlugsByTitle(titleIds),
+    getChaptersByTitle(titleIds)
+  ]);
+
+  return rows.map((row) =>
+    mapTitleRow(row, {
+      localizations: localizationsByTitle.get(row.id) ?? [],
+      tagSlugs: tagsByTitle.get(row.id) ?? [],
+      chapters: chaptersByTitle.get(row.id) ?? []
+    })
+  );
+}
+
+async function getLocalizationsByTitle(titleIds: string[]) {
+  const rows = await getDb()
+    .select()
+    .from(titleLocalizations)
+    .where(inArray(titleLocalizations.titleId, titleIds));
+
+  return groupBy(rows, (row) => row.titleId);
+}
+
+async function getTagSlugsByTitle(titleIds: string[]) {
+  const rows = await getDb()
+    .select({
+      titleId: titleTags.titleId,
+      slug: tags.slug
+    })
+    .from(titleTags)
+    .innerJoin(tags, eq(titleTags.tagId, tags.id))
+    .where(inArray(titleTags.titleId, titleIds));
+
+  return groupBy(rows, (row) => row.titleId);
+}
+
+async function getChaptersByTitle(titleIds: string[]) {
+  const chapterRows = await getDb()
+    .select()
+    .from(chapters)
+    .where(inArray(chapters.titleId, titleIds))
+    .orderBy(asc(chapters.chapterNumber));
+  if (chapterRows.length === 0) {
+    return new Map<string, DemoChapter[]>();
+  }
+
+  const chapterIds = chapterRows.map((chapter) => chapter.id);
+  const [chapterLocalizationsByChapter, pagesByChapter] = await Promise.all([
+    getChapterLocalizationsByChapter(chapterIds),
+    getChapterPagesByChapter(chapterIds)
+  ]);
+
+  const mappedChapters = chapterRows.map((chapter) =>
+    mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [])
+  );
+  const grouped = groupBy(mappedChapters, (item) => item.titleId);
+  const result = new Map<string, DemoChapter[]>();
+
+  for (const [titleId, items] of grouped) {
+    result.set(
+      titleId,
+      items.map((item) => item.chapter)
+    );
+  }
+
+  return result;
+}
+
+async function getChapterLocalizationsByChapter(chapterIds: string[]) {
+  const rows = await getDb()
+    .select()
+    .from(chapterLocalizations)
+    .where(inArray(chapterLocalizations.chapterId, chapterIds));
+
+  return groupBy(rows, (row) => row.chapterId);
+}
+
+async function getChapterPagesByChapter(chapterIds: string[]) {
+  const rows = await getDb()
+    .select({
+      chapterId: chapterPages.chapterId,
+      pageNumber: chapterPages.pageNumber,
+      assetId: assets.id,
+      publicUrl: assets.publicUrl,
+      altText: assets.altText,
+      width: assets.width,
+      height: assets.height
+    })
+    .from(chapterPages)
+    .innerJoin(assets, eq(chapterPages.assetId, assets.id))
+    .where(inArray(chapterPages.chapterId, chapterIds));
+
+  return groupBy(rows, (row) => row.chapterId);
+}
+
+function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[], tagRows: TagRow[]): TitleFormValues {
+  const localizationMap = getLocalizationMap(row, localizations);
 
   return {
     canonicalSlug: row.slug,
@@ -204,171 +422,143 @@ function mapTitleFormValues(row: {
     originalLanguage: row.originalLanguage,
     contentRating: row.contentRating,
     publicationStatus: row.publicationStatus,
-    enTitle: localizations.en.title,
-    enSlug: localizations.en.slug,
-    enDescription: localizations.en.description,
-    esTitle: localizations.es.title,
-    esSlug: localizations.es.slug,
-    esDescription: localizations.es.description
+    enTitle: localizationMap.en.title,
+    enSlug: localizationMap.en.slug,
+    enDescription: localizationMap.en.description,
+    esTitle: localizationMap.es.title,
+    esSlug: localizationMap.es.slug,
+    esDescription: localizationMap.es.description,
+    tags: tagRows.map((tag) => tag.slug).join(", ")
   };
 }
 
-const titleReadWith = {
-  coverAsset: true,
-  localizations: true,
-  titleTags: {
-    with: {
-      tag: true
-    }
-  },
-  chapters: {
-    with: {
-      localizations: true,
-      pages: {
-        with: {
-          asset: true
-        }
-      }
-    }
+function mapTitleRow(
+  row: BaseTitleRow,
+  related: {
+    localizations: LocalizationRow[];
+    tagSlugs: TagRow[];
+    chapters: DemoChapter[];
   }
-} as const;
-
-function mapTitleRow(row: {
-  id: string;
-  slug: string;
-  originalTitle: string;
-  originalLanguage: string;
-  authorName: string;
-  publicationStatus: DbTitleStatus;
-  contentRating: DbContentRating;
-  coverAsset: typeof assets.$inferSelect | null;
-  publishedAt: Date | null;
-  viewCount: number;
-  localizations: Array<{
-    locale: Locale;
-    title: string;
-    slug: string;
-    description: string;
-  }>;
-  titleTags: Array<{
-    tag: {
-      slug: string;
-    };
-  }>;
-  chapters: Array<{
-    slug: string;
-    chapterNumber: string;
-    publishedAt: Date | null;
-    localizations: Array<{
-      locale: Locale;
-      title: string;
-    }>;
-    pages: Array<{
-      pageNumber: number;
-      asset: typeof assets.$inferSelect;
-    }>;
-  }>;
-}): DemoTitle & { id: string } {
-  const localizations = getLocalizationMap(row);
-  const cover = row.coverAsset
-    ? {
-        id: row.coverAsset.id,
-        src: row.coverAsset.publicUrl,
-        alt: row.coverAsset.altText,
-        width: row.coverAsset.width,
-        height: row.coverAsset.height
-      }
-    : fallbackCover;
+): DemoTitle & { id: string } {
+  const localizationMap = getLocalizationMap(row, related.localizations);
+  const cover =
+    row.coverId && row.coverPublicUrl && row.coverAltText && row.coverWidth && row.coverHeight
+      ? {
+          id: row.coverId,
+          src: row.coverPublicUrl,
+          alt: row.coverAltText,
+          width: row.coverWidth,
+          height: row.coverHeight
+        }
+      : fallbackCover;
 
   return {
     id: row.id,
     slug: row.slug,
     originalTitle: row.originalTitle,
     titles: {
-      en: localizations.en.title,
-      es: localizations.es.title
+      en: localizationMap.en.title,
+      es: localizationMap.es.title
     },
     descriptions: {
-      en: localizations.en.description,
-      es: localizations.es.description
+      en: localizationMap.en.description,
+      es: localizationMap.es.description
     },
     cover,
     author: row.authorName,
     originalLanguage: displayLanguage(row.originalLanguage),
     publicationStatus: displayStatus(row.publicationStatus),
     contentRating: displayContentRating(row.contentRating),
-    tags: row.titleTags.map((item) => item.tag.slug),
+    tags: related.tagSlugs.map((tag) => tag.slug),
     publishedAt: formatDate(row.publishedAt),
     viewCount: row.viewCount,
-    chapters: [...row.chapters]
-      .sort((a, b) => Number(a.chapterNumber) - Number(b.chapterNumber))
-      .map(mapChapterRow)
+    chapters: related.chapters
   };
 }
 
-function mapChapterRow(row: {
-  slug: string;
-  chapterNumber: string;
-  publishedAt: Date | null;
-  localizations: Array<{
-    locale: Locale;
-    title: string;
-  }>;
-  pages: Array<{
-    pageNumber: number;
-    asset: typeof assets.$inferSelect;
-  }>;
-}): DemoChapter {
-  const titles = {
+function mapChapterRow(
+  row: ChapterRow,
+  localizations: ChapterLocalizationRow[],
+  pages: ChapterPageRow[]
+): { titleId: string; chapter: DemoChapter } {
+  const localizedTitles = {
     en: `Chapter ${Number(row.chapterNumber)}`,
     es: `Capitulo ${Number(row.chapterNumber)}`
   };
 
-  for (const localization of row.localizations) {
-    titles[localization.locale] = localization.title;
+  for (const localization of localizations) {
+    localizedTitles[localization.locale] = localization.title;
   }
 
   return {
-    slug: row.slug,
-    number: Number(row.chapterNumber),
-    titles,
-    publishedAt: formatDate(row.publishedAt),
-    pages: [...row.pages]
-      .sort((a, b) => a.pageNumber - b.pageNumber)
-      .map((page) => ({
-        id: page.asset.id,
-        src: page.asset.publicUrl,
-        alt: page.asset.altText,
-        width: page.asset.width,
-        height: page.asset.height
-      }))
+    titleId: row.titleId,
+    chapter: {
+      slug: row.slug,
+      number: Number(row.chapterNumber),
+      titles: localizedTitles,
+      publishedAt: formatDate(row.publishedAt),
+      pages: [...pages]
+        .sort((a, b) => a.pageNumber - b.pageNumber)
+        .map((page) => ({
+          id: page.assetId,
+          src: page.publicUrl,
+          alt: page.altText,
+          width: page.width,
+          height: page.height
+        }))
+    }
   };
 }
 
-function getLocalizationMap(row: {
-  originalTitle: string;
-  slug: string;
-  localizations: Array<{
-    locale: Locale;
-    title: string;
-    slug: string;
-    description: string;
-  }>;
-}) {
-  const localizations: Record<Locale, { title: string; slug: string; description: string }> = {
+function getLocalizationMap(row: BaseTitleRow, localizations: LocalizationRow[]) {
+  const localizationMap: Record<Locale, { title: string; slug: string; description: string }> = {
     en: { title: row.originalTitle, slug: row.slug, description: "" },
     es: { title: row.originalTitle, slug: row.slug, description: "" }
   };
 
-  for (const localization of row.localizations) {
-    localizations[localization.locale] = {
+  for (const localization of localizations) {
+    localizationMap[localization.locale] = {
       title: localization.title,
       slug: localization.slug,
       description: localization.description
     };
   }
 
-  return localizations;
+  return localizationMap;
+}
+
+async function attachTagsToTitle(
+  tx: Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0],
+  titleId: string,
+  tagSlugs: string[]
+) {
+  for (const slug of tagSlugs) {
+    await tx
+      .insert(tags)
+      .values({
+        slug,
+        nameEn: labelFromSlug(slug),
+        nameEs: labelFromSlug(slug),
+        category: "general"
+      })
+      .onConflictDoNothing();
+
+    const [tag] = await tx.select({ id: tags.id }).from(tags).where(eq(tags.slug, slug)).limit(1);
+    if (tag) {
+      await tx.insert(titleTags).values({ titleId, tagId: tag.id }).onConflictDoNothing();
+    }
+  }
+}
+
+function parseTagSlugs(value: string) {
+  return [...new Set(value.split(",").map((tag) => tag.trim()).filter(Boolean))];
+}
+
+function labelFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function displayStatus(status: DbTitleStatus): DemoTitle["publicationStatus"] {
@@ -392,4 +582,23 @@ function displayLanguage(language: string) {
 
 function formatDate(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : "";
+}
+
+function formatDateTime(date: Date) {
+  return date.toISOString().slice(0, 16).replace("T", " ");
+}
+
+function groupBy<T>(items: T[], keyFn: (item: T) => string) {
+  const groups = new Map<string, T[]>();
+
+  for (const item of items) {
+    const key = keyFn(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+
+  return groups;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

@@ -1,0 +1,74 @@
+import { asc, eq } from "drizzle-orm";
+import { tags } from "@/db/schema";
+import type { DemoTag } from "@/lib/demo-data";
+import { getDb } from "../client";
+
+export type AdminTagListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+};
+
+export type TagFormValues = {
+  slug: string;
+  name: string;
+  category: string;
+};
+
+export const emptyTagFormValues: TagFormValues = {
+  slug: "",
+  name: "",
+  category: "genre"
+};
+
+export async function listDbAdminTags(): Promise<AdminTagListItem[]> {
+  const rows = await getDb()
+    .select({
+      id: tags.id,
+      slug: tags.slug,
+      name: tags.nameEn,
+      category: tags.category
+    })
+    .from(tags)
+    .orderBy(asc(tags.category), asc(tags.slug));
+
+  return rows;
+}
+
+export async function createDbTag(values: TagFormValues) {
+  const [tag] = await getDb()
+    .insert(tags)
+    .values({
+      slug: values.slug,
+      nameEn: values.name,
+      nameEs: values.name,
+      category: values.category
+    })
+    .onConflictDoUpdate({
+      target: tags.slug,
+      set: {
+        nameEn: values.name,
+        nameEs: values.name,
+        category: values.category,
+        updatedAt: new Date()
+      }
+    })
+    .returning({ id: tags.id });
+
+  return tag.id;
+}
+
+export async function getDbTagBySlug(slug: string) {
+  const [tag] = await getDb().select().from(tags).where(eq(tags.slug, slug)).limit(1);
+  return tag ?? null;
+}
+
+export function adminTagListFromDemoTags(demoTags: DemoTag[]): AdminTagListItem[] {
+  return demoTags.map((tag) => ({
+    id: tag.slug,
+    slug: tag.slug,
+    name: tag.names.en,
+    category: "genre"
+  }));
+}

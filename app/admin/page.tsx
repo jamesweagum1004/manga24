@@ -14,7 +14,10 @@ export default function AdminPage() {
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <AdminCard href="/admin/titles" title="Titles" body={`Browse title records from the active ${source} source.`} />
         <AdminCard href="/admin/titles/new" title="New Title" body={writesEnabled ? "Create canonical and localized title metadata." : "Writes need DATABASE_URL."} />
-        <AdminCard href="/admin" title="Deployment Status" body="Placeholder for service and deploy health checks." />
+        <AdminCard href="/admin/chapters" title="Chapters" body="Review chapter metadata and page counts." />
+        <AdminCard href="/admin/tags" title="Tags" body="Manage tag slugs and categories." />
+        <AdminCard href="/admin" title="DB Status" body={writesEnabled ? "PostgreSQL runtime source is configured." : "Demo fallback is active."} />
+        <AdminCard href="/admin" title="Deployment Info" body="Placeholder for service and deploy health checks." />
       </div>
     </main>
   );

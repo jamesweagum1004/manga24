@@ -85,7 +85,8 @@ export const titleLocalizations = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    uniqueTitleLocale: uniqueIndex("title_localizations_title_locale_idx").on(table.titleId, table.locale)
+    uniqueTitleLocale: uniqueIndex("title_localizations_title_locale_idx").on(table.titleId, table.locale),
+    uniqueLocaleSlug: uniqueIndex("title_localizations_locale_slug_idx").on(table.locale, table.slug)
   })
 );
 
@@ -133,6 +134,9 @@ export const chapterPages = pgTable(
     chapterId: uuid("chapter_id")
       .notNull()
       .references(() => chapters.id, { onDelete: "cascade" }),
+    chapterLocalizationId: uuid("chapter_localization_id")
+      .notNull()
+      .references(() => chapterLocalizations.id, { onDelete: "cascade" }),
     assetId: uuid("asset_id")
       .notNull()
       .references(() => assets.id, { onDelete: "restrict" }),
@@ -141,7 +145,11 @@ export const chapterPages = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    chapterPageIdx: uniqueIndex("chapter_pages_chapter_page_idx").on(table.chapterId, table.pageNumber)
+    chapterPageIdx: uniqueIndex("chapter_pages_chapter_page_idx").on(table.chapterId, table.pageNumber),
+    chapterLocalizationPageIdx: uniqueIndex("chapter_pages_chapter_localization_page_idx").on(
+      table.chapterLocalizationId,
+      table.pageNumber
+    )
   })
 );
 
@@ -152,6 +160,7 @@ export const tags = pgTable(
     slug: varchar("slug", { length: 120 }).notNull(),
     nameEn: varchar("name_en", { length: 120 }).notNull(),
     nameEs: varchar("name_es", { length: 120 }).notNull(),
+    category: varchar("category", { length: 80 }).default("general").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
@@ -195,19 +204,33 @@ export const titleRelations = relations(titles, ({ one, many }) => ({
   titleTags: many(titleTags)
 }));
 
+export const titleLocalizationRelations = relations(titleLocalizations, ({ one }) => ({
+  title: one(titles, {
+    fields: [titleLocalizations.titleId],
+    references: [titles.id]
+  })
+}));
+
 export const chapterRelations = relations(chapters, ({ one, many }) => ({
   title: one(titles, {
     fields: [chapters.titleId],
     references: [titles.id]
   }),
-  localizations: many(chapterLocalizations),
+  localizations: many(chapterLocalizations)
+}));
+
+export const chapterLocalizationRelations = relations(chapterLocalizations, ({ one, many }) => ({
+  chapter: one(chapters, {
+    fields: [chapterLocalizations.chapterId],
+    references: [chapters.id]
+  }),
   pages: many(chapterPages)
 }));
 
 export const chapterPageRelations = relations(chapterPages, ({ one }) => ({
-  chapter: one(chapters, {
-    fields: [chapterPages.chapterId],
-    references: [chapters.id]
+  chapterLocalization: one(chapterLocalizations, {
+    fields: [chapterPages.chapterLocalizationId],
+    references: [chapterLocalizations.id]
   }),
   asset: one(assets, {
     fields: [chapterPages.assetId],

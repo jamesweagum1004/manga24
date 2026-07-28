@@ -15,6 +15,21 @@ const slugSchema = z
 const requiredText = (label: string, max: number) =>
   z.string().trim().min(1, `${label} is required.`).max(max, `${label} must be ${max} characters or fewer.`);
 
+const tagListSchema = z
+  .string()
+  .trim()
+  .max(1000, "Tags must be 1000 characters or fewer.")
+  .refine(
+    (value) =>
+      value.length === 0 ||
+      value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .every((tag) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag)),
+    "Use comma-separated lowercase slugs, such as romance, slice-of-life."
+  );
+
 const titleFormSchema = z.object({
   canonicalSlug: slugSchema,
   originalTitle: requiredText("Original title", 240),
@@ -27,7 +42,8 @@ const titleFormSchema = z.object({
   enDescription: requiredText("English description", 4000),
   esTitle: requiredText("Spanish title", 240),
   esSlug: slugSchema,
-  esDescription: requiredText("Spanish description", 4000)
+  esDescription: requiredText("Spanish description", 4000),
+  tags: tagListSchema
 });
 
 export type TitleFormState = {
@@ -104,7 +120,8 @@ function parseTitleForm(formData: FormData) {
     enDescription: getFormValue(formData, "enDescription"),
     esTitle: getFormValue(formData, "esTitle"),
     esSlug: getFormValue(formData, "esSlug"),
-    esDescription: getFormValue(formData, "esDescription")
+    esDescription: getFormValue(formData, "esDescription"),
+    tags: getFormValue(formData, "tags")
   };
   const result = titleFormSchema.safeParse(values);
 
