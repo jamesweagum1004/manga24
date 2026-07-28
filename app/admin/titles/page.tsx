@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { databaseNotConfiguredMessage, getActiveDataSource, getCatalogTitles, isDatabaseConfigured } from "@/lib/data/source";
+import {
+  databaseNotConfiguredMessage,
+  getActiveDataSource,
+  getAdminTitleList,
+  isDatabaseConfigured
+} from "@/lib/data/source";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTitlesPage() {
-  const titles = await getCatalogTitles();
+  const titles = await getAdminTitleList();
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
 
@@ -30,17 +35,22 @@ export default async function AdminTitlesPage() {
         ) : (
           titles.map((title) => (
             <Link
-              key={title.slug}
-              href={`/admin/titles/${"id" in title ? title.id : title.slug}`}
-              className="flex min-h-16 items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)]"
+              key={title.id}
+              href={`/admin/titles/${title.id}`}
+              className="grid gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)] md:grid-cols-[1.2fr_1fr_auto]"
             >
-              <span>
-                <span className="block text-sm font-black">{title.originalTitle}</span>
-                <span className="mt-1 block text-xs text-[var(--muted)]">
-                  {title.publicationStatus} - {title.slug}
-                </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black">{title.originalTitle}</span>
+                <span className="mt-1 block truncate text-xs text-[var(--muted)]">{title.canonicalSlug}</span>
               </span>
-              <span className="text-xs font-bold text-[var(--accent)]">Edit</span>
+              <span className="grid gap-1 text-xs font-bold text-[var(--muted)]">
+                <span>
+                  {title.publicationStatus} - {title.contentRating} - Updated {title.updatedAt}
+                </span>
+                <span className="truncate">EN: {title.enTitle}</span>
+                <span className="truncate">ES: {title.esTitle}</span>
+              </span>
+              <span className="self-center text-xs font-bold text-[var(--accent)]">Edit</span>
             </Link>
           ))
         )}

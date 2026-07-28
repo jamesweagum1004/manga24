@@ -58,6 +58,14 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
             disabled={disabled}
           />
         </div>
+        <TextField
+          label="Tags"
+          name="tags"
+          value={state.values.tags}
+          errors={state.errors?.tags}
+          disabled={disabled}
+          hint="Comma-separated slugs, optional"
+        />
       </section>
 
       <section className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -96,13 +104,15 @@ function TextField({
   name,
   value,
   errors,
-  disabled
+  disabled,
+  hint
 }: {
   label: string;
   name: string;
   value: string;
   errors?: string[];
   disabled: boolean;
+  hint?: string;
 }) {
   return (
     <label className="grid gap-2">
@@ -113,6 +123,7 @@ function TextField({
         disabled={disabled}
         className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-bold outline-none focus:border-[var(--accent)] disabled:opacity-70"
       />
+      {hint ? <span className="text-xs font-bold text-[var(--muted)]">{hint}</span> : null}
       <FieldErrors errors={errors} />
     </label>
   );

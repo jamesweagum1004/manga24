@@ -64,6 +64,55 @@ curl -I https://dev.manga24.net/en
 
 Deployment note: the dev domain may be blocked from Korea because the domain is already warning-blocked domestically. The deployment can still be healthy and reachable through VPN or non-Korean networks.
 
+Server ownership should stay with the HestiaCP user:
+
+```bash
+chown -R user:user /home/user/apps/manga24
+```
+
+Install and build commands should run as the HestiaCP user:
+
+```bash
+sudo -H -u user npm ci
+sudo -H -u user npm run build
+```
+
+Start the deployed production build on the internal app address:
+
+```bash
+sudo -H -u user npm run start -- -H 127.0.0.1 -p 3001
+```
+
+## Admin Backend V1
+
+`DATABASE_URL` controls the active data source:
+
+- When `DATABASE_URL` is empty or missing, public pages and admin list pages use the synthetic demo fallback.
+- When `DATABASE_URL` is set, public pages and admin pages read from PostgreSQL through Drizzle.
+- Admin writes require `DATABASE_URL`; without it, forms show `Database is not configured. Set DATABASE_URL to enable writes.`
+
+Admin routes are protected with HTTP Basic Auth using:
+
+```bash
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+```
+
+In production, `/admin` is blocked if either admin credential is missing. In development, `/admin` is allowed without
+credentials and shows a warning banner.
+
+Run migrations:
+
+```bash
+npm run db:migrate
+```
+
+Seed abstract, non-explicit demo content:
+
+```bash
+npm run db:seed
+```
+
 ## Database
 
 Local PostgreSQL is provided by Docker Compose:

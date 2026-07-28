@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db, queryClient } from "../db";
 import {
   admins,
@@ -89,16 +90,33 @@ const tagSeeds = [
 ] as const;
 
 async function main() {
-  await db.insert(admins).values({
-    email: "admin@example.test",
-    displayName: "Demo Admin",
-    passwordHash: "replace-with-a-real-hash-before-production"
-  });
+  await db
+    .insert(admins)
+    .values({
+      email: "admin@example.test",
+      displayName: "Demo Admin",
+      passwordHash: "replace-with-a-real-hash-before-production"
+    })
+    .onConflictDoNothing();
 
-  const insertedTags = await db.insert(tags).values([...tagSeeds]).returning();
+  const insertedTags = await db
+    .insert(tags)
+    .values(tagSeeds.map((tag) => ({ ...tag, category: "genre" })))
+    .onConflictDoUpdate({
+      target: tags.slug,
+      set: {
+        category: "genre"
+      }
+    })
+    .returning();
   const tagsBySlug = new Map(insertedTags.map((tag) => [tag.slug, tag]));
 
   for (const [titleIndex, titleSeed] of titleSeeds.entries()) {
+    const [existingTitle] = await db.select({ id: titles.id }).from(titles).where(eq(titles.slug, titleSeed.slug)).limit(1);
+    if (existingTitle) {
+      continue;
+    }
+
     const [coverAsset] = await db
       .insert(assets)
       .values({
@@ -150,10 +168,10 @@ async function main() {
         })
         .returning();
 
-      await db.insert(chapterLocalizations).values([
+      const [enChapterLocalization] = await db.insert(chapterLocalizations).values([
         { chapterId: chapter.id, locale: "en", title: `Chapter ${chapterIndex}` },
         { chapterId: chapter.id, locale: "es", title: `Capítulo ${chapterIndex}` }
-      ]);
+      ]).returning();
 
       for (let pageIndex = 1; pageIndex <= 6; pageIndex += 1) {
         const path = `/placeholders/reader-${((pageIndex - 1) % 6) + 1}.svg`;
@@ -171,6 +189,7 @@ async function main() {
 
         await db.insert(chapterPages).values({
           chapterId: chapter.id,
+          chapterLocalizationId: enChapterLocalization.id,
           assetId: pageAsset.id,
           pageNumber: pageIndex
         });

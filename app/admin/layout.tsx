@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 const adminLinks = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/titles", label: "Titles" },
-  { href: "/admin/titles/new", label: "New Title" }
+  { href: "/admin/titles/new", label: "New Title" },
+  { href: "/admin/chapters", label: "Chapters" },
+  { href: "/admin/tags", label: "Tags" }
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
