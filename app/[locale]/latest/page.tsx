@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { MangaCard } from "@/components/manga-card";
 import { SiteShell } from "@/components/site-shell";
+import { getLatestCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { dictionary, latestTitles } from "@/lib/demo-data";
+import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
@@ -23,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function LatestPage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const titles = latestTitles();
+  const titles = await getLatestCatalogTitles();
 
   return (
     <SiteShell locale={locale}>

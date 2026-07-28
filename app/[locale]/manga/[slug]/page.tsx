@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 import { ChapterList } from "@/components/chapter-list";
 import { SiteShell } from "@/components/site-shell";
 import { TagChip } from "@/components/tag-chip";
+import { getCatalogTitleBySlug } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { dictionary, findTitle } from "@/lib/demo-data";
+import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 
@@ -14,10 +15,12 @@ type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const title = findTitle(slug);
+  const title = await getCatalogTitleBySlug(slug);
   if (!title) {
     return buildMetadata({ locale, path: `/manga/${slug}`, title: "Title", description: "Manga title page." });
   }
@@ -34,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TitleDetailPage({ params }: PageProps) {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const title = findTitle(slug);
+  const title = await getCatalogTitleBySlug(slug);
   if (!title) {
     notFound();
   }

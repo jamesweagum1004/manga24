@@ -8,6 +8,13 @@
       "when": 1785071201065,
       "tag": "0000_red_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785237351613,
+      "tag": "0001_fine_black_crow",
+      "breakpoints": true
     }
   ]
 }

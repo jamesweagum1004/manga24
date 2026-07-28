@@ -1,16 +1,20 @@
 import Link from "next/link";
+import { getActiveDataSource, isDatabaseConfigured } from "@/lib/data/source";
+
+export const dynamic = "force-dynamic";
 
 export default function AdminPage() {
+  const source = getActiveDataSource();
+  const writesEnabled = isDatabaseConfigured();
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-3xl font-black">Admin Dashboard</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-        Internal backend routes are scaffolded for title and chapter management. Authentication and roles are intentionally
-        not implemented in this milestone.
-      </p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <AdminCard href="/admin/titles" title="Manage Titles" body="Review localized metadata, tags, cover assets, and status." />
-        <AdminCard href="/admin/titles/new" title="Create Title" body="Placeholder form route for the first content workflow." />
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">Compact operational controls for the next Manga24 foundation step.</p>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <AdminCard href="/admin/titles" title="Titles" body={`Browse title records from the active ${source} source.`} />
+        <AdminCard href="/admin/titles/new" title="New Title" body={writesEnabled ? "Create canonical and localized title metadata." : "Writes need DATABASE_URL."} />
+        <AdminCard href="/admin" title="Deployment Status" body="Placeholder for service and deploy health checks." />
       </div>
     </main>
   );

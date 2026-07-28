@@ -21,10 +21,12 @@ const titleSeeds = [
     localizations: {
       en: {
         title: "Midnight Atelier",
+        slug: "midnight-atelier",
         description: "A quiet painter discovers a hidden studio where unfinished memories become luminous panels."
       },
       es: {
         title: "Atelier de Medianoche",
+        slug: "atelier-de-medianoche",
         description: "Una pintora descubre un taller oculto donde los recuerdos inconclusos se vuelven paneles luminosos."
       }
     },
@@ -41,10 +43,12 @@ const titleSeeds = [
     localizations: {
       en: {
         title: "Neon Shelter",
+        slug: "neon-shelter",
         description: "Two night-shift neighbors build trust while protecting a rooftop garden in a rain-soaked city."
       },
       es: {
         title: "Refugio de Neón",
+        slug: "refugio-de-neon",
         description: "Dos vecinos de turno nocturno construyen confianza mientras protegen un jardín sobre la ciudad."
       }
     },
@@ -61,10 +65,12 @@ const titleSeeds = [
     localizations: {
       en: {
         title: "Paper Moon Cafe",
+        slug: "paper-moon-cafe",
         description: "A reserved baker and a touring musician trade letters, recipes, and second chances."
       },
       es: {
         title: "Café Luna de Papel",
+        slug: "cafe-luna-de-papel",
         description: "Una repostera reservada y un músico de gira intercambian cartas, recetas y segundas oportunidades."
       }
     },

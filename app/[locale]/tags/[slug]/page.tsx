@@ -3,13 +3,16 @@ import { notFound } from "next/navigation";
 import { MangaCard } from "@/components/manga-card";
 import { SiteShell } from "@/components/site-shell";
 import { TagChip } from "@/components/tag-chip";
+import { getCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { demoTags, demoTitles, dictionary, findTag } from "@/lib/demo-data";
+import { demoTags, dictionary, findTag } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
@@ -33,7 +36,7 @@ export default async function TagPage({ params }: PageProps) {
   if (!tag) {
     notFound();
   }
-  const titles = demoTitles.filter((title) => title.tags.includes(slug));
+  const titles = (await getCatalogTitles()).filter((title) => title.tags.includes(slug));
 
   return (
     <SiteShell locale={locale}>
