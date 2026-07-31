@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { TitleFormValues } from "@/lib/db/queries/titles";
+import type { DeepSeekModel } from "@/lib/db/queries/settings";
 
 const localeSeoSchema = z.object({
   title: z.string().trim().min(1).transform((value) => value.slice(0, 70)),
@@ -25,7 +26,7 @@ const completionSchema = z.object({
 
 export type GeneratedTitleSeo = z.infer<typeof generatedSeoSchema>;
 
-export async function generateTitleSeo(values: TitleFormValues): Promise<GeneratedTitleSeo> {
+export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY is not configured.");
@@ -38,7 +39,7 @@ export async function generateTitleSeo(values: TitleFormValues): Promise<Generat
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+      model,
       thinking: { type: "disabled" },
       temperature: 0.2,
       max_tokens: 1000,

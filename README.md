@@ -98,7 +98,6 @@ ADMIN_USERNAME=
 ADMIN_PASSWORD=
 ADMIN_SESSION_SECRET=
 DEEPSEEK_API_KEY=
-DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
 The private login page is `/manga1004` and is never linked from the public site. After login, administration routes live
@@ -119,8 +118,8 @@ Set `DEEPSEEK_API_KEY` to enable the **Generate SEO** button on title edit pages
 the protected administrator action; public requests never call the API. Generated English and Spanish SEO titles,
 descriptions, and keywords are validated and stored in PostgreSQL, where they can be reviewed and edited before use.
 
-`DEEPSEEK_MODEL` defaults to `deepseek-v4-flash`. Keep the API key in an untracked server environment file and never expose
-it through a `NEXT_PUBLIC_` variable.
+Choose the active model from **Admin → Settings**. Keep the API key in an untracked server environment file and never
+expose it through a `NEXT_PUBLIC_` variable.
 
 Run migrations:
 

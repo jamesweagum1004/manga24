@@ -8,8 +8,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTitlesPage() {
+type Folder = "all" | "manga" | "manhwa";
+
+export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<{ folder?: string }> }) {
   const titles = await getAdminTitleList();
+  const query = await searchParams;
+  const activeFolder: Folder = query.folder === "manga" || query.folder === "manhwa" ? query.folder : "all";
+  const visibleTitles = activeFolder === "all" ? titles : titles.filter((title) => title.format === activeFolder);
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
 
@@ -29,11 +34,17 @@ export default async function AdminTitlesPage() {
           {databaseNotConfiguredMessage}
         </div>
       ) : null}
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
+        <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />
+        <FolderLink href="/manga1004/titles?folder=manhwa" label="Manhwa" count={titles.filter((title) => title.format === "manhwa").length} active={activeFolder === "manhwa"} />
+      </div>
+      <h2 className="mt-7 text-xl font-black">{activeFolder === "all" ? "All Titles" : activeFolder === "manga" ? "Manga" : "Manhwa"}</h2>
       <div className="mt-6 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-        {titles.length === 0 ? (
-          <div className="p-6 text-sm font-bold text-[var(--muted)]">No titles are available yet.</div>
+        {visibleTitles.length === 0 ? (
+          <div className="p-6 text-sm font-bold text-[var(--muted)]">No titles are available in this folder.</div>
         ) : (
-          titles.map((title) => (
+          visibleTitles.map((title) => (
             <Link
               key={title.id}
               href={`/manga1004/titles/${title.id}`}
@@ -45,7 +56,7 @@ export default async function AdminTitlesPage() {
               </span>
               <span className="grid gap-1 text-xs font-bold text-[var(--muted)]">
                 <span>
-                  {title.publicationStatus} - {title.contentRating} - Updated {title.updatedAt}
+                  {title.format === "manga" ? "Manga" : "Manhwa"} - {title.publicationStatus} - {title.contentRating} - Updated {title.updatedAt}
                 </span>
                 <span className="truncate">EN: {title.enTitle}</span>
                 <span className="truncate">ES: {title.esTitle}</span>
@@ -56,5 +67,21 @@ export default async function AdminTitlesPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function FolderLink({ href, label, count, active }: { href: string; label: string; count: number; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`relative rounded-xl border p-5 pt-7 transition-colors before:absolute before:-top-2 before:left-4 before:h-3 before:w-20 before:rounded-t-lg before:border before:border-b-0 ${
+        active
+          ? "border-[var(--accent)] bg-[var(--surface)] before:border-[var(--accent)] before:bg-[var(--surface)]"
+          : "border-[var(--border)] bg-[var(--surface)] before:border-[var(--border)] before:bg-[var(--surface-strong)] hover:border-[var(--accent)]"
+      }`}
+    >
+      <span className="block font-black">{label}</span>
+      <span className="mt-1 block text-sm font-bold text-[var(--muted)]">{count} titles</span>
+    </Link>
   );
 }

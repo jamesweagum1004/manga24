@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { clearAdminSession, getAdminSession } from "@/lib/admin/auth";
+import { clearAdminSession, createAdminSession, getAdminSession } from "@/lib/admin/auth";
 import { changeAdminPassword, createAdmin, updateAdminAccount } from "@/lib/db/queries/admins";
 
 const usernameSchema = z.string().trim().min(3).max(80).regex(/^[a-z0-9][a-z0-9_-]*$/);
@@ -65,6 +65,7 @@ export async function updateAdminAction(formData: FormData) {
   const parsed = z
     .object({
       adminId: z.string().uuid(),
+      username: usernameSchema,
       email: z.string().trim().email().max(255),
       displayName: z.string().trim().min(1).max(120),
       password: z.union([z.literal(""), passwordSchema]),
@@ -72,6 +73,7 @@ export async function updateAdminAction(formData: FormData) {
     })
     .safeParse({
       adminId: formData.get("adminId"),
+      username: formData.get("username"),
       email: formData.get("email"),
       displayName: formData.get("displayName"),
       password: formData.get("password"),
@@ -84,6 +86,7 @@ export async function updateAdminAction(formData: FormData) {
 
   try {
     await updateAdminAccount(parsed.data.adminId, {
+      username: parsed.data.username,
       email: parsed.data.email,
       displayName: parsed.data.displayName,
       isActive: parsed.data.isActive,
@@ -91,6 +94,9 @@ export async function updateAdminAction(formData: FormData) {
     });
   } catch {
     redirect("/manga1004/security?error=duplicate-admin");
+  }
+  if (parsed.data.adminId === session.adminId) {
+    await createAdminSession(session.adminId, parsed.data.username);
   }
   redirect("/manga1004/security?saved=admin");
 }

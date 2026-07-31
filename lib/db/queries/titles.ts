@@ -22,6 +22,7 @@ export type TitleFormValues = {
   originalLanguage: string;
   contentRating: "safe" | "mature_18";
   publicationStatus: "ongoing" | "completed" | "hiatus" | "cancelled";
+  format: "manga" | "manhwa";
   enTitle: string;
   enSlug: string;
   enDescription: string;
@@ -43,6 +44,7 @@ export type AdminTitleListItem = {
   canonicalSlug: string;
   publicationStatus: string;
   contentRating: string;
+  format: "manga" | "manhwa";
   updatedAt: string;
   enTitle: string;
   esTitle: string;
@@ -57,6 +59,7 @@ type BaseTitleRow = {
   originalTitle: string;
   originalLanguage: string;
   authorName: string;
+  format: "manga" | "manhwa";
   publicationStatus: DbTitleStatus;
   contentRating: DbContentRating;
   publishedAt: Date | null;
@@ -99,6 +102,7 @@ export const emptyTitleFormValues: TitleFormValues = {
   originalLanguage: "en",
   contentRating: "mature_18",
   publicationStatus: "ongoing",
+  format: "manga",
   enTitle: "",
   enSlug: "",
   enDescription: "",
@@ -136,6 +140,7 @@ export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
       canonicalSlug: row.slug,
       publicationStatus: displayStatus(row.publicationStatus),
       contentRating: displayContentRating(row.contentRating),
+      format: row.format,
       updatedAt: formatDateTime(row.updatedAt),
       enTitle: localizations.en.title,
       esTitle: localizations.es.title
@@ -180,6 +185,7 @@ export async function createDbTitle(values: TitleFormValues) {
         originalTitle: values.originalTitle,
         originalLanguage: values.originalLanguage,
         authorName: values.authorName,
+        format: values.format,
         publicationStatus: values.publicationStatus,
         contentRating: values.contentRating,
         publishedAt: values.publicationStatus === "ongoing" || values.publicationStatus === "completed" ? now : null
@@ -228,6 +234,7 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
         originalTitle: values.originalTitle,
         originalLanguage: values.originalLanguage,
         authorName: values.authorName,
+        format: values.format,
         publicationStatus: values.publicationStatus,
         contentRating: values.contentRating,
         updatedAt: now
@@ -296,6 +303,7 @@ export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues 
     originalLanguage: title.originalLanguage === "English" ? "en" : title.originalLanguage,
     contentRating: title.contentRating === "Safe" ? "safe" : "mature_18",
     publicationStatus: title.publicationStatus.toLowerCase() as TitleFormValues["publicationStatus"],
+    format: "manga",
     enTitle: title.titles.en,
     enSlug: title.slug,
     enDescription: title.descriptions.en,
@@ -319,6 +327,7 @@ export function adminTitleListFromDemoTitles(titles: DemoTitle[]): AdminTitleLis
     canonicalSlug: title.slug,
     publicationStatus: title.publicationStatus,
     contentRating: title.contentRating,
+    format: "manga",
     updatedAt: title.publishedAt,
     enTitle: title.titles.en,
     esTitle: title.titles.es
@@ -333,6 +342,7 @@ function selectBaseTitle() {
       originalTitle: titles.originalTitle,
       originalLanguage: titles.originalLanguage,
       authorName: titles.authorName,
+      format: titles.format,
       publicationStatus: titles.publicationStatus,
       contentRating: titles.contentRating,
       publishedAt: titles.publishedAt,
@@ -473,6 +483,7 @@ function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[],
     originalLanguage: row.originalLanguage,
     contentRating: row.contentRating,
     publicationStatus: row.publicationStatus,
+    format: row.format,
     enTitle: localizationMap.en.title,
     enSlug: localizationMap.en.slug,
     enDescription: localizationMap.en.description,
