@@ -3,9 +3,15 @@ import { z } from "zod";
 import type { TitleFormValues } from "@/lib/db/queries/titles";
 
 const localeSeoSchema = z.object({
-  title: z.string().trim().min(20).max(70),
-  description: z.string().trim().min(70).max(170),
-  keywords: z.array(z.string().trim().min(2).max(60)).min(3).max(10)
+  title: z.string().trim().min(1).transform((value) => value.slice(0, 70)),
+  description: z.string().trim().min(1).transform((value) => value.slice(0, 170)),
+  keywords: z
+    .union([z.array(z.string()), z.string()])
+    .transform((value) => (Array.isArray(value) ? value : value.split(",")))
+    .transform((keywords) =>
+      [...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean))].slice(0, 10)
+    )
+    .refine((keywords) => keywords.length > 0, "At least one keyword is required.")
 });
 
 const generatedSeoSchema = z.object({
@@ -72,5 +78,12 @@ export async function generateTitleSeo(values: TitleFormValues): Promise<Generat
     throw new Error("DeepSeek returned an empty response.");
   }
 
-  return generatedSeoSchema.parse(JSON.parse(content));
+  return generatedSeoSchema.parse(JSON.parse(stripJsonFence(content)));
+}
+
+function stripJsonFence(content: string) {
+  return content
+    .trim()
+    .replace(/^```(?:json)?\s*/iu, "")
+    .replace(/\s*```$/u, "");
 }
