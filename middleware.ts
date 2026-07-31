@@ -1,57 +1,80 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const username = process.env.ADMIN_USERNAME;
-  const password = process.env.ADMIN_PASSWORD;
-  const credentialsConfigured = Boolean(username && password);
+export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/")) {
+    return notFound();
+  }
 
-  if (!credentialsConfigured) {
-    if (process.env.NODE_ENV === "production") {
-      return new NextResponse("Admin credentials are not configured.", { status: 403 });
-    }
-
+  if (request.nextUrl.pathname === "/manga1004") {
     return NextResponse.next();
   }
 
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Basic ")) {
-    return unauthorized();
-  }
-
-  const decoded = decodeBasicAuth(authorization);
-  if (!decoded || decoded.username !== username || decoded.password !== password) {
-    return unauthorized();
+  const session = request.cookies.get("manga24_admin_session")?.value;
+  if (!(await hasValidSession(session))) {
+    return notFound();
   }
 
   return NextResponse.next();
 }
 
-function decodeBasicAuth(authorization: string) {
-  try {
-    const decoded = atob(authorization.slice("Basic ".length));
-    const separatorIndex = decoded.indexOf(":");
-    if (separatorIndex === -1) {
-      return null;
-    }
+export const config = {
+  matcher: ["/admin/:path*", "/manga1004/:path*"]
+};
 
-    return {
-      username: decoded.slice(0, separatorIndex),
-      password: decoded.slice(separatorIndex + 1)
-    };
-  } catch {
-    return null;
-  }
-}
-
-function unauthorized() {
-  return new NextResponse("Authentication required.", {
-    status: 401,
+function notFound() {
+  return new NextResponse("Not Found", {
+    status: 404,
     headers: {
-      "WWW-Authenticate": 'Basic realm="Manga24 Admin", charset="UTF-8"'
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow"
     }
   });
 }
 
-export const config = {
-  matcher: ["/admin/:path*"]
-};
+async function hasValidSession(value: string | undefined) {
+  if (!value) return false;
+  const [payload, signature] = value.split(".");
+  if (!payload || !signature) return false;
+
+  const secret = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD;
+  if (!secret) return false;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const expected = toBase64Url(new Uint8Array(digest));
+  if (!constantTimeEqual(expected, signature)) return false;
+
+  try {
+    const session = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as { expiresAt?: number };
+    return typeof session.expiresAt === "number" && session.expiresAt > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function toBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/u, "");
+}
+
+function fromBase64Url(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+function constantTimeEqual(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}

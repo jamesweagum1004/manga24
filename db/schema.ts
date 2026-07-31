@@ -24,6 +24,7 @@ export const assetKindEnum = pgEnum("asset_kind", ["cover", "thumbnail", "chapte
 
 export const admins = pgTable("admins", {
   id: uuid("id").defaultRandom().primaryKey(),
+  username: varchar("username", { length: 80 }).unique(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 120 }).notNull(),
   passwordHash: text("password_hash").notNull(),

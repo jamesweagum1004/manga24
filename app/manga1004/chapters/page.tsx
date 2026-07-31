@@ -21,7 +21,7 @@ export default async function AdminChaptersPage() {
           chapters.map((chapter) => (
             <Link
               key={chapter.id}
-              href={`/admin/chapters/${encodeURIComponent(chapter.id)}`}
+              href={`/manga1004/chapters/${encodeURIComponent(chapter.id)}`}
               className="grid gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)] md:grid-cols-[1fr_1fr_auto]"
             >
               <span className="min-w-0">
