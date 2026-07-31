@@ -69,6 +69,21 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
       </section>
 
       <section className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div>
+          <h2 className="text-lg font-black">SEO Metadata</h2>
+          <p className="mt-1 text-xs font-bold text-[var(--muted)]">Generate with DeepSeek from the edit page, then review and save here.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="English SEO title" name="enSeoTitle" value={state.values.enSeoTitle} errors={state.errors?.enSeoTitle} disabled={disabled} hint="Recommended: 50–60 characters" />
+          <TextField label="Spanish SEO title" name="esSeoTitle" value={state.values.esSeoTitle} errors={state.errors?.esSeoTitle} disabled={disabled} hint="Recommended: 50–60 characters" />
+        </div>
+        <TextAreaField label="English SEO description" name="enSeoDescription" value={state.values.enSeoDescription} errors={state.errors?.enSeoDescription} disabled={disabled} />
+        <TextField label="English keywords" name="enSeoKeywords" value={state.values.enSeoKeywords} errors={state.errors?.enSeoKeywords} disabled={disabled} hint="Comma-separated" />
+        <TextAreaField label="Spanish SEO description" name="esSeoDescription" value={state.values.esSeoDescription} errors={state.errors?.esSeoDescription} disabled={disabled} />
+        <TextField label="Spanish keywords" name="esSeoKeywords" value={state.values.esSeoKeywords} errors={state.errors?.esSeoKeywords} disabled={disabled} hint="Comma-separated" />
+      </section>
+
+      <section className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-black">English Localization</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="English title" name="enTitle" value={state.values.enTitle} errors={state.errors?.enTitle} disabled={disabled} />

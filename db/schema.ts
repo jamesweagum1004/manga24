@@ -82,6 +82,9 @@ export const titleLocalizations = pgTable(
     title: varchar("title", { length: 240 }).notNull(),
     slug: varchar("slug", { length: 180 }).notNull(),
     description: text("description").notNull(),
+    seoTitle: varchar("seo_title", { length: 70 }),
+    seoDescription: varchar("seo_description", { length: 170 }),
+    seoKeywords: text("seo_keywords"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },

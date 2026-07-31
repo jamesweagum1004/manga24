@@ -26,6 +26,7 @@ export type DemoTitle = {
   originalTitle: string;
   titles: Record<Locale, string>;
   descriptions: Record<Locale, string>;
+  seo?: Record<Locale, { title: string; description: string; keywords: string[] }>;
   cover: DemoAsset;
   author: string;
   originalLanguage: string;

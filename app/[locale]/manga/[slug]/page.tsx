@@ -28,8 +28,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return buildMetadata({
     locale,
     path: `/manga/${slug}`,
-    title: title.titles[locale],
-    description: title.descriptions[locale],
+    title: title.seo?.[locale].title ?? title.titles[locale],
+    description: title.seo?.[locale].description ?? title.descriptions[locale],
+    keywords: title.seo?.[locale].keywords,
     image: title.cover.src
   });
 }
