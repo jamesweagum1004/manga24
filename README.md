@@ -91,15 +91,25 @@ sudo -H -u user npm run start -- -H 127.0.0.1 -p 3001
 - When `DATABASE_URL` is set, public pages and admin pages read from PostgreSQL through Drizzle.
 - Admin writes require `DATABASE_URL`; without it, forms show `Database is not configured. Set DATABASE_URL to enable writes.`
 
-Admin routes are protected with HTTP Basic Auth using:
+The legacy environment credentials bootstrap the first database-backed administrator:
 
 ```bash
 ADMIN_USERNAME=
 ADMIN_PASSWORD=
+ADMIN_SESSION_SECRET=
 ```
 
-In production, `/admin` is blocked if either admin credential is missing. In development, `/admin` is allowed without
-credentials and shows a warning banner.
+The private login page is `/manga1004` and is never linked from the public site. After login, administration routes live
+under `/manga1004/*`. The former `/admin` path always returns `404`.
+
+After the first successful login, **Admin → Security** supports:
+
+- changing the signed-in administrator's password;
+- adding and updating administrator accounts;
+- enabling or disabling other administrator accounts.
+
+Use a long, random `ADMIN_SESSION_SECRET` in production. The application temporarily falls back to `ADMIN_PASSWORD` as
+the signing key for upgrade compatibility, but a dedicated secret is recommended.
 
 Run migrations:
 
@@ -153,11 +163,8 @@ routes keep working with demo data when it is missing.
 
 ## Admin
 
-`/admin` and nested admin routes are protected by HTTP Basic Auth when both `ADMIN_USERNAME` and `ADMIN_PASSWORD` are
-configured.
-
-In production, admin access is blocked if either credential is missing. In development, admin routes are allowed without
-credentials and show a warning banner so local demo fallback can still be inspected.
+`/manga1004` is the unlinked administrator login page. Nested routes require a signed administrator session, and `/admin`
+always returns `404`.
 
 ## Storage
 

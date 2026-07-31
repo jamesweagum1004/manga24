@@ -12,12 +12,12 @@ export default function AdminPage() {
       <h1 className="text-3xl font-black">Admin Dashboard</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">Compact operational controls for the next Manga24 foundation step.</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <AdminCard href="/admin/titles" title="Titles" body={`Browse title records from the active ${source} source.`} />
-        <AdminCard href="/admin/titles/new" title="New Title" body={writesEnabled ? "Create canonical and localized title metadata." : "Writes need DATABASE_URL."} />
-        <AdminCard href="/admin/chapters" title="Chapters" body="Review chapter metadata and page counts." />
-        <AdminCard href="/admin/tags" title="Tags" body="Manage tag slugs and categories." />
-        <AdminCard href="/admin" title="DB Status" body={writesEnabled ? "PostgreSQL runtime source is configured." : "Demo fallback is active."} />
-        <AdminCard href="/admin" title="Deployment Info" body="Placeholder for service and deploy health checks." />
+        <AdminCard href="/manga1004/titles" title="Titles" body={`Browse title records from the active ${source} source.`} />
+        <AdminCard href="/manga1004/titles/new" title="New Title" body={writesEnabled ? "Create canonical and localized title metadata." : "Writes need DATABASE_URL."} />
+        <AdminCard href="/manga1004/chapters" title="Chapters" body="Review chapter metadata and page counts." />
+        <AdminCard href="/manga1004/tags" title="Tags" body="Manage tag slugs and categories." />
+        <AdminCard href="/manga1004/dashboard" title="DB Status" body={writesEnabled ? "PostgreSQL runtime source is configured." : "Demo fallback is active."} />
+        <AdminCard href="/manga1004/dashboard" title="Deployment Info" body="Placeholder for service and deploy health checks." />
       </div>
     </main>
   );

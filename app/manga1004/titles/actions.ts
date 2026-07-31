@@ -75,7 +75,7 @@ export async function createTitleAction(_state: TitleFormState, formData: FormDa
     };
   }
 
-  redirect(`/admin/titles/${id}`);
+  redirect(`/manga1004/titles/${id}`);
 }
 
 export async function updateTitleAction(
@@ -104,7 +104,7 @@ export async function updateTitleAction(
     };
   }
 
-  redirect(`/admin/titles/${id}`);
+  redirect(`/manga1004/titles/${id}`);
 }
 
 function parseTitleForm(formData: FormData) {

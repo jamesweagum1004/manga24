@@ -20,7 +20,7 @@ export default async function AdminTitlesPage() {
           <h1 className="text-3xl font-black">Titles</h1>
           <p className="mt-1 text-sm font-bold text-[var(--muted)]">Source: {source}</p>
         </div>
-        <Link href="/admin/titles/new" className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-bold text-white">
+        <Link href="/manga1004/titles/new" className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-bold text-white">
           New Title
         </Link>
       </div>
@@ -36,7 +36,7 @@ export default async function AdminTitlesPage() {
           titles.map((title) => (
             <Link
               key={title.id}
-              href={`/admin/titles/${title.id}`}
+              href={`/manga1004/titles/${title.id}`}
               className="grid gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)] md:grid-cols-[1.2fr_1fr_auto]"
             >
               <span className="min-w-0">

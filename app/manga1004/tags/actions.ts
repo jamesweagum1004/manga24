@@ -61,7 +61,7 @@ export async function createTagAction(_state: TagFormState, formData: FormData):
     };
   }
 
-  redirect("/admin/tags");
+  redirect("/manga1004/tags");
 }
 
 function getFormValue(formData: FormData, key: keyof TagFormValues) {
