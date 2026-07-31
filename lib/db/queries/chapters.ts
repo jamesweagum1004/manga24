@@ -1,16 +1,38 @@
 import { asc, eq, inArray } from "drizzle-orm";
-import { chapterPages, chapters, titles } from "@/db/schema";
+import { chapterLocalizations, chapterPages, chapters, titles } from "@/db/schema";
 import type { DemoTitle } from "@/lib/demo-data";
 import { getDb } from "../client";
 import { getDbTitleBySlug } from "./titles";
 
 export type AdminChapterListItem = {
   id: string;
+  titleId: string;
   title: string;
+  format: "manga" | "manhwa";
   chapterNumber: string;
   canonicalSlug: string;
   publicationStatus: string;
+  publicationStatusValue: "draft" | "scheduled" | "published" | "archived";
   pageCount: number;
+  updatedAt: string;
+};
+
+export type ChapterFormValues = {
+  titleId: string;
+  chapterNumber: string;
+  canonicalSlug: string;
+  publicationStatus: "draft" | "scheduled" | "published" | "archived";
+  enTitle: string;
+  esTitle: string;
+};
+
+export const emptyChapterFormValues: ChapterFormValues = {
+  titleId: "",
+  chapterNumber: "1",
+  canonicalSlug: "chapter-1",
+  publicationStatus: "draft",
+  enTitle: "Chapter 1",
+  esTitle: "Capítulo 1"
 };
 
 export async function getDbChapterBySlug(titleSlug: string, chapterSlug: string) {
@@ -29,9 +51,11 @@ export async function listDbAdminChapters(): Promise<AdminChapterListItem[]> {
       id: chapters.id,
       titleId: chapters.titleId,
       title: titles.originalTitle,
+      format: titles.format,
       chapterNumber: chapters.chapterNumber,
       canonicalSlug: chapters.slug,
-      publicationStatus: chapters.publicationStatus
+      publicationStatus: chapters.publicationStatus,
+      updatedAt: chapters.updatedAt
     })
     .from(chapters)
     .innerJoin(titles, eq(chapters.titleId, titles.id))
@@ -58,21 +82,93 @@ export async function listDbAdminChapters(): Promise<AdminChapterListItem[]> {
     ...chapter,
     chapterNumber: formatChapterNumber(chapter.chapterNumber),
     publicationStatus: displayPublicationStatus(chapter.publicationStatus),
-    pageCount: pageCounts.get(chapter.id) ?? 0
+    publicationStatusValue: chapter.publicationStatus,
+    pageCount: pageCounts.get(chapter.id) ?? 0,
+    updatedAt: formatDateTime(chapter.updatedAt)
   }));
+}
+
+export async function getDbChapterForAdmin(id: string) {
+  const [chapter] = await getDb().select().from(chapters).where(eq(chapters.id, id)).limit(1);
+  if (!chapter) return null;
+  const [localizations, pages] = await Promise.all([
+    getDb().select().from(chapterLocalizations).where(eq(chapterLocalizations.chapterId, id)),
+    getDb().select({ id: chapterPages.id }).from(chapterPages).where(eq(chapterPages.chapterId, id))
+  ]);
+  const en = localizations.find((item) => item.locale === "en");
+  const es = localizations.find((item) => item.locale === "es");
+  return {
+    id: chapter.id,
+    pageCount: pages.length,
+    values: {
+      titleId: chapter.titleId,
+      chapterNumber: formatChapterNumber(chapter.chapterNumber),
+      canonicalSlug: chapter.slug,
+      publicationStatus: chapter.publicationStatus,
+      enTitle: en?.title ?? `Chapter ${formatChapterNumber(chapter.chapterNumber)}`,
+      esTitle: es?.title ?? `Capítulo ${formatChapterNumber(chapter.chapterNumber)}`
+    } satisfies ChapterFormValues
+  };
+}
+
+export async function createDbChapter(values: ChapterFormValues) {
+  return getDb().transaction(async (tx) => {
+    const now = new Date();
+    const [chapter] = await tx.insert(chapters).values({
+      titleId: values.titleId,
+      chapterNumber: values.chapterNumber,
+      slug: values.canonicalSlug,
+      publicationStatus: values.publicationStatus,
+      publishedAt: values.publicationStatus === "published" ? now : null
+    }).returning({ id: chapters.id });
+    await tx.insert(chapterLocalizations).values([
+      { chapterId: chapter.id, locale: "en", title: values.enTitle },
+      { chapterId: chapter.id, locale: "es", title: values.esTitle }
+    ]);
+    return chapter.id;
+  });
+}
+
+export async function updateDbChapter(id: string, values: ChapterFormValues) {
+  return getDb().transaction(async (tx) => {
+    const now = new Date();
+    const [current] = await tx.select({ publishedAt: chapters.publishedAt }).from(chapters).where(eq(chapters.id, id)).limit(1);
+    await tx.update(chapters).set({
+      titleId: values.titleId,
+      chapterNumber: values.chapterNumber,
+      slug: values.canonicalSlug,
+      publicationStatus: values.publicationStatus,
+      publishedAt: values.publicationStatus === "published" ? current?.publishedAt ?? now : null,
+      updatedAt: now
+    }).where(eq(chapters.id, id));
+    for (const [locale, title] of [["en", values.enTitle], ["es", values.esTitle]] as const) {
+      await tx.insert(chapterLocalizations).values({ chapterId: id, locale, title, updatedAt: now }).onConflictDoUpdate({
+        target: [chapterLocalizations.chapterId, chapterLocalizations.locale],
+        set: { title, updatedAt: now }
+      });
+    }
+  });
 }
 
 export function adminChapterListFromDemoTitles(demoTitles: DemoTitle[]): AdminChapterListItem[] {
   return demoTitles.flatMap((title) =>
     title.chapters.map((chapter) => ({
       id: `${title.slug}:${chapter.slug}`,
+      titleId: title.slug,
       title: title.originalTitle,
+      format: "manga",
       chapterNumber: formatChapterNumber(String(chapter.number)),
       canonicalSlug: chapter.slug,
       publicationStatus: "Published",
-      pageCount: chapter.pages.length
+      publicationStatusValue: "published",
+      pageCount: chapter.pages.length,
+      updatedAt: chapter.publishedAt
     }))
   );
+}
+
+function formatDateTime(value: Date) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(value);
 }
 
 function formatChapterNumber(value: string) {

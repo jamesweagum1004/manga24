@@ -1,33 +1,22 @@
 import Link from "next/link";
-import { getActiveDataSource, isDatabaseConfigured } from "@/lib/data/source";
+import { getActiveDataSource, getAdminChapterList, getAdminTagList, getAdminTitleList, isDatabaseConfigured } from "@/lib/data/source";
+import { listAds } from "@/lib/db/queries/ads";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
-  const source = getActiveDataSource();
-  const writesEnabled = isDatabaseConfigured();
-
+export default async function AdminPage() {
+  const [titles, chapters, tags, ads] = await Promise.all([getAdminTitleList(), getAdminChapterList(), getAdminTagList(), listAds()]);
+  const published = chapters.filter((chapter) => chapter.publicationStatusValue === "published").length;
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-black">Admin Dashboard</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">Compact operational controls for the next Manga24 foundation step.</p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <AdminCard href="/manga1004/titles" title="Titles" body={`Browse title records from the active ${source} source.`} />
-        <AdminCard href="/manga1004/titles/new" title="New Title" body={writesEnabled ? "Create canonical and localized title metadata." : "Writes need DATABASE_URL."} />
-        <AdminCard href="/manga1004/chapters" title="Chapters" body="Review chapter metadata and page counts." />
-        <AdminCard href="/manga1004/tags" title="Tags" body="Manage tag slugs and categories." />
-        <AdminCard href="/manga1004/dashboard" title="DB Status" body={writesEnabled ? "PostgreSQL runtime source is configured." : "Demo fallback is active."} />
-        <AdminCard href="/manga1004/dashboard" title="Deployment Info" body="Placeholder for service and deploy health checks." />
-      </div>
+      <div><p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">Overview</p><h1 className="mt-1 text-3xl font-black">Dashboard</h1><p className="mt-2 text-sm text-[var(--muted)]">Content, publishing, and advertising at a glance.</p></div>
+      <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4"><Metric label="Titles" value={titles.length} detail={`${titles.filter((title) => title.format === "manga").length} Manga · ${titles.filter((title) => title.format === "manhwa").length} Manhwa`} /><Metric label="Chapters" value={chapters.length} detail={`${published} published`} /><Metric label="Tags" value={tags.length} detail="Catalog taxonomy" /><Metric label="Active ads" value={ads.filter((ad) => ad.isActive).length} detail={`${ads.length} configured`} /></section>
+      <section className="mt-7"><h2 className="text-xl font-black">Quick actions</h2><div className="mt-3 grid gap-3 md:grid-cols-3"><Action href="/manga1004/titles/new" title="Create a title" body="Add canonical and localized metadata." icon="+" /><Action href="/manga1004/chapters/new" title="Create a chapter" body="Add localized chapter metadata and status." icon="C" /><Action href="/manga1004/ads" title="Manage advertising" body="Upload banners or configure ExoClick." icon="A" /></div></section>
+      <section className="mt-7 grid gap-4 lg:grid-cols-[1.3fr_1fr]"><div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><div className="flex items-center justify-between"><h2 className="text-lg font-black">Recent chapter activity</h2><Link href="/manga1004/chapters" className="text-xs font-black text-[var(--accent)]">View all →</Link></div><div className="mt-3 divide-y divide-[var(--border)]">{chapters.slice(-5).reverse().map((chapter) => <Link key={chapter.id} href={`/manga1004/chapters/${chapter.id}`} className="flex items-center justify-between gap-3 py-3"><span className="min-w-0"><strong className="block truncate text-sm">{chapter.title} · Ch. {chapter.chapterNumber}</strong><small className="text-[var(--muted)]">{chapter.pageCount} pages · {chapter.updatedAt}</small></span><span className="text-xs font-black text-[var(--accent)]">Edit</span></Link>)}</div></div><div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><h2 className="text-lg font-black">System status</h2><dl className="mt-4 grid gap-3 text-sm"><Row label="Data source" value={getActiveDataSource()} /><Row label="Database writes" value={isDatabaseConfigured() ? "Ready" : "Disabled"} /><Row label="Admin route" value="Private" /><Row label="Development SEO" value="Blocked" /></dl></div></section>
     </main>
   );
 }
 
-function AdminCard({ href, title, body }: { href: string; title: string; body: string }) {
-  return (
-    <Link href={href} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:border-[var(--accent)]">
-      <h2 className="text-lg font-black">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{body}</p>
-    </Link>
-  );
-}
+function Metric({ label, value, detail }: { label: string; value: number; detail: string }) { return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><p className="text-xs font-black uppercase text-[var(--muted)]">{label}</p><p className="mt-2 text-3xl font-black">{value}</p><p className="mt-1 text-xs font-bold text-[var(--muted)]">{detail}</p></div>; }
+function Action({ href, title, body, icon }: { href: string; title: string; body: string; icon: string }) { return <Link href={href} className="flex gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm hover:border-[var(--accent)]"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] font-black text-white">{icon}</span><span><strong className="block">{title}</strong><small className="mt-1 block leading-5 text-[var(--muted)]">{body}</small></span></Link>; }
+function Row({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0"><dt className="font-bold text-[var(--muted)]">{label}</dt><dd className="font-black">{value}</dd></div>; }
