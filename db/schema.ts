@@ -21,6 +21,7 @@ export const publicationStatusEnum = pgEnum("publication_status", ["draft", "sch
 export const titleStatusEnum = pgEnum("title_status", ["ongoing", "completed", "hiatus", "cancelled"]);
 export const contentRatingEnum = pgEnum("content_rating", ["safe", "mature_18"]);
 export const assetKindEnum = pgEnum("asset_kind", ["cover", "thumbnail", "chapter_page", "banner"]);
+export const titleFormatEnum = pgEnum("title_format", ["manga", "manhwa"]);
 
 export const admins = pgTable("admins", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -30,6 +31,12 @@ export const admins = pgTable("admins", {
   passwordHash: text("password_hash").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const siteSettings = pgTable("site_settings", {
+  id: integer("id").primaryKey().default(1),
+  deepseekModel: varchar("deepseek_model", { length: 80 }).default("deepseek-v4-flash").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
@@ -57,6 +64,7 @@ export const titles = pgTable(
     originalTitle: varchar("original_title", { length: 240 }).notNull(),
     originalLanguage: varchar("original_language", { length: 16 }).notNull(),
     authorName: varchar("author_name", { length: 160 }).notNull(),
+    format: titleFormatEnum("format").default("manga").notNull(),
     publicationStatus: titleStatusEnum("publication_status").default("ongoing").notNull(),
     contentRating: contentRatingEnum("content_rating").default("mature_18").notNull(),
     coverAssetId: uuid("cover_asset_id").references(() => assets.id, { onDelete: "set null" }),

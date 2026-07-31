@@ -80,11 +80,12 @@ export async function createAdmin(values: {
 
 export async function updateAdminAccount(
   adminId: string,
-  values: { email: string; displayName: string; isActive: boolean; password?: string }
+  values: { username: string; email: string; displayName: string; isActive: boolean; password?: string }
 ) {
   await getDb()
     .update(admins)
     .set({
+      username: values.username,
       email: values.email,
       displayName: values.displayName,
       isActive: values.isActive,

@@ -52,7 +52,7 @@ export default async function AdminSecurityPage({
           {admins.map((admin) => (
             <form key={admin.id} action={updateAdminAction} className="grid gap-2 rounded-lg border border-[var(--border)] p-3 text-sm sm:grid-cols-2">
               <input type="hidden" name="adminId" value={admin.id} />
-              <strong className="self-center">{admin.username ?? "Not initialized"}</strong>
+              <input name="username" defaultValue={admin.username ?? ""} required placeholder="Username" className="rounded-lg border p-2 font-bold" />
               <label className="flex items-center gap-2 font-bold">
                 <input name="isActive" type="checkbox" defaultChecked={admin.isActive} />
                 Active

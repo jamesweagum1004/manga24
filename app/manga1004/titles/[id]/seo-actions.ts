@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getAdminTitleById } from "@/lib/data/source";
 import { generateTitleSeo } from "@/lib/deepseek/seo";
 import { updateDbTitleSeo } from "@/lib/db/queries/titles";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export async function generateSeoAction(id: string) {
   const title = await getAdminTitleById(id);
@@ -12,7 +13,8 @@ export async function generateSeoAction(id: string) {
   }
 
   try {
-    const seo = await generateTitleSeo(title.values);
+    const settings = await getSiteSettings();
+    const seo = await generateTitleSeo(title.values, settings.deepseekModel);
     await updateDbTitleSeo(title.id, seo);
   } catch (error) {
     const message = getSeoErrorMessage(error);

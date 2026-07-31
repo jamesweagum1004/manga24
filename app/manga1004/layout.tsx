@@ -17,6 +17,7 @@ const adminLinks = [
   { href: "/manga1004/titles/new", label: "New Title" },
   { href: "/manga1004/chapters", label: "Chapters" },
   { href: "/manga1004/tags", label: "Tags" },
+  { href: "/manga1004/settings", label: "Settings" },
   { href: "/manga1004/security", label: "Security" }
 ];
 

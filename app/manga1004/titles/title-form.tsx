@@ -22,6 +22,11 @@ const contentRatingOptions = [
   { value: "mature_18", label: "18+" }
 ];
 
+const formatOptions = [
+  { value: "manga", label: "Manga (Japanese comics)" },
+  { value: "manhwa", label: "Manhwa (Korean comics)" }
+];
+
 export function TitleForm({ action, initialState, submitLabel, writesEnabled }: TitleFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const disabled = pending || !writesEnabled;
@@ -41,6 +46,14 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
           <TextField label="Original title" name="originalTitle" value={state.values.originalTitle} errors={state.errors?.originalTitle} disabled={disabled} />
           <TextField label="Author name" name="authorName" value={state.values.authorName} errors={state.errors?.authorName} disabled={disabled} />
           <TextField label="Original language" name="originalLanguage" value={state.values.originalLanguage} errors={state.errors?.originalLanguage} disabled={disabled} />
+          <SelectField
+            label="Content folder"
+            name="format"
+            value={state.values.format}
+            options={formatOptions}
+            errors={state.errors?.format}
+            disabled={disabled}
+          />
           <SelectField
             label="Content rating"
             name="contentRating"
