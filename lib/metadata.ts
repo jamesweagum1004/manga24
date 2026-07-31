@@ -9,6 +9,7 @@ type MetadataInput = {
   description: string;
   image?: string;
   noIndex?: boolean;
+  keywords?: string[];
 };
 
 export function siteUrl(path = "") {
@@ -35,6 +36,7 @@ export function buildMetadata(input: MetadataInput): Metadata {
   return {
     title: `${input.title} | Manga24`,
     description: input.description,
+    keywords: input.keywords,
     alternates: localizedAlternates(input.path),
     openGraph: {
       title: `${input.title} | Manga24`,

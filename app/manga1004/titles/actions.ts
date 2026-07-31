@@ -43,6 +43,12 @@ const titleFormSchema = z.object({
   esTitle: requiredText("Spanish title", 240),
   esSlug: slugSchema,
   esDescription: requiredText("Spanish description", 4000),
+  enSeoTitle: z.string().trim().max(70, "English SEO title must be 70 characters or fewer."),
+  enSeoDescription: z.string().trim().max(170, "English SEO description must be 170 characters or fewer."),
+  enSeoKeywords: z.string().trim().max(500, "English SEO keywords must be 500 characters or fewer."),
+  esSeoTitle: z.string().trim().max(70, "Spanish SEO title must be 70 characters or fewer."),
+  esSeoDescription: z.string().trim().max(170, "Spanish SEO description must be 170 characters or fewer."),
+  esSeoKeywords: z.string().trim().max(500, "Spanish SEO keywords must be 500 characters or fewer."),
   tags: tagListSchema
 });
 
@@ -121,6 +127,12 @@ function parseTitleForm(formData: FormData) {
     esTitle: getFormValue(formData, "esTitle"),
     esSlug: getFormValue(formData, "esSlug"),
     esDescription: getFormValue(formData, "esDescription"),
+    enSeoTitle: getFormValue(formData, "enSeoTitle"),
+    enSeoDescription: getFormValue(formData, "enSeoDescription"),
+    enSeoKeywords: getFormValue(formData, "enSeoKeywords"),
+    esSeoTitle: getFormValue(formData, "esSeoTitle"),
+    esSeoDescription: getFormValue(formData, "esSeoDescription"),
+    esSeoKeywords: getFormValue(formData, "esSeoKeywords"),
     tags: getFormValue(formData, "tags")
   };
   const result = titleFormSchema.safeParse(values);

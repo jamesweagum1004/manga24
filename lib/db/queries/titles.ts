@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   assets,
   chapterLocalizations,
@@ -28,6 +28,12 @@ export type TitleFormValues = {
   esTitle: string;
   esSlug: string;
   esDescription: string;
+  enSeoTitle: string;
+  enSeoDescription: string;
+  enSeoKeywords: string;
+  esSeoTitle: string;
+  esSeoDescription: string;
+  esSeoKeywords: string;
   tags: string;
 };
 
@@ -99,6 +105,12 @@ export const emptyTitleFormValues: TitleFormValues = {
   esTitle: "",
   esSlug: "",
   esDescription: "",
+  enSeoTitle: "",
+  enSeoDescription: "",
+  enSeoKeywords: "",
+  esSeoTitle: "",
+  esSeoDescription: "",
+  esSeoKeywords: "",
   tags: ""
 };
 
@@ -180,14 +192,20 @@ export async function createDbTitle(values: TitleFormValues) {
         locale: "en",
         title: values.enTitle,
         slug: values.enSlug,
-        description: values.enDescription
+        description: values.enDescription,
+        seoTitle: values.enSeoTitle || null,
+        seoDescription: values.enSeoDescription || null,
+        seoKeywords: values.enSeoKeywords || null
       },
       {
         titleId: title.id,
         locale: "es",
         title: values.esTitle,
         slug: values.esSlug,
-        description: values.esDescription
+        description: values.esDescription,
+        seoTitle: values.esSeoTitle || null,
+        seoDescription: values.esSeoDescription || null,
+        seoKeywords: values.esSeoKeywords || null
       }
     ]);
 
@@ -225,6 +243,9 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
           title: values[`${locale}Title`],
           slug: values[`${locale}Slug`],
           description: values[`${locale}Description`],
+          seoTitle: values[`${locale}SeoTitle`] || null,
+          seoDescription: values[`${locale}SeoDescription`] || null,
+          seoKeywords: values[`${locale}SeoKeywords`] || null,
           updatedAt: now
         })
         .onConflictDoUpdate({
@@ -233,6 +254,9 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
             title: values[`${locale}Title`],
             slug: values[`${locale}Slug`],
             description: values[`${locale}Description`],
+            seoTitle: values[`${locale}SeoTitle`] || null,
+            seoDescription: values[`${locale}SeoDescription`] || null,
+            seoKeywords: values[`${locale}SeoKeywords`] || null,
             updatedAt: now
           }
         });
@@ -240,6 +264,27 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
 
     await tx.delete(titleTags).where(eq(titleTags.titleId, id));
     await attachTagsToTitle(tx, id, tagSlugs);
+  });
+}
+
+export async function updateDbTitleSeo(
+  id: string,
+  seo: Record<Locale, { title: string; description: string; keywords: string[] }>
+) {
+  const db = getDb();
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    for (const locale of ["en", "es"] as const) {
+      await tx
+        .update(titleLocalizations)
+        .set({
+          seoTitle: seo[locale].title,
+          seoDescription: seo[locale].description,
+          seoKeywords: seo[locale].keywords.join(", "),
+          updatedAt: now
+        })
+        .where(and(eq(titleLocalizations.titleId, id), eq(titleLocalizations.locale, locale)));
+    }
   });
 }
 
@@ -257,6 +302,12 @@ export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues 
     esTitle: title.titles.es,
     esSlug: title.slug,
     esDescription: title.descriptions.es,
+    enSeoTitle: "",
+    enSeoDescription: "",
+    enSeoKeywords: "",
+    esSeoTitle: "",
+    esSeoDescription: "",
+    esSeoKeywords: "",
     tags: title.tags.join(", ")
   };
 }
@@ -428,6 +479,12 @@ function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[],
     esTitle: localizationMap.es.title,
     esSlug: localizationMap.es.slug,
     esDescription: localizationMap.es.description,
+    enSeoTitle: localizationMap.en.seoTitle,
+    enSeoDescription: localizationMap.en.seoDescription,
+    enSeoKeywords: localizationMap.en.seoKeywords,
+    esSeoTitle: localizationMap.es.seoTitle,
+    esSeoDescription: localizationMap.es.seoDescription,
+    esSeoKeywords: localizationMap.es.seoKeywords,
     tags: tagRows.map((tag) => tag.slug).join(", ")
   };
 }
@@ -463,6 +520,18 @@ function mapTitleRow(
     descriptions: {
       en: localizationMap.en.description,
       es: localizationMap.es.description
+    },
+    seo: {
+      en: {
+        title: localizationMap.en.seoTitle || localizationMap.en.title,
+        description: localizationMap.en.seoDescription || localizationMap.en.description,
+        keywords: parseKeywords(localizationMap.en.seoKeywords)
+      },
+      es: {
+        title: localizationMap.es.seoTitle || localizationMap.es.title,
+        description: localizationMap.es.seoDescription || localizationMap.es.description,
+        keywords: parseKeywords(localizationMap.es.seoKeywords)
+      }
     },
     cover,
     author: row.authorName,
@@ -511,16 +580,19 @@ function mapChapterRow(
 }
 
 function getLocalizationMap(row: BaseTitleRow, localizations: LocalizationRow[]) {
-  const localizationMap: Record<Locale, { title: string; slug: string; description: string }> = {
-    en: { title: row.originalTitle, slug: row.slug, description: "" },
-    es: { title: row.originalTitle, slug: row.slug, description: "" }
+  const localizationMap: Record<Locale, { title: string; slug: string; description: string; seoTitle: string; seoDescription: string; seoKeywords: string }> = {
+    en: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" },
+    es: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" }
   };
 
   for (const localization of localizations) {
     localizationMap[localization.locale] = {
       title: localization.title,
       slug: localization.slug,
-      description: localization.description
+      description: localization.description,
+      seoTitle: localization.seoTitle ?? "",
+      seoDescription: localization.seoDescription ?? "",
+      seoKeywords: localization.seoKeywords ?? ""
     };
   }
 
@@ -552,6 +624,10 @@ async function attachTagsToTitle(
 
 function parseTagSlugs(value: string) {
   return [...new Set(value.split(",").map((tag) => tag.trim()).filter(Boolean))];
+}
+
+function parseKeywords(value: string) {
+  return value.split(",").map((keyword) => keyword.trim()).filter(Boolean);
 }
 
 function labelFromSlug(slug: string) {
