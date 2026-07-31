@@ -22,6 +22,8 @@ export const titleStatusEnum = pgEnum("title_status", ["ongoing", "completed", "
 export const contentRatingEnum = pgEnum("content_rating", ["safe", "mature_18"]);
 export const assetKindEnum = pgEnum("asset_kind", ["cover", "thumbnail", "chapter_page", "banner"]);
 export const titleFormatEnum = pgEnum("title_format", ["manga", "manhwa"]);
+export const adKindEnum = pgEnum("ad_kind", ["static", "exoclick"]);
+export const adPositionEnum = pgEnum("ad_position", ["header", "content"]);
 
 export const admins = pgTable("admins", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -39,6 +41,30 @@ export const siteSettings = pgTable("site_settings", {
   deepseekModel: varchar("deepseek_model", { length: 80 }).default("deepseek-v4-flash").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
+
+export const ads = pgTable(
+  "ads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 120 }).notNull(),
+    kind: adKindEnum("kind").notNull(),
+    position: adPositionEnum("position").notNull(),
+    imageUrl: text("image_url"),
+    clickUrl: text("click_url"),
+    altText: varchar("alt_text", { length: 240 }),
+    embedCode: text("embed_code"),
+    width: integer("width").default(728).notNull(),
+    height: integer("height").default(90).notNull(),
+    insertAfter: integer("insert_after").default(1).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    placementIdx: index("ads_placement_idx").on(table.position, table.isActive, table.sortOrder)
+  })
+);
 
 export const assets = pgTable("assets", {
   id: uuid("id").defaultRandom().primaryKey(),

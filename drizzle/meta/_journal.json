@@ -43,6 +43,13 @@
       "when": 1785500503938,
       "tag": "0005_admin-catalog-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785537422997,
+      "tag": "0006_seo-ad-management",
+      "breakpoints": true
     }
   ]
 }

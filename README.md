@@ -121,6 +121,18 @@ descriptions, and keywords are validated and stored in PostgreSQL, where they ca
 Choose the active model from **Admin → Settings**. Keep the API key in an untracked server environment file and never
 expose it through a `NEXT_PUBLIC_` variable.
 
+### Public URL and development indexing
+
+Set `NEXT_PUBLIC_SITE_URL` to the canonical production origin (for example `https://manga24.net`). Canonical, Open Graph,
+Twitter, and `hreflang` URLs are generated from this value. Requests served from `dev.manga24.net`, `localhost`, or
+`127.0.0.1` return a `robots.txt` policy that disallows all crawling, while the production host permits public pages.
+
+### Advertisements
+
+**Admin → Ads** manages top-of-page and between-section advertising. Static banner uploads accept PNG, JPEG, GIF, WebP,
+and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. Uploaded files are stored under
+`public/uploads/ads`; production deployments must preserve that directory between releases.
+
 Run migrations:
 
 ```bash
