@@ -16,13 +16,13 @@ export function siteUrl(path = "") {
   return new URL(path, env.NEXT_PUBLIC_SITE_URL).toString();
 }
 
-export function localizedAlternates(pathWithoutLocale: string) {
+export function localizedAlternates(locale: Locale, pathWithoutLocale: string) {
   const languages = Object.fromEntries(
     locales.map((locale) => [locale, siteUrl(`/${locale}${pathWithoutLocale}`)])
   ) as Record<string, string>;
 
   return {
-    canonical: siteUrl(`/en${pathWithoutLocale}`),
+    canonical: siteUrl(`/${locale}${pathWithoutLocale}`),
     languages: {
       ...languages,
       "x-default": siteUrl(`/en${pathWithoutLocale}`)
@@ -37,7 +37,7 @@ export function buildMetadata(input: MetadataInput): Metadata {
     title: `${input.title} | Manga24`,
     description: input.description,
     keywords: input.keywords,
-    alternates: localizedAlternates(input.path),
+    alternates: localizedAlternates(input.locale, input.path),
     openGraph: {
       title: `${input.title} | Manga24`,
       description: input.description,
@@ -45,6 +45,12 @@ export function buildMetadata(input: MetadataInput): Metadata {
       url: siteUrl(`/${input.locale}${input.path}`),
       images: [{ url: siteUrl(image), width: 1200, height: 630, alt: input.title }],
       locale: input.locale
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${input.title} | Manga24`,
+      description: input.description,
+      images: [siteUrl(image)]
     },
     robots: input.noIndex ? { index: false, follow: false } : undefined
   };

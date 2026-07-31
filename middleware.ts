@@ -6,20 +6,29 @@ export async function middleware(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname === "/manga1004") {
-    return NextResponse.next();
+    return nextWithLocale(request);
   }
 
-  const session = request.cookies.get("manga24_admin_session")?.value;
-  if (!(await hasValidSession(session))) {
-    return notFound();
+  if (request.nextUrl.pathname.startsWith("/manga1004/")) {
+    const session = request.cookies.get("manga24_admin_session")?.value;
+    if (!(await hasValidSession(session))) {
+      return notFound();
+    }
   }
 
-  return NextResponse.next();
+  return nextWithLocale(request);
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/manga1004/:path*"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads/).*)"]
 };
+
+function nextWithLocale(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  const locale = request.nextUrl.pathname.split("/")[1];
+  requestHeaders.set("x-manga-locale", locale === "es" ? "es" : "en");
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
 
 function notFound() {
   return new NextResponse("Not Found", {

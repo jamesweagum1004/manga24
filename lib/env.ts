@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000")
+  NEXT_PUBLIC_SITE_URL: z.string().url().default(
+    process.env.NODE_ENV === "production" ? "https://manga24.net" : "http://localhost:3000"
+  )
 });
 
 export const env = envSchema.parse({

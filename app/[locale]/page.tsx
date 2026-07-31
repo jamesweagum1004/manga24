@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CompactPromoBanner } from "@/components/compact-promo-banner";
+import { AdStrip } from "@/components/ad-unit";
 import { MangaRail } from "@/components/manga-rail";
 import { PopularTagList } from "@/components/popular-tag-list";
 import { SiteShell } from "@/components/site-shell";
@@ -8,6 +9,7 @@ import { buildMetadata } from "@/lib/metadata";
 import { dictionary, type DemoTitle } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
+import { listActiveAds } from "@/lib/db/queries/ads";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -33,6 +35,7 @@ export default async function HomePage({ params }: PageProps) {
   const promo = catalog[10] ?? catalog[0];
   const latest = await getLatestCatalogTitles();
   const popular = await getPopularCatalogTitles();
+  const contentAds = await listActiveAds("content");
   const railSections = [
     {
       title: locale === "en" ? "Trending Manga" : "Manga en tendencia",
@@ -87,17 +90,19 @@ export default async function HomePage({ params }: PageProps) {
     <SiteShell locale={locale}>
       <main className="mx-auto max-w-[1320px] space-y-3 px-0 py-3 sm:px-3 md:space-y-4 md:px-5">
         {promo ? <CompactPromoBanner title={promo} locale={locale} /> : null}
-        {railSections.map((section) => (
-          <MangaRail
-            key={section.title}
-            title={section.title}
-            subtitle={section.subtitle}
-            href={section.href}
-            items={section.items}
-            ranked={section.ranked}
-            cardVariant={section.cardVariant}
-            locale={locale}
-          />
+        {railSections.map((section, index) => (
+          <div key={section.title} className="contents">
+            <MangaRail
+              title={section.title}
+              subtitle={section.subtitle}
+              href={section.href}
+              items={section.items}
+              ranked={section.ranked}
+              cardVariant={section.cardVariant}
+              locale={locale}
+            />
+            <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} />
+          </div>
         ))}
         <PopularTagList locale={locale} />
       </main>
