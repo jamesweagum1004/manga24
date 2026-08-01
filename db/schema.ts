@@ -24,6 +24,9 @@ export const assetKindEnum = pgEnum("asset_kind", ["cover", "thumbnail", "chapte
 export const titleFormatEnum = pgEnum("title_format", ["manga", "manhwa"]);
 export const adKindEnum = pgEnum("ad_kind", ["static", "exoclick"]);
 export const adPositionEnum = pgEnum("ad_position", ["header", "content"]);
+export const reportReasonEnum = pgEnum("report_reason", ["child_safety", "copyright", "privacy", "wrong_rating", "broken", "spam", "other"]);
+export const reportStatusEnum = pgEnum("report_status", ["new", "reviewing", "actioned", "rejected", "closed"]);
+export const reportPriorityEnum = pgEnum("report_priority", ["normal", "high", "urgent"]);
 
 export const admins = pgTable("admins", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -242,6 +245,31 @@ export const auditLogs = pgTable("audit_logs", {
   metadata: jsonb("metadata").default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
 });
+
+export const reports = pgTable("reports", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  targetType: varchar("target_type", { length: 40 }).notNull(),
+  targetKey: varchar("target_key", { length: 360 }).notNull(),
+  targetUrl: text("target_url").notNull(),
+  reason: reportReasonEnum("reason").notNull(),
+  priority: reportPriorityEnum("priority").default("normal").notNull(),
+  status: reportStatusEnum("status").default("new").notNull(),
+  details: text("details").notNull(),
+  reporterName: varchar("reporter_name", { length: 160 }),
+  reporterEmail: varchar("reporter_email", { length: 320 }),
+  rightsHolder: varchar("rights_holder", { length: 240 }),
+  originalWork: text("original_work"),
+  signature: varchar("signature", { length: 240 }),
+  reporterFingerprint: varchar("reporter_fingerprint", { length: 64 }).notNull(),
+  resolution: text("resolution"),
+  reviewedBy: uuid("reviewed_by").references(() => admins.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({
+  queueIdx: index("reports_queue_idx").on(table.status, table.priority, table.createdAt),
+  fingerprintIdx: index("reports_fingerprint_idx").on(table.reporterFingerprint, table.createdAt)
+}));
 
 export const titleRelations = relations(titles, ({ one, many }) => ({
   coverAsset: one(assets, {

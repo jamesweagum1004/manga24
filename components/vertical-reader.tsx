@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import type { DemoAsset } from "@/lib/demo-data";
 import { ReaderHeader } from "./reader-header";
@@ -18,6 +19,7 @@ type VerticalReaderProps = {
   previousHref?: string;
   nextHref?: string;
   storageKey: string;
+  reportHref: string;
 };
 
 export function VerticalReader({
@@ -28,7 +30,8 @@ export function VerticalReader({
   pages,
   previousHref,
   nextHref,
-  storageKey
+  storageKey,
+  reportHref
 }: VerticalReaderProps) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -125,6 +128,7 @@ export function VerticalReader({
           ))
         )}
       </div>
+      <div className="mx-auto max-w-[840px] px-4 py-5 text-center"><Link href={reportHref} onClick={(event) => event.stopPropagation()} className="text-xs font-bold text-white/60 underline decoration-dotted underline-offset-4">Report this chapter</Link></div>
       <EndOfChapter locale={locale} nextHref={nextHref} />
       <ReaderControls visible={controlsVisible} onTop={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
     </main>
