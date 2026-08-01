@@ -154,8 +154,9 @@ no dynamic sitemap endpoint; add either only with the same CDN URL helper for im
 ### Advertisements
 
 **Admin → Ads** manages top-of-page and between-section advertising. Static banner uploads accept PNG, JPEG, GIF, WebP,
-and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. New static banners are uploaded to B2 and
-served from `NEXT_PUBLIC_IMAGE_CDN_URL`; the main application has no `/uploads` image route.
+and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. Advertising assets stay under the isolated
+`public/uploads/ads` path and never use the Manga/Manhwa B2 buckets or `NEXT_PUBLIC_IMAGE_CDN_URL`. Production deployments
+must preserve this directory between releases.
 
 ### B2 and Bunny media storage
 
