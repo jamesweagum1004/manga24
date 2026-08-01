@@ -17,7 +17,7 @@ export function AdStrip({ ads, label = "Advertisement" }: { ads: Ad[]; label?: s
   if (ads.length === 0) return null;
 
   return (
-    <aside aria-label={label} className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-2 px-2 py-2 sm:grid-cols-2 sm:px-3">
+    <aside aria-label={label} className="mx-auto grid w-full max-w-[1480px] grid-cols-1 gap-2 px-2 py-2 sm:grid-cols-2 sm:px-3 lg:grid-cols-3 lg:gap-3 lg:px-0 lg:py-3">
       {ads.map((ad) => <AdUnit key={ad.id} ad={ad} />)}
     </aside>
   );

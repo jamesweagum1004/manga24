@@ -522,6 +522,7 @@ function mapTitleRow(
 
   return {
     id: row.id,
+    format: row.format,
     slug: row.slug,
     originalTitle: row.originalTitle,
     titles: {

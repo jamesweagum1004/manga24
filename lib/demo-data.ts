@@ -22,6 +22,7 @@ export type DemoChapter = {
 };
 
 export type DemoTitle = {
+  format?: "manga" | "manhwa";
   slug: string;
   originalTitle: string;
   titles: Record<Locale, string>;
