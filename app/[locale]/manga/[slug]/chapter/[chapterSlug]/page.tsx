@@ -53,6 +53,9 @@ export default async function ChapterReaderPage({ params }: PageProps) {
       titleSlug={result.title.slug}
       title={result.title.titles[locale]}
       chapter={result.chapter.titles[locale]}
+      coverUrl={result.title.cover.src}
+      coverAlt={result.title.cover.alt}
+      chapterHref={localizedPath(locale, `/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}
       pages={result.chapter.pages}
       previousHref={
         previousChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${previousChapter.slug}`) : undefined
