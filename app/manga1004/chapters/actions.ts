@@ -20,6 +20,7 @@ export type ChapterFormState = {
 };
 
 export async function createChapterAction(_state: ChapterFormState, formData: FormData): Promise<ChapterFormState> {
+  const setup = formData.get("setup") === "1";
   const parsed = parse(formData);
   if (!parsed.success) return parsed.state;
   let id: string;
@@ -28,10 +29,11 @@ export async function createChapterAction(_state: ChapterFormState, formData: Fo
   } catch (error) {
     return { values: parsed.data, formError: databaseError(error) };
   }
-  redirect(`/manga1004/chapters/${id}?saved=created`);
+  redirect(`/manga1004/chapters/${id}?saved=created${setup ? "&setup=pages" : ""}`);
 }
 
 export async function updateChapterAction(id: string, _state: ChapterFormState, formData: FormData): Promise<ChapterFormState> {
+  const setup = formData.get("setup") === "1";
   const parsed = parse(formData);
   if (!parsed.success) return parsed.state;
   try {
@@ -39,7 +41,7 @@ export async function updateChapterAction(id: string, _state: ChapterFormState, 
   } catch (error) {
     return { values: parsed.data, formError: databaseError(error) };
   }
-  redirect(`/manga1004/chapters/${id}?saved=updated`);
+  redirect(`/manga1004/chapters/${id}?saved=updated${setup ? "&setup=pages" : ""}`);
 }
 
 function parse(formData: FormData) {
