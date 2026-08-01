@@ -4,15 +4,17 @@ import { useActionState } from "react";
 import type { AdminTitleListItem } from "@/lib/db/queries/titles";
 import type { ChapterFormState } from "./actions";
 
-export function ChapterForm({ action, initialState, titles, submitLabel }: {
+export function ChapterForm({ action, initialState, titles, submitLabel, setup = false }: {
   action: (state: ChapterFormState, data: FormData) => Promise<ChapterFormState>;
   initialState: ChapterFormState;
   titles: AdminTitleListItem[];
   submitLabel: string;
+  setup?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   return (
     <form action={formAction} className="mt-6 grid gap-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+      {setup ? <input type="hidden" name="setup" value="1" /> : null}
       {state.formError ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{state.formError}</p> : null}
       <section>
         <h2 className="text-lg font-black">Chapter details</h2>

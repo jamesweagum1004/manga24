@@ -6,7 +6,8 @@ import { generateTitleSeo } from "@/lib/deepseek/seo";
 import { updateDbTitleSeo } from "@/lib/db/queries/titles";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 
-export async function generateSeoAction(id: string) {
+export async function generateSeoAction(id: string, formData?: FormData) {
+  const setup = formData?.get("setup") === "1";
   const title = await getAdminTitleById(id);
   if (!title) {
     redirect("/not-found");
@@ -18,10 +19,10 @@ export async function generateSeoAction(id: string) {
     await updateDbTitleSeo(title.id, seo);
   } catch (error) {
     const message = getSeoErrorMessage(error);
-    redirect(`/manga1004/titles/${encodeURIComponent(id)}?seoError=${encodeURIComponent(message)}`);
+    redirect(`/manga1004/titles/${encodeURIComponent(id)}?seoError=${encodeURIComponent(message)}${setup ? "&setup=seo" : ""}`);
   }
 
-  redirect(`/manga1004/titles/${encodeURIComponent(id)}?seoGenerated=1`);
+  redirect(`/manga1004/titles/${encodeURIComponent(id)}?seoGenerated=1${setup ? "&setup=seo" : ""}`);
 }
 
 function getSeoErrorMessage(error: unknown) {
