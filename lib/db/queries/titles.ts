@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import {
   assets,
   chapterLocalizations,
@@ -119,7 +119,7 @@ export const emptyTitleFormValues: TitleFormValues = {
 };
 
 export async function listDbTitles() {
-  const rows = await selectAllTitleRows();
+  const rows = await selectPublishedTitleRows();
   return hydrateTitleRows(rows);
 }
 
@@ -149,7 +149,7 @@ export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
 }
 
 export async function getDbTitleBySlug(slug: string) {
-  const rows = await selectTitleRowsBySlug(slug);
+  const rows = await selectPublishedTitleRowsBySlug(slug);
   const hydrated = await hydrateTitleRows(rows);
   return hydrated[0] ?? null;
 }
@@ -174,7 +174,6 @@ export async function getDbTitleForAdmin(idOrSlug: string) {
 
 export async function createDbTitle(values: TitleFormValues) {
   const db = getDb();
-  const now = new Date();
   const tagSlugs = parseTagSlugs(values.tags);
 
   return db.transaction(async (tx) => {
@@ -188,7 +187,7 @@ export async function createDbTitle(values: TitleFormValues) {
         format: values.format,
         publicationStatus: values.publicationStatus,
         contentRating: values.contentRating,
-        publishedAt: values.publicationStatus === "ongoing" || values.publicationStatus === "completed" ? now : null
+        publishedAt: null
       })
       .returning({ id: titles.id });
 
@@ -363,8 +362,16 @@ async function selectAllTitleRows() {
   return selectBaseTitle().orderBy(desc(titles.publishedAt), desc(titles.createdAt));
 }
 
+async function selectPublishedTitleRows() {
+  return selectBaseTitle().where(isNotNull(titles.publishedAt)).orderBy(desc(titles.publishedAt), desc(titles.createdAt));
+}
+
 async function selectTitleRowsBySlug(slug: string) {
   return selectBaseTitle().where(eq(titles.slug, slug)).limit(1);
+}
+
+async function selectPublishedTitleRowsBySlug(slug: string) {
+  return selectBaseTitle().where(and(eq(titles.slug, slug), isNotNull(titles.publishedAt))).limit(1);
 }
 
 async function selectTitleRowsById(id: string) {
@@ -418,7 +425,7 @@ async function getChaptersByTitle(titleIds: string[]) {
   const chapterRows = await getDb()
     .select()
     .from(chapters)
-    .where(inArray(chapters.titleId, titleIds))
+    .where(and(inArray(chapters.titleId, titleIds), eq(chapters.publicationStatus, "published")))
     .orderBy(asc(chapters.chapterNumber));
   if (chapterRows.length === 0) {
     return new Map<string, DemoChapter[]>();
