@@ -140,6 +140,13 @@ stores separate Backblaze B2 bucket, S3 endpoint, region, Application Key, and B
 Manhwa. Application Keys are encrypted with AES-256-GCM before database storage and are never returned to the browser.
 Do not rotate or remove the encryption key until the stored Application Keys have been re-entered under the new key.
 
+### Reporting and moderation
+
+Title and chapter pages link to a public report form. Copyright reports require claimant, rights-holder, original-work,
+contact, and signature details. Child-safety reports enter the administrator queue with urgent priority. Anonymous reports
+are rate-limited by a one-way network fingerprint and protected by a honeypot. **Admin → Reports** records manual review
+decisions in the audit log; report counts never remove content automatically. Report data is not sent to DeepSeek.
+
 Run migrations:
 
 ```bash

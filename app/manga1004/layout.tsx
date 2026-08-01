@@ -13,7 +13,7 @@ const sections = [
     { href: "/manga1004/chapters", label: "Chapters", icon: "C" },
     { href: "/manga1004/tags", label: "Tags", icon: "#" }
   ] },
-  { label: "Business", links: [{ href: "/manga1004/ads", label: "Advertisements", icon: "A" }] },
+  { label: "Operations", links: [{ href: "/manga1004/reports", label: "Reports", icon: "!" }, { href: "/manga1004/ads", label: "Advertisements", icon: "A" }] },
   { label: "System", links: [
     { href: "/manga1004/settings", label: "Settings", icon: "S" },
     { href: "/manga1004/security", label: "Security", icon: "K" }

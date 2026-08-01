@@ -59,6 +59,7 @@ export default async function ChapterReaderPage({ params }: PageProps) {
       }
       nextHref={nextChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${nextChapter.slug}`) : undefined}
       storageKey={`manga24:${locale}:${result.title.slug}:${result.chapter.slug}`}
+      reportHref={`/${locale}/report?type=chapter&key=${encodeURIComponent(`${result.title.slug}:${result.chapter.slug}`)}&url=${encodeURIComponent(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}`}
     />
   );
 }

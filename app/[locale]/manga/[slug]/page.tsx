@@ -119,6 +119,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
                 {t.bookmark}
               </button>
             </div>
+            <Link href={`/${locale}/report?type=title&key=${encodeURIComponent(title.slug)}&url=${encodeURIComponent(`/${locale}/manga/${title.slug}`)}`} className="inline-flex text-xs font-bold text-[var(--muted)] underline decoration-dotted underline-offset-4">Report this title</Link>
           </div>
         </section>
 
