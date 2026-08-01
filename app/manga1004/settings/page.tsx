@@ -1,7 +1,7 @@
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
-import { updateAiSettingsAction, updateStorageSettingsAction } from "./actions";
+import { updateAiSettingsAction, updateImageCdnAction, updateStorageSettingsAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,17 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       <h1 className="mt-1 text-3xl font-black">Settings</h1>
       <p className="mt-1 text-sm font-bold text-[var(--muted)]">Configure private integrations and media delivery.</p>
       {query.saved ? <Notice tone="success">Settings saved successfully.</Notice> : null}
-      {query.error ? <Notice tone="error">Unable to save. Check every field and confirm the server encryption key is configured.</Notice> : null}
+      {query.error === "image-cdn" ? <Notice tone="error">Use an HTTPS origin on a domain independent from manga24.net, without a path, query, or fragment.</Notice> : query.error ? <Notice tone="error">Unable to save. Check every field and confirm the server encryption key is configured.</Notice> : null}
+
+      <section id="image-cdn" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Image CDN domain</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Changing this origin immediately changes existing cover, reader and SEO image URLs. Use an HTTPS domain that is completely independent from manga24.net.</p>
+        <form action={updateImageCdnAction} className="mt-4 grid max-w-2xl gap-4">
+          <Field label="Active image CDN URL"><input name="imageCdnUrl" type="url" required defaultValue={settings.imageCdnUrl} placeholder="https://your-independent-image-domain.example" className={inputClass} /></Field>
+          <p className="text-xs leading-5 text-[var(--muted)]">The origin must not contain a path, query, or fragment. Verify the same hostname is attached to your Bunny Pull Zone before switching.</p>
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save image CDN</button>
+        </form>
+      </section>
 
       <section id="storage" className="mt-7">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-black">Backblaze B2 + Bunny CDN</h2><p className="mt-1 text-sm text-[var(--muted)]">Manga and Manhwa use isolated buckets, credentials, and delivery domains.</p></div><span className={`rounded-full px-3 py-2 text-xs font-black ${encryptionReady ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{encryptionReady ? "Encryption ready" : "Encryption key missing"}</span></div>
@@ -47,9 +57,8 @@ function StorageCard({ config, disabled }: { config: Config; disabled: boolean }
         <Field label="B2 S3 endpoint" wide><input name="endpoint" type="url" required defaultValue={config.endpoint} placeholder="https://s3.us-west-004.backblazeb2.com" className={inputClass} /></Field>
         <Field label="Application Key ID"><input name="keyId" required defaultValue={config.keyId} autoComplete="off" className={inputClass} /></Field>
         <Field label={config.hasApplicationKey ? "Application Key (leave blank to keep current)" : "Application Key"}><input name="applicationKey" type="password" required={!config.hasApplicationKey} autoComplete="new-password" placeholder={config.hasApplicationKey ? "••••••••••••••••" : "Required for first save"} className={inputClass} /></Field>
-        <Field label="Bunny CDN public URL" wide><input name="bunnyPublicUrl" type="url" required defaultValue={config.bunnyPublicUrl} placeholder={isManga ? "https://img.manga24.net" : "https://img.manhwa.manga24.net"} className={inputClass} /></Field>
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">The secret is encrypted before database storage and is never displayed again. Leaving the field blank preserves the existing key.</p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">The secret is encrypted before database storage and is never displayed again. Delivery always uses the server-level NEXT_PUBLIC_IMAGE_CDN_URL; bucket origin URLs are never sent to browsers.</p>
       <button disabled={disabled} className="mt-4 rounded-xl bg-[var(--foreground)] px-5 py-3 text-sm font-black text-[var(--background)] disabled:cursor-not-allowed disabled:opacity-40">Save {isManga ? "Manga" : "Manhwa"} storage</button>
     </form>
   );

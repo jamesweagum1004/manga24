@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "image_cdn_url" text;

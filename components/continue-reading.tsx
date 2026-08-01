@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ContentImage as Image } from "@/components/content-image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/lib/i18n";

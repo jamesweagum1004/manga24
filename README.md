@@ -127,16 +127,40 @@ Set `NEXT_PUBLIC_SITE_URL` to the canonical production origin (for example `http
 Twitter, and `hreflang` URLs are generated from this value. Requests served from `dev.manga24.net`, `localhost`, or
 `127.0.0.1` return a `robots.txt` policy that disallows all crawling, while the production host permits public pages.
 
+Set `NEXT_PUBLIC_IMAGE_CDN_URL` once as the initial/fallback independent Bunny CDN hostname (not `manga24.net` and not one
+of its subdomains). After migration, **Admin → Settings → Image CDN domain** can switch the active origin without a rebuild.
+Content images bypass the Next.js image proxy and are optimized directly by Bunny. Database asset rows keep B2 object keys, and public
+cover, reader, Open Graph, and Twitter URLs are rebuilt from this base URL so the B2 `/file/{bucket}/...` origin pattern
+is never exposed. Uploads use opaque CDN paths such as `cover/{format}/YYYY/MM/slug.webp` and
+`pages/{format}/YYYY/MM/{title}/{chapter}/0001.webp`. Upload `branding/og.webp` to the origin for pages without a cover.
+
+The application intentionally provides no image proxy route on the main domain. There is currently no RSS endpoint and
+no dynamic sitemap endpoint; add either only with the same CDN URL helper for image fields.
+
+#### Bunny Pull Zone checklist
+
+1. Attach the independent image hostname to the Pull Zone and set B2 only as its private origin. If Manga and Manhwa
+   remain in separate buckets, route `/cover/manga/*` and `/pages/manga/*` to the Manga origin and the corresponding
+   `/manhwa/` paths to the Manhwa origin with Bunny Origin URL edge rules. Do not publish B2 file URLs in application data.
+2. Under **Security → Hotlink Protection**, allow `manga24.net` and `dev.manga24.net`. Keep **Block Direct URL File
+   Access** disabled: image crawlers and social preview bots commonly send no Referer. Requests carrying a foreign
+   Referer are still rejected. Add known social referrers only if previews fail.
+3. Under **Edge Rules**, override origin-specific response headers with neutral values or remove them with Middleware
+   when removal is required. Verify the public response does not expose bucket names or B2 `/file/` URLs.
+4. Keep Token Authentication off for indexable covers and Open Graph images. If private chapter pages later require it,
+   use Advanced HMAC-SHA256 tokens generated server-side and exempt public SEO image paths.
+5. Leave the image hostname root unconfigured; a `404` at `/` is expected.
+
 ### Advertisements
 
 **Admin → Ads** manages top-of-page and between-section advertising. Static banner uploads accept PNG, JPEG, GIF, WebP,
-and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. Uploaded files are stored under
-`public/uploads/ads`; production deployments must preserve that directory between releases.
+and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. New static banners are uploaded to B2 and
+served from `NEXT_PUBLIC_IMAGE_CDN_URL`; the main application has no `/uploads` image route.
 
 ### B2 and Bunny media storage
 
 Set `STORAGE_CONFIG_ENCRYPTION_KEY` to a long random server-only value before saving media credentials. **Admin → Settings**
-stores separate Backblaze B2 bucket, S3 endpoint, region, Application Key, and Bunny CDN public URL settings for Manga and
+stores separate Backblaze B2 bucket, S3 endpoint, region, and Application Key settings for Manga and
 Manhwa. Application Keys are encrypted with AES-256-GCM before database storage and are never returned to the browser.
 Do not rotate or remove the encryption key until the stored Application Keys have been re-entered under the new key.
 

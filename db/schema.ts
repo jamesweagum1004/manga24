@@ -42,6 +42,7 @@ export const admins = pgTable("admins", {
 export const siteSettings = pgTable("site_settings", {
   id: integer("id").primaryKey().default(1),
   deepseekModel: varchar("deepseek_model", { length: 80 }).default("deepseek-v4-flash").notNull(),
+  imageCdnUrl: text("image_cdn_url"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { attachCover, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
+import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
 
 export async function uploadCoverAction(titleId: string, formData: FormData) {
   const setup = formData.get("setup") === "1";
@@ -13,7 +14,7 @@ export async function uploadCoverAction(titleId: string, formData: FormData) {
   if (!(file instanceof File) || file.size === 0) redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent("Choose a cover image.")}${setup ? "&setup=cover" : ""}`);
   try {
     const [image] = await filesToImages([file]);
-    const [uploaded] = await uploadImages(target.format, `titles/${target.slug}/cover`, [image]);
+    const [uploaded] = await uploadImages(target.format, coverObjectPrefix(target.format), [image], { singleFileName: target.slug });
     await attachCover(titleId, uploaded, `${target.originalTitle} cover`);
   } catch (error) {
     redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent(message(error))}${setup ? "&setup=cover" : ""}`);
@@ -32,7 +33,7 @@ export async function uploadChapterPagesAction(chapterId: string, formData: Form
     if (zip instanceof File && zip.size > 0) images = extractZipImages(Buffer.from(await zip.arrayBuffer()));
     else if (files.length > 0) images = await filesToImages(files);
     else throw new Error("Choose a ZIP file or page images.");
-    const uploaded = await uploadImages(target.format, `titles/${target.titleSlug}/chapters/${target.slug}`, images);
+    const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.titleSlug, target.slug), images);
     await replaceChapterPages(chapterId, target.chapterLocalizationId, uploaded, `${target.title} ${target.slug}`);
   } catch (error) {
     redirect(`/manga1004/chapters/${chapterId}?mediaError=${encodeURIComponent(message(error))}${setup ? "&setup=pages" : ""}`);

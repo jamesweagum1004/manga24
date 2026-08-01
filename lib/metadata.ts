@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { env } from "@/lib/env";
 import { locales, type Locale } from "@/lib/i18n";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type MetadataInput = {
   locale: Locale;
@@ -30,8 +31,9 @@ export function localizedAlternates(locale: Locale, pathWithoutLocale: string) {
   };
 }
 
-export function buildMetadata(input: MetadataInput): Metadata {
-  const image = input.image ?? "/placeholders/og.svg";
+export async function buildMetadata(input: MetadataInput): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const image = metadataImageUrl(input.image, settings.imageCdnUrl);
 
   return {
     title: `${input.title} | Manga24`,
@@ -43,15 +45,24 @@ export function buildMetadata(input: MetadataInput): Metadata {
       description: input.description,
       type: "website",
       url: siteUrl(`/${input.locale}${input.path}`),
-      images: [{ url: siteUrl(image), width: 1200, height: 630, alt: input.title }],
+      images: [{ url: image, width: 1200, height: 630, alt: input.title }],
       locale: input.locale
     },
     twitter: {
       card: "summary_large_image",
       title: `${input.title} | Manga24`,
       description: input.description,
-      images: [siteUrl(image)]
+      images: [image]
     },
     robots: input.noIndex ? { index: false, follow: false } : undefined
   };
+}
+
+function metadataImageUrl(image: string | undefined, imageCdnBaseUrl: string) {
+  if (image && /^https?:\/\//u.test(image)) return image;
+  if (imageCdnBaseUrl) {
+    const path = image?.replace(/^\/+/u, "") ?? "branding/og.webp";
+    return new URL(path, `${imageCdnBaseUrl.replace(/\/$/u, "")}/`).toString();
+  }
+  return siteUrl(image ?? "/placeholders/og.svg");
 }
