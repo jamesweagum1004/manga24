@@ -1,11 +1,10 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAd, deleteAd, getAd, updateAd, type AdValues } from "@/lib/db/queries/ads";
+import { uploadImages } from "@/lib/media/b2-upload";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const optionalUrl = z
@@ -46,7 +45,6 @@ export async function updateAdAction(formData: FormData) {
   const values = makeValues(parsed.data, imageUrl);
   if (!isComplete(values)) redirect("/manga1004/ads?error=missing-content");
   await updateAd(id.data, values);
-  if (uploaded && current.imageUrl && current.imageUrl !== uploaded) await removeUploadedImage(current.imageUrl);
   redirect("/manga1004/ads?saved=updated");
 }
 
@@ -56,7 +54,6 @@ export async function deleteAdAction(formData: FormData) {
   const current = await getAd(id.data);
   if (current) {
     await deleteAd(id.data);
-    if (current.imageUrl) await removeUploadedImage(current.imageUrl);
   }
   redirect("/manga1004/ads?saved=deleted");
 }
@@ -94,14 +91,14 @@ function isComplete(values: AdValues) {
 async function saveImage(value: FormDataEntryValue | null) {
   if (!(value instanceof File) || value.size === 0) return null;
   if (value.size > MAX_FILE_SIZE) redirect("/manga1004/ads?error=file-size");
-  const bytes = new Uint8Array(await value.arrayBuffer());
+  const bytes = Buffer.from(await value.arrayBuffer());
   const extension = detectImageExtension(bytes);
   if (!extension) redirect("/manga1004/ads?error=file-type");
-  const directory = path.join(process.cwd(), "public", "uploads", "ads");
-  await mkdir(directory, { recursive: true });
   const filename = `${randomUUID()}.${extension}`;
-  await writeFile(path.join(directory, filename), bytes, { flag: "wx" });
-  return `/uploads/ads/${filename}`;
+  const now = new Date();
+  const prefix = `ads/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const [uploaded] = await uploadImages("manga", prefix, [{ name: filename, bytes, contentType: contentType(extension) }], { singleFileName: filename.replace(/\.[^.]+$/u, "") });
+  return uploaded.publicUrl;
 }
 
 function detectImageExtension(bytes: Uint8Array) {
@@ -114,12 +111,7 @@ function detectImageExtension(bytes: Uint8Array) {
   return null;
 }
 
-async function removeUploadedImage(imageUrl: string) {
-  if (!imageUrl.startsWith("/uploads/ads/")) return;
-  const filename = path.basename(imageUrl);
-  try {
-    await unlink(path.join(process.cwd(), "public", "uploads", "ads", filename));
-  } catch {
-    // The database record can still be removed if the file is already absent.
-  }
+function contentType(extension: string) {
+  if (extension === "jpg") return "image/jpeg";
+  return `image/${extension}`;
 }

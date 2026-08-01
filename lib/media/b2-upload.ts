@@ -2,6 +2,8 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getStorageCredentials, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import type { UploadImage } from "./zip-images";
+import { imageCdnUrl, validateImageCdnUrl } from "./public-url";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type Authorization = {
   authorizationToken: string;
@@ -19,7 +21,9 @@ export type UploadedMedia = {
   fileSize: number;
 };
 
-export async function uploadImages(format: StorageFormat, prefix: string, images: UploadImage[]): Promise<UploadedMedia[]> {
+export async function uploadImages(format: StorageFormat, prefix: string, images: UploadImage[], options?: { singleFileName?: string }): Promise<UploadedMedia[]> {
+  const { imageCdnUrl: configuredImageCdnUrl } = await getSiteSettings();
+  const imageCdnBaseUrl = validateImageCdnUrl(configuredImageCdnUrl);
   const credentials = await getStorageCredentials(format);
   const authResponse = await fetch("https://api.backblazeb2.com/b2api/v4/b2_authorize_account", {
     headers: { Authorization: `Basic ${Buffer.from(`${credentials.keyId}:${credentials.applicationKey}`).toString("base64")}` },
@@ -41,7 +45,8 @@ export async function uploadImages(format: StorageFormat, prefix: string, images
   const uploaded: UploadedMedia[] = [];
   for (const [index, image] of images.entries()) {
     const extension = image.contentType === "image/jpeg" ? "jpg" : image.contentType.split("/")[1];
-    const objectKey = `${prefix}/${String(index + 1).padStart(4, "0")}.${extension}`;
+    const filename = images.length === 1 && options?.singleFileName ? `${options.singleFileName}.${extension}` : `${String(index + 1).padStart(4, "0")}.${extension}`;
+    const objectKey = `${prefix}/${filename}`;
     const metadata = imageDimensions(image.bytes, image.contentType);
     if (!metadata) throw new Error(`${image.name} has an invalid or mismatched image header.`);
     const response = await fetch(uploadTarget.uploadUrl, {
@@ -56,7 +61,7 @@ export async function uploadImages(format: StorageFormat, prefix: string, images
       body: new Uint8Array(image.bytes)
     });
     if (!response.ok) throw new Error(`Backblaze rejected ${image.name}.`);
-    uploaded.push({ provider: "backblaze-b2", bucket: credentials.bucketName, objectKey, publicUrl: `${credentials.bunnyPublicUrl}/${objectKey.split("/").map(encodeURIComponent).join("/")}`, width: metadata.width, height: metadata.height, contentType: image.contentType, fileSize: image.bytes.length });
+    uploaded.push({ provider: "backblaze-b2", bucket: credentials.bucketName, objectKey, publicUrl: imageCdnUrl(objectKey, imageCdnBaseUrl), width: metadata.width, height: metadata.height, contentType: image.contentType, fileSize: image.bytes.length });
   }
   return uploaded;
 }
@@ -66,6 +71,9 @@ function encodeB2Name(value: string) {
 }
 
 function imageDimensions(bytes: Buffer, contentType: string): { width: number; height: number } | null {
+  if (contentType === "image/gif" && bytes.length >= 10 && (bytes.toString("ascii", 0, 6) === "GIF87a" || bytes.toString("ascii", 0, 6) === "GIF89a")) {
+    return validDimensions(bytes.readUInt16LE(6), bytes.readUInt16LE(8));
+  }
   if (contentType === "image/png" && bytes.length >= 24 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
     return validDimensions(bytes.readUInt32BE(16), bytes.readUInt32BE(20));
   }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { ContentImage as Image } from "@/components/content-image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChapterList } from "@/components/chapter-list";

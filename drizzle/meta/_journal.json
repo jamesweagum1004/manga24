@@ -64,6 +64,13 @@
       "when": 1785585010544,
       "tag": "0008_reporting-moderation-queue",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785619476764,
+      "tag": "0009_sticky_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { generateTitleSeo } from "@/lib/deepseek/seo";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
+import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     const cover = form.get("cover");
     if (cover instanceof File && cover.size > 0) {
       const [image] = await filesToImages([cover]);
-      const [uploaded] = await uploadImages(values.format, `titles/${values.canonicalSlug}/cover`, [image]);
+      const [uploaded] = await uploadImages(values.format, coverObjectPrefix(values.format), [image], { singleFileName: values.canonicalSlug });
       await attachCover(titleId, uploaded, `${values.originalTitle} cover`);
     }
 
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
       if (images) {
         const target = await getChapterMediaTarget(chapterId);
         if (!target) throw new Error("Unable to load imported chapter.");
-        const uploaded = await uploadImages(values.format, `titles/${values.canonicalSlug}/chapters/${manifest.chapter.slug}`, images);
+        const uploaded = await uploadImages(values.format, chapterObjectPrefix(values.format, values.canonicalSlug, manifest.chapter.slug), images);
         await replaceChapterPages(chapterId, target.chapterLocalizationId, uploaded, `${values.originalTitle} ${manifest.chapter.slug}`);
       }
       await updateDbChapter(chapterId, { ...chapterValues, publicationStatus: manifest.chapter.publicationStatus });

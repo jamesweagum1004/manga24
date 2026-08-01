@@ -14,6 +14,8 @@ import {
 import type { DemoChapter, DemoTitle } from "@/lib/demo-data";
 import type { Locale } from "@/lib/i18n";
 import { getDb } from "../client";
+import { imageCdnUrl } from "@/lib/media/public-url";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export type TitleFormValues = {
   canonicalSlug: string;
@@ -68,6 +70,7 @@ type BaseTitleRow = {
   updatedAt: Date;
   coverId: string | null;
   coverPublicUrl: string | null;
+  coverObjectKey: string | null;
   coverAltText: string | null;
   coverWidth: number | null;
   coverHeight: number | null;
@@ -82,6 +85,7 @@ type ChapterPageRow = {
   pageNumber: number;
   assetId: string;
   publicUrl: string;
+  objectKey: string;
   altText: string;
   width: number;
   height: number;
@@ -350,6 +354,7 @@ function selectBaseTitle() {
       updatedAt: titles.updatedAt,
       coverId: assets.id,
       coverPublicUrl: assets.publicUrl,
+      coverObjectKey: assets.objectKey,
       coverAltText: assets.altText,
       coverWidth: assets.width,
       coverHeight: assets.height
@@ -384,14 +389,15 @@ async function hydrateTitleRows(rows: BaseTitleRow[]): Promise<Array<DemoTitle &
   }
 
   const titleIds = rows.map((row) => row.id);
-  const [localizationsByTitle, tagsByTitle, chaptersByTitle] = await Promise.all([
+  const [localizationsByTitle, tagsByTitle, settings] = await Promise.all([
     getLocalizationsByTitle(titleIds),
     getTagSlugsByTitle(titleIds),
-    getChaptersByTitle(titleIds)
+    getSiteSettings()
   ]);
+  const chaptersByTitle = await getChaptersByTitle(titleIds, settings.imageCdnUrl);
 
   return rows.map((row) =>
-    mapTitleRow(row, {
+    mapTitleRow(row, settings.imageCdnUrl, {
       localizations: localizationsByTitle.get(row.id) ?? [],
       tagSlugs: tagsByTitle.get(row.id) ?? [],
       chapters: chaptersByTitle.get(row.id) ?? []
@@ -421,7 +427,7 @@ async function getTagSlugsByTitle(titleIds: string[]) {
   return groupBy(rows, (row) => row.titleId);
 }
 
-async function getChaptersByTitle(titleIds: string[]) {
+async function getChaptersByTitle(titleIds: string[], imageCdnBaseUrl: string) {
   const chapterRows = await getDb()
     .select()
     .from(chapters)
@@ -438,7 +444,7 @@ async function getChaptersByTitle(titleIds: string[]) {
   ]);
 
   const mappedChapters = chapterRows.map((chapter) =>
-    mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [])
+    mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [], imageCdnBaseUrl)
   );
   const grouped = groupBy(mappedChapters, (item) => item.titleId);
   const result = new Map<string, DemoChapter[]>();
@@ -469,6 +475,7 @@ async function getChapterPagesByChapter(chapterIds: string[]) {
       pageNumber: chapterPages.pageNumber,
       assetId: assets.id,
       publicUrl: assets.publicUrl,
+      objectKey: assets.objectKey,
       altText: assets.altText,
       width: assets.width,
       height: assets.height
@@ -509,6 +516,7 @@ function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[],
 
 function mapTitleRow(
   row: BaseTitleRow,
+  imageCdnBaseUrl: string,
   related: {
     localizations: LocalizationRow[];
     tagSlugs: TagRow[];
@@ -520,7 +528,7 @@ function mapTitleRow(
     row.coverId && row.coverPublicUrl && row.coverAltText && row.coverWidth && row.coverHeight
       ? {
           id: row.coverId,
-          src: row.coverPublicUrl,
+          src: imageCdnUrl(row.coverObjectKey ?? "", imageCdnBaseUrl, row.coverPublicUrl),
           alt: row.coverAltText,
           width: row.coverWidth,
           height: row.coverHeight
@@ -567,7 +575,8 @@ function mapTitleRow(
 function mapChapterRow(
   row: ChapterRow,
   localizations: ChapterLocalizationRow[],
-  pages: ChapterPageRow[]
+  pages: ChapterPageRow[],
+  imageCdnBaseUrl: string
 ): { titleId: string; chapter: DemoChapter } {
   const localizedTitles = {
     en: `Chapter ${Number(row.chapterNumber)}`,
@@ -589,7 +598,7 @@ function mapChapterRow(
         .sort((a, b) => a.pageNumber - b.pageNumber)
         .map((page) => ({
           id: page.assetId,
-          src: page.publicUrl,
+          src: imageCdnUrl(page.objectKey, imageCdnBaseUrl, page.publicUrl),
           alt: page.altText,
           width: page.width,
           height: page.height

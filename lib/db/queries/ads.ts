@@ -2,6 +2,8 @@ import "server-only";
 import { asc, eq } from "drizzle-orm";
 import { ads } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
+import { isImageCdnUrl } from "@/lib/media/public-url";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export type AdKind = "static" | "exoclick";
 export type AdPosition = "header" | "content";
@@ -28,8 +30,8 @@ export async function listAds() {
 }
 
 export async function listActiveAds(position: AdPosition) {
-  const rows = await listAds();
-  return rows.filter((ad) => ad.isActive && ad.position === position);
+  const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
+  return rows.filter((ad) => ad.isActive && ad.position === position && (ad.kind !== "static" || isImageCdnUrl(ad.imageUrl, settings.imageCdnUrl)));
 }
 
 export async function getAd(id: string) {

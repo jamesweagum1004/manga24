@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ContentImage as Image } from "@/components/content-image";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import type { DemoTitle } from "@/lib/demo-data";
