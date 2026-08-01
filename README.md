@@ -133,6 +133,13 @@ Twitter, and `hreflang` URLs are generated from this value. Requests served from
 and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. Uploaded files are stored under
 `public/uploads/ads`; production deployments must preserve that directory between releases.
 
+### B2 and Bunny media storage
+
+Set `STORAGE_CONFIG_ENCRYPTION_KEY` to a long random server-only value before saving media credentials. **Admin → Settings**
+stores separate Backblaze B2 bucket, S3 endpoint, region, Application Key, and Bunny CDN public URL settings for Manga and
+Manhwa. Application Keys are encrypted with AES-256-GCM before database storage and are never returned to the browser.
+Do not rotate or remove the encryption key until the stored Application Keys have been re-entered under the new key.
+
 Run migrations:
 
 ```bash

@@ -42,6 +42,17 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
+export const storageConfigs = pgTable("storage_configs", {
+  format: titleFormatEnum("format").primaryKey(),
+  bucketName: varchar("bucket_name", { length: 160 }).notNull(),
+  endpoint: text("endpoint").notNull(),
+  region: varchar("region", { length: 80 }).notNull(),
+  keyId: varchar("key_id", { length: 255 }).notNull(),
+  encryptedApplicationKey: text("encrypted_application_key").notNull(),
+  bunnyPublicUrl: text("bunny_public_url").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
 export const ads = pgTable(
   "ads",
   {
