@@ -94,7 +94,7 @@ export default async function HomePage({ params }: PageProps) {
 
   return (
     <SiteShell locale={locale}>
-      <main className="mx-auto max-w-[1480px] space-y-3 px-0 py-3 sm:px-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
+      <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
         <ContinueReading locale={locale} />
         {promo ? <div className="lg:hidden"><CompactPromoBanner title={promo} locale={locale} /></div> : null}
         {featured ? <DesktopEditorialHero featured={featured} ranking={mangaPopular} locale={locale} /> : null}

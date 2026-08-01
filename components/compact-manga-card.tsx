@@ -19,9 +19,9 @@ export function CompactMangaCard({
   const latestChapter = title.chapters.at(-1);
 
   return (
-    <article className="w-[clamp(82px,21vw,94px)] shrink-0 snap-start md:w-32 lg:w-auto">
+    <article className="w-[clamp(98px,27vw,112px)] shrink-0 snap-start md:w-32 lg:w-auto">
       <Link href={localizedPath(locale, `/manga/${title.slug}`)} className="group block rounded-lg focus-visible:outline-offset-4">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-[var(--surface-strong)] lg:rounded-xl lg:shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-[var(--surface-strong)] shadow-[0_7px_18px_rgba(15,23,42,0.14)] lg:shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <Image
             src={title.cover.src}
             alt={title.cover.alt}
@@ -36,7 +36,7 @@ export function CompactMangaCard({
             </span>
           ) : null}
         </div>
-        <h3 className="mt-1.5 line-clamp-2 min-h-8 text-[12px] font-black leading-4 sm:text-[13px]">{title.titles[locale]}</h3>
+        <h3 className="mt-2 line-clamp-2 min-h-8 text-[13px] font-black leading-4 sm:text-[13px]">{title.titles[locale]}</h3>
         <p className="mt-0.5 truncate text-[10px] font-bold leading-4 text-[var(--muted)] sm:text-[11px]">
           {latestChapter ? latestChapter.titles[locale] : "No updates"}
         </p>
