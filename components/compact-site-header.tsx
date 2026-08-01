@@ -22,15 +22,15 @@ export function CompactSiteHeader({ locale }: { locale: Locale }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-[1320px] items-center gap-2 px-3 sm:h-[58px] sm:px-4">
+      <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-2 px-3 sm:h-[58px] sm:px-4 lg:h-[72px] lg:px-6">
         <Link href={localizedPath(locale)} className="flex min-w-0 shrink items-center gap-2" aria-label="Manga24 home">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[11px] font-black text-white">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[11px] font-black text-white lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">
             M24
           </span>
-          <span className="truncate text-xl font-black leading-none">Manga24</span>
+          <span className="truncate text-xl font-black leading-none lg:text-2xl lg:tracking-[-0.04em]">Manga24</span>
         </Link>
 
-        <nav className="ml-3 hidden items-center gap-1 md:flex">
+        <nav className="ml-3 hidden items-center gap-1 md:flex lg:ml-8 lg:gap-2">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className="rounded-full px-3 py-2 text-sm font-bold hover:bg-[var(--surface-strong)]">
               {link.label}

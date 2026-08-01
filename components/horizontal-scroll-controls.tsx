@@ -10,7 +10,7 @@ export function HorizontalScrollControls({
   label: string;
 }) {
   return (
-    <div className="hidden items-center gap-1 md:flex">
+    <div className="hidden items-center gap-1 md:flex lg:hidden">
       <button
         type="button"
         aria-label={`Previous ${label}`}

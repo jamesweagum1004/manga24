@@ -37,7 +37,7 @@ export function MangaRail({
   return (
     <section
       data-manga-rail={title}
-      className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+      className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:rounded-2xl lg:px-5 lg:py-5 lg:shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
     >
       <MangaRailHeader
         title={title}
@@ -51,7 +51,7 @@ export function MangaRail({
         data-rail-scroller
         aria-label={title}
         tabIndex={0}
-        className="no-scrollbar touch-scroll -mx-3 flex snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain px-3 pb-0.5"
+        className="no-scrollbar touch-scroll -mx-3 flex snap-x snap-proximity gap-2 overflow-x-auto overscroll-x-contain px-3 pb-0.5 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-x-4 lg:gap-y-6 lg:overflow-visible lg:px-0"
       >
         {items.map((item, index) =>
           ranked ? (

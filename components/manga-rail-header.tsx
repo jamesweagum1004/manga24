@@ -16,7 +16,7 @@ export function MangaRailHeader({
 }) {
   return (
     <div className="mb-3 flex min-w-0 items-center gap-2">
-      <h2 className="truncate text-[19px] font-black leading-6 sm:text-[21px]">{title}</h2>
+      <h2 className="truncate text-[19px] font-black leading-6 sm:text-[21px] lg:text-[25px] lg:tracking-[-0.03em]">{title}</h2>
       {badge ? (
         <span className="shrink-0 rounded-full bg-[var(--surface-strong)] px-2 py-1 text-[10px] font-black uppercase text-[var(--muted)]">
           {badge}

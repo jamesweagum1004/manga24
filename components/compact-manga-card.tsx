@@ -19,15 +19,15 @@ export function CompactMangaCard({
   const latestChapter = title.chapters.at(-1);
 
   return (
-    <article className="w-[clamp(82px,21vw,94px)] shrink-0 snap-start md:w-32 lg:w-36">
+    <article className="w-[clamp(82px,21vw,94px)] shrink-0 snap-start md:w-32 lg:w-auto">
       <Link href={localizedPath(locale, `/manga/${title.slug}`)} className="group block rounded-lg focus-visible:outline-offset-4">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-[var(--surface-strong)]">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-[var(--surface-strong)] lg:rounded-xl lg:shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <Image
             src={title.cover.src}
             alt={title.cover.alt}
             fill
             sizes="(min-width: 1024px) 144px, (min-width: 768px) 128px, 94px"
-            className="object-cover transition-transform duration-150 group-hover:scale-[1.02]"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.035]"
             priority={priority}
           />
           {badge ? (
