@@ -1,12 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const legacyRedirect = redirectLegacyWordPressPath(request);
+  if (legacyRedirect) {
+    return legacyRedirect;
+  }
+
   if (request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/")) {
     return notFound();
   }
 
   if (request.nextUrl.pathname === "/manga1004") {
-    return nextWithLocale(request);
+    return nextWithLocale(request, true);
   }
 
   if (request.nextUrl.pathname.startsWith("/manga1004/")) {
@@ -14,20 +19,64 @@ export async function middleware(request: NextRequest) {
     if (!(await hasValidSession(session))) {
       return notFound();
     }
+    return nextWithLocale(request, true);
   }
 
-  return nextWithLocale(request);
+  return nextWithLocale(request, isPrivatePath(request.nextUrl.pathname));
 }
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads/).*)"]
 };
 
-function nextWithLocale(request: NextRequest) {
+function nextWithLocale(request: NextRequest, forceNoIndex = false) {
   const requestHeaders = new Headers(request.headers);
   const locale = request.nextUrl.pathname.split("/")[1];
   requestHeaders.set("x-manga-locale", locale === "es" ? "es" : "en");
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  if (forceNoIndex || !isProductionHostname(request)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
+  return response;
+}
+
+const legacyWordPressPrefixes = [
+  "/manga/",
+  "/manga-genre/",
+  "/manga-tag/",
+  "/manga-author/",
+  "/manga-artist/",
+  "/wp-admin",
+  "/wp-content/",
+  "/wp-includes/",
+  "/wp-json/",
+  "/wp-login.php",
+  "/author/",
+  "/category/"
+];
+
+function redirectLegacyWordPressPath(request: NextRequest) {
+  if (!legacyWordPressPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix))) {
+    return null;
+  }
+
+  const destination = new URL(request.nextUrl.pathname, "https://ko.manga24.net");
+  destination.search = request.nextUrl.search;
+  return NextResponse.redirect(destination, 301);
+}
+
+function isProductionHostname(request: NextRequest) {
+  const hostname = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "")
+    .split(":")[0]
+    .toLowerCase();
+
+  return hostname === "manga24.net" || hostname === "www.manga24.net";
+}
+
+function isPrivatePath(pathname: string) {
+  return pathname.startsWith("/api/") || pathname === "/en/report" || pathname === "/es/report";
 }
 
 function notFound() {
