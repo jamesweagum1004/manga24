@@ -1,15 +1,22 @@
 import { z } from "zod";
 
+const optionalNonEmptyString = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().trim().min(1).optional()
+);
+
 const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default(
     process.env.NODE_ENV === "production" ? "https://manga24.net" : "http://localhost:3000"
   ),
-  NEXT_PUBLIC_IMAGE_CDN_URL: z.string().url().optional()
+  NEXT_PUBLIC_IMAGE_CDN_URL: z.string().url().optional(),
+  GOOGLE_SITE_VERIFICATION: optionalNonEmptyString
 });
 
 export const env = envSchema.parse({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-  NEXT_PUBLIC_IMAGE_CDN_URL: process.env.NEXT_PUBLIC_IMAGE_CDN_URL
+  NEXT_PUBLIC_IMAGE_CDN_URL: process.env.NEXT_PUBLIC_IMAGE_CDN_URL,
+  GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION
 });
 
 const databaseUrlSchema = z.string().trim().url();

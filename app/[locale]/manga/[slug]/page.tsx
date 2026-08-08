@@ -4,9 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChapterList } from "@/components/chapter-list";
 import { SiteShell } from "@/components/site-shell";
+import { StructuredData } from "@/components/structured-data";
 import { TagChip } from "@/components/tag-chip";
 import { getCatalogTitleBySlug } from "@/lib/data/source";
-import { buildMetadata } from "@/lib/metadata";
+import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
@@ -45,9 +46,49 @@ export default async function TitleDetailPage({ params }: PageProps) {
   const t = dictionary[locale];
   const firstChapter = title.chapters[0];
   const latestChapter = title.chapters.at(-1);
+  const titleUrl = siteUrl(`/${locale}/manga/${title.slug}`);
+  const coverUrl = absoluteUrl(title.cover.src);
 
   return (
     <SiteShell locale={locale}>
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "CreativeWorkSeries",
+              "@id": `${titleUrl}#series`,
+              url: titleUrl,
+              name: title.titles[locale],
+              alternateName: title.originalTitle,
+              description: title.descriptions[locale],
+              image: coverUrl,
+              creator: title.author,
+              inLanguage: locale,
+              genre: title.tags,
+              contentRating: title.contentRating,
+              datePublished: title.publishedAt
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "Manga24",
+                  item: siteUrl(`/${locale}`)
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: title.titles[locale],
+                  item: titleUrl
+                }
+              ]
+            }
+          ]
+        }}
+      />
       <main className="mx-auto max-w-7xl px-4 py-5 pb-24 sm:px-6 md:pb-10">
         <section className="grid gap-5 md:grid-cols-[260px_1fr]">
           <div className="mx-auto w-full max-w-64 md:max-w-none">
@@ -130,6 +171,10 @@ export default async function TitleDetailPage({ params }: PageProps) {
       </main>
     </SiteShell>
   );
+}
+
+function absoluteUrl(value: string) {
+  return /^https?:\/\//u.test(value) ? value : siteUrl(value);
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
