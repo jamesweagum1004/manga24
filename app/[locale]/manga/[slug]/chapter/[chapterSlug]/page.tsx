@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VerticalReader } from "@/components/vertical-reader";
+import { StructuredData } from "@/components/structured-data";
 import { getCatalogChapterBySlug } from "@/lib/data/source";
-import { buildMetadata } from "@/lib/metadata";
+import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
@@ -46,23 +47,69 @@ export default async function ChapterReaderPage({ params }: PageProps) {
   const chapterIndex = result.title.chapters.findIndex((chapter) => chapter.slug === chapterSlug);
   const previousChapter = result.title.chapters[chapterIndex - 1];
   const nextChapter = result.title.chapters[chapterIndex + 1];
+  const chapterUrl = siteUrl(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`);
 
   return (
-    <VerticalReader
-      locale={locale}
-      titleSlug={result.title.slug}
-      title={result.title.titles[locale]}
-      chapter={result.chapter.titles[locale]}
-      coverUrl={result.title.cover.src}
-      coverAlt={result.title.cover.alt}
-      chapterHref={localizedPath(locale, `/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}
-      pages={result.chapter.pages}
-      previousHref={
-        previousChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${previousChapter.slug}`) : undefined
-      }
-      nextHref={nextChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${nextChapter.slug}`) : undefined}
-      storageKey={`manga24:${locale}:${result.title.slug}:${result.chapter.slug}`}
-      reportHref={`/${locale}/report?type=chapter&key=${encodeURIComponent(`${result.title.slug}:${result.chapter.slug}`)}&url=${encodeURIComponent(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}`}
-    />
+    <>
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "CreativeWork",
+              "@id": `${chapterUrl}#chapter`,
+              url: chapterUrl,
+              name: `${result.title.titles[locale]} - ${result.chapter.titles[locale]}`,
+              inLanguage: locale,
+              datePublished: result.chapter.publishedAt,
+              isPartOf: {
+                "@type": "CreativeWorkSeries",
+                "@id": `${siteUrl(`/${locale}/manga/${result.title.slug}`)}#series`,
+                name: result.title.titles[locale]
+              }
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "Manga24",
+                  item: siteUrl(`/${locale}`)
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: result.title.titles[locale],
+                  item: siteUrl(`/${locale}/manga/${result.title.slug}`)
+                },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: result.chapter.titles[locale],
+                  item: chapterUrl
+                }
+              ]
+            }
+          ]
+        }}
+      />
+      <VerticalReader
+        locale={locale}
+        titleSlug={result.title.slug}
+        title={result.title.titles[locale]}
+        chapter={result.chapter.titles[locale]}
+        coverUrl={result.title.cover.src}
+        coverAlt={result.title.cover.alt}
+        chapterHref={localizedPath(locale, `/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}
+        pages={result.chapter.pages}
+        previousHref={
+          previousChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${previousChapter.slug}`) : undefined
+        }
+        nextHref={nextChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${nextChapter.slug}`) : undefined}
+        storageKey={`manga24:${locale}:${result.title.slug}:${result.chapter.slug}`}
+        reportHref={`/${locale}/report?type=chapter&key=${encodeURIComponent(`${result.title.slug}:${result.chapter.slug}`)}&url=${encodeURIComponent(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}`}
+      />
+    </>
   );
 }

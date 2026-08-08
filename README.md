@@ -124,8 +124,9 @@ expose it through a `NEXT_PUBLIC_` variable.
 ### Public URL and development indexing
 
 Set `NEXT_PUBLIC_SITE_URL` to the canonical production origin (for example `https://manga24.net`). Canonical, Open Graph,
-Twitter, and `hreflang` URLs are generated from this value. Requests served from `dev.manga24.net`, `localhost`, or
-`127.0.0.1` return a `robots.txt` policy that disallows all crawling, while the production host permits public pages.
+Twitter, and `hreflang` URLs are generated from this value. Every hostname except `manga24.net` and `www.manga24.net`
+returns a `robots.txt` policy and `X-Robots-Tag` header that block indexing. Set `GOOGLE_SITE_VERIFICATION` to the token
+from Search Console to publish Google's ownership meta tag without exposing it through a public environment variable.
 
 Set `NEXT_PUBLIC_IMAGE_CDN_URL` once as the initial/fallback independent Bunny CDN hostname (not `manga24.net` and not one
 of its subdomains). After migration, **Admin → Settings → Image CDN domain** can switch the active origin without a rebuild.
@@ -134,8 +135,8 @@ cover, reader, Open Graph, and Twitter URLs are rebuilt from this base URL so th
 is never exposed. Uploads use opaque CDN paths such as `cover/{format}/YYYY/MM/slug.webp` and
 `pages/{format}/YYYY/MM/{title}/{chapter}/0001.webp`. Upload `branding/og.webp` to the origin for pages without a cover.
 
-The application intentionally provides no image proxy route on the main domain. There is currently no RSS endpoint and
-no dynamic sitemap endpoint; add either only with the same CDN URL helper for image fields.
+The application intentionally provides no image proxy route on the main domain. There is currently no RSS endpoint.
+The dynamic `/sitemap.xml` contains every published locale, title, chapter, and tag URL from the active catalog.
 
 #### Bunny Pull Zone checklist
 

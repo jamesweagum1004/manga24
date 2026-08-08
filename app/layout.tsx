@@ -6,7 +6,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
   title: "Manga24",
-  description: "A multilingual vertical-scroll manga reader platform."
+  description: "A multilingual vertical-scroll manga reader platform.",
+  verification: env.GOOGLE_SITE_VERIFICATION
+    ? { google: env.GOOGLE_SITE_VERIFICATION }
+    : undefined
 };
 
 export const viewport: Viewport = {
