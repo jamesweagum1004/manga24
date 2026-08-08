@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db/client";
 import type { UploadedMedia } from "@/lib/media/b2-upload";
 
 export async function getTitleMediaTarget(id: string) {
-  const [row] = await getDb().select({ id: titles.id, slug: titles.slug, format: titles.format, originalTitle: titles.originalTitle, coverAssetId: titles.coverAssetId, publishedAt: titles.publishedAt }).from(titles).where(eq(titles.id, id)).limit(1);
+  const [row] = await getDb().select({ id: titles.id, slug: titles.slug, format: titles.format, originalTitle: titles.originalTitle, coverAssetId: titles.coverAssetId, publishedAt: titles.publishedAt, createdAt: titles.createdAt }).from(titles).where(eq(titles.id, id)).limit(1);
   return row ?? null;
 }
 
@@ -25,7 +25,7 @@ export async function publishTitle(id: string) {
 }
 
 export async function getChapterMediaTarget(id: string) {
-  const [row] = await getDb().select({ id: chapters.id, titleId: chapters.titleId, slug: chapters.slug, titleSlug: titles.slug, title: titles.originalTitle, format: titles.format, publicationStatus: chapters.publicationStatus }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
+  const [row] = await getDb().select({ id: chapters.id, titleId: chapters.titleId, slug: chapters.slug, titleSlug: titles.slug, title: titles.originalTitle, format: titles.format, titleCreatedAt: titles.createdAt, publicationStatus: chapters.publicationStatus }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
   if (!row) return null;
   const [localization] = await getDb().select({ id: chapterLocalizations.id }).from(chapterLocalizations).where(eq(chapterLocalizations.chapterId, id)).orderBy(asc(chapterLocalizations.locale)).limit(1);
   return localization ? { ...row, chapterLocalizationId: localization.id } : null;

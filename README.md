@@ -132,8 +132,9 @@ Set `NEXT_PUBLIC_IMAGE_CDN_URL` once as the initial/fallback independent Bunny C
 of its subdomains). After migration, **Admin → Settings → Image CDN domain** can switch the active origin without a rebuild.
 Content images bypass the Next.js image proxy and are optimized directly by Bunny. Database asset rows keep B2 object keys, and public
 cover, reader, Open Graph, and Twitter URLs are rebuilt from this base URL so the B2 `/file/{bucket}/...` origin pattern
-is never exposed. Uploads use opaque CDN paths such as `cover/{format}/YYYY/MM/slug.webp` and
-`pages/{format}/YYYY/MM/{title}/{chapter}/0001.webp`. Upload `branding/og.webp` to the origin for pages without a cover.
+is never exposed. New uploads use stable title folders based on the title creation month, such as
+`{format}/YYYY/MM/{title}/cover/cover.webp` and `{format}/YYYY/MM/{title}/chapters/{chapter}/0001.webp`.
+Later chapter uploads keep using the title's original year/month folder. Upload `branding/og.webp` to the origin for pages without a cover.
 
 The application intentionally provides no image proxy route on the main domain. There is currently no RSS endpoint.
 The dynamic `/sitemap.xml` contains every published locale, title, chapter, and tag URL from the active catalog.
@@ -141,7 +142,7 @@ The dynamic `/sitemap.xml` contains every published locale, title, chapter, and 
 #### Bunny Pull Zone checklist
 
 1. Attach the independent image hostname to the Pull Zone and set B2 only as its private origin. If Manga and Manhwa
-   remain in separate buckets, route `/cover/manga/*` and `/pages/manga/*` to the Manga origin and the corresponding
+   remain in separate buckets, route `/manga/*` to the Manga origin and `/manhwa/*` to the corresponding
    `/manhwa/` paths to the Manhwa origin with Bunny Origin URL edge rules. Do not publish B2 file URLs in application data.
 2. Under **Security → Hotlink Protection**, allow `manga24.net` and `dev.manga24.net`. Keep **Block Direct URL File
    Access** disabled: image crawlers and social preview bots commonly send no Referer. Requests carrying a foreign

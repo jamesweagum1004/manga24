@@ -1,7 +1,19 @@
-export function coverObjectPrefix(format: "manga" | "manhwa", now = new Date()) {
-  return `cover/${format}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+type ContentFormat = "manga" | "manhwa";
+
+export function coverObjectPrefix(format: ContentFormat, titleSlug: string, titleCreatedAt: Date) {
+  return `${titleObjectPrefix(format, titleSlug, titleCreatedAt)}/cover`;
 }
 
-export function chapterObjectPrefix(format: "manga" | "manhwa", titleSlug: string, chapterSlug: string, now = new Date()) {
-  return `pages/${format}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${titleSlug}/${chapterSlug}`;
+export function chapterObjectPrefix(format: ContentFormat, titleSlug: string, chapterSlug: string, titleCreatedAt: Date) {
+  return `${titleObjectPrefix(format, titleSlug, titleCreatedAt)}/chapters/${chapterSlug}`;
+}
+
+function titleObjectPrefix(format: ContentFormat, titleSlug: string, titleCreatedAt: Date) {
+  if (Number.isNaN(titleCreatedAt.getTime())) {
+    throw new Error("The title creation date is invalid.");
+  }
+
+  const year = titleCreatedAt.getUTCFullYear();
+  const month = String(titleCreatedAt.getUTCMonth() + 1).padStart(2, "0");
+  return `${format}/${year}/${month}/${titleSlug}`;
 }

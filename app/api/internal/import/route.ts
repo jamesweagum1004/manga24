@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createDbChapter, updateDbChapter } from "@/lib/db/queries/chapters";
-import { attachCover, getChapterIdForImport, getChapterMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
+import { attachCover, getChapterIdForImport, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
 import { createDbTitle, getDbTitleForAdmin, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { generateTitleSeo } from "@/lib/deepseek/seo";
@@ -54,11 +54,13 @@ export async function POST(request: Request) {
     }
     const existing = await getDbTitleForAdmin(manifest.title.canonicalSlug);
     const titleId = existing ? (await updateDbTitle(existing.id, values), existing.id) : await createDbTitle(values);
+    const titleTarget = await getTitleMediaTarget(titleId);
+    if (!titleTarget) throw new Error("Unable to load the imported title.");
 
     const cover = form.get("cover");
     if (cover instanceof File && cover.size > 0) {
       const [image] = await filesToImages([cover]);
-      const [uploaded] = await uploadImages(values.format, coverObjectPrefix(values.format), [image], { singleFileName: values.canonicalSlug });
+      const [uploaded] = await uploadImages(titleTarget.format, coverObjectPrefix(titleTarget.format, titleTarget.slug, titleTarget.createdAt), [image], { singleFileName: "cover" });
       await attachCover(titleId, uploaded, `${values.originalTitle} cover`);
     }
 
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
       if (images) {
         const target = await getChapterMediaTarget(chapterId);
         if (!target) throw new Error("Unable to load imported chapter.");
-        const uploaded = await uploadImages(values.format, chapterObjectPrefix(values.format, values.canonicalSlug, manifest.chapter.slug), images);
+        const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.titleSlug, target.slug, target.titleCreatedAt), images);
         await replaceChapterPages(chapterId, target.chapterLocalizationId, uploaded, `${values.originalTitle} ${manifest.chapter.slug}`);
       }
       await updateDbChapter(chapterId, { ...chapterValues, publicationStatus: manifest.chapter.publicationStatus });

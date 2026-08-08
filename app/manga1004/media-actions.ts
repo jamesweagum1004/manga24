@@ -14,7 +14,7 @@ export async function uploadCoverAction(titleId: string, formData: FormData) {
   if (!(file instanceof File) || file.size === 0) redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent("Choose a cover image.")}${setup ? "&setup=cover" : ""}`);
   try {
     const [image] = await filesToImages([file]);
-    const [uploaded] = await uploadImages(target.format, coverObjectPrefix(target.format), [image], { singleFileName: target.slug });
+    const [uploaded] = await uploadImages(target.format, coverObjectPrefix(target.format, target.slug, target.createdAt), [image], { singleFileName: "cover" });
     await attachCover(titleId, uploaded, `${target.originalTitle} cover`);
   } catch (error) {
     redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent(message(error))}${setup ? "&setup=cover" : ""}`);
@@ -33,7 +33,7 @@ export async function uploadChapterPagesAction(chapterId: string, formData: Form
     if (zip instanceof File && zip.size > 0) images = extractZipImages(Buffer.from(await zip.arrayBuffer()));
     else if (files.length > 0) images = await filesToImages(files);
     else throw new Error("Choose a ZIP file or page images.");
-    const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.titleSlug, target.slug), images);
+    const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.titleSlug, target.slug, target.titleCreatedAt), images);
     await replaceChapterPages(chapterId, target.chapterLocalizationId, uploaded, `${target.title} ${target.slug}`);
   } catch (error) {
     redirect(`/manga1004/chapters/${chapterId}?mediaError=${encodeURIComponent(message(error))}${setup ? "&setup=pages" : ""}`);
