@@ -16,6 +16,7 @@ import type { Locale } from "@/lib/i18n";
 import { getDb } from "../client";
 import { imageCdnUrl } from "@/lib/media/public-url";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { getStoragePublicUrls } from "@/lib/db/queries/storage-configs";
 
 export type TitleFormValues = {
   canonicalSlug: string;
@@ -389,15 +390,17 @@ async function hydrateTitleRows(rows: BaseTitleRow[]): Promise<Array<DemoTitle &
   }
 
   const titleIds = rows.map((row) => row.id);
-  const [localizationsByTitle, tagsByTitle, settings] = await Promise.all([
+  const [localizationsByTitle, tagsByTitle, settings, storagePublicUrls] = await Promise.all([
     getLocalizationsByTitle(titleIds),
     getTagSlugsByTitle(titleIds),
-    getSiteSettings()
+    getSiteSettings(),
+    getStoragePublicUrls()
   ]);
-  const chaptersByTitle = await getChaptersByTitle(titleIds, settings.imageCdnUrl);
+  const publicUrlByTitle = new Map(rows.map((row) => [row.id, storagePublicUrls[row.format] || settings.imageCdnUrl]));
+  const chaptersByTitle = await getChaptersByTitle(titleIds, publicUrlByTitle);
 
   return rows.map((row) =>
-    mapTitleRow(row, settings.imageCdnUrl, {
+    mapTitleRow(row, publicUrlByTitle.get(row.id) ?? settings.imageCdnUrl, {
       localizations: localizationsByTitle.get(row.id) ?? [],
       tagSlugs: tagsByTitle.get(row.id) ?? [],
       chapters: chaptersByTitle.get(row.id) ?? []
@@ -427,7 +430,7 @@ async function getTagSlugsByTitle(titleIds: string[]) {
   return groupBy(rows, (row) => row.titleId);
 }
 
-async function getChaptersByTitle(titleIds: string[], imageCdnBaseUrl: string) {
+async function getChaptersByTitle(titleIds: string[], publicUrlByTitle: Map<string, string>) {
   const chapterRows = await getDb()
     .select()
     .from(chapters)
@@ -444,7 +447,7 @@ async function getChaptersByTitle(titleIds: string[], imageCdnBaseUrl: string) {
   ]);
 
   const mappedChapters = chapterRows.map((chapter) =>
-    mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [], imageCdnBaseUrl)
+    mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [], publicUrlByTitle.get(chapter.titleId) ?? "")
   );
   const grouped = groupBy(mappedChapters, (item) => item.titleId);
   const result = new Map<string, DemoChapter[]>();

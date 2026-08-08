@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { getStorageCredentials, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import type { UploadImage } from "./zip-images";
 import { imageCdnUrl, validateImageCdnUrl } from "./public-url";
-import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type Authorization = {
   authorizationToken: string;
@@ -22,9 +21,8 @@ export type UploadedMedia = {
 };
 
 export async function uploadImages(format: StorageFormat, prefix: string, images: UploadImage[], options?: { singleFileName?: string }): Promise<UploadedMedia[]> {
-  const { imageCdnUrl: configuredImageCdnUrl } = await getSiteSettings();
-  const imageCdnBaseUrl = validateImageCdnUrl(configuredImageCdnUrl);
   const credentials = await getStorageCredentials(format);
+  const imageCdnBaseUrl = validateImageCdnUrl(credentials.bunnyPublicUrl);
   const authResponse = await fetch("https://api.backblazeb2.com/b2api/v4/b2_authorize_account", {
     headers: { Authorization: `Basic ${Buffer.from(`${credentials.keyId}:${credentials.applicationKey}`).toString("base64")}` },
     cache: "no-store"

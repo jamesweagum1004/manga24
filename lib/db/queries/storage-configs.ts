@@ -11,6 +11,7 @@ export type StorageConfigInput = {
   region: string;
   keyId: string;
   applicationKey?: string;
+  bunnyPublicUrl: string;
 };
 
 export async function listStorageConfigsForAdmin() {
@@ -23,8 +24,9 @@ export async function listStorageConfigsForAdmin() {
       endpoint: row?.endpoint ?? "",
       region: row?.region ?? "",
       keyId: row?.keyId ?? "",
+      bunnyPublicUrl: row?.bunnyPublicUrl ?? "",
       hasApplicationKey: Boolean(row?.encryptedApplicationKey),
-      isReady: Boolean(row?.bucketName && row.endpoint && row.region && row.keyId && row.encryptedApplicationKey)
+      isReady: Boolean(row?.bucketName && row.endpoint && row.region && row.keyId && row.encryptedApplicationKey && row.bunnyPublicUrl)
     };
   });
 }
@@ -42,11 +44,11 @@ export async function updateStorageConfig(format: StorageFormat, input: StorageC
     region: input.region,
     keyId: input.keyId,
     encryptedApplicationKey,
-    bunnyPublicUrl: current?.bunnyPublicUrl ?? "",
+    bunnyPublicUrl: input.bunnyPublicUrl,
     updatedAt: new Date()
   }).onConflictDoUpdate({
     target: storageConfigs.format,
-    set: { bucketName: input.bucketName, endpoint: input.endpoint, region: input.region, keyId: input.keyId, encryptedApplicationKey, updatedAt: new Date() }
+    set: { bucketName: input.bucketName, endpoint: input.endpoint, region: input.region, keyId: input.keyId, encryptedApplicationKey, bunnyPublicUrl: input.bunnyPublicUrl, updatedAt: new Date() }
   });
 }
 
@@ -58,6 +60,15 @@ export async function getStorageCredentials(format: StorageFormat) {
     endpoint: config.endpoint,
     region: config.region,
     keyId: config.keyId,
-    applicationKey: decryptStorageSecret(config.encryptedApplicationKey)
+    applicationKey: decryptStorageSecret(config.encryptedApplicationKey),
+    bunnyPublicUrl: config.bunnyPublicUrl
   };
+}
+
+export async function getStoragePublicUrls() {
+  const rows = await getDb().select({ format: storageConfigs.format, bunnyPublicUrl: storageConfigs.bunnyPublicUrl }).from(storageConfigs);
+  return {
+    manga: rows.find((row) => row.format === "manga")?.bunnyPublicUrl ?? "",
+    manhwa: rows.find((row) => row.format === "manhwa")?.bunnyPublicUrl ?? ""
+  } satisfies Record<StorageFormat, string>;
 }
