@@ -139,6 +139,10 @@ Later chapter uploads keep using the title's original year/month folder. Upload 
 The application intentionally provides no image proxy route on the main domain. There is currently no RSS endpoint.
 The dynamic `/sitemap.xml` contains every published locale, title, chapter, and tag URL from the active catalog.
 
+Admin Settings also controls the active locales (`en`, `es`, `fr`, `de`, `pt`), logo, favicon, and the upload provider for each
+content format. English is always enabled. Disabled locale routes permanently redirect to `/en` and are omitted from sitemap and
+hreflang output. Media uploads can use Backblaze B2 or Bunny Storage's HTTP API; secrets for both providers are encrypted at rest.
+
 #### Bunny Pull Zone checklist
 
 1. Attach the independent image hostname to the Pull Zone and set B2 only as its private origin. If Manga and Manhwa

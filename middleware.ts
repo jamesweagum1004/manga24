@@ -32,7 +32,7 @@ export const config = {
 function nextWithLocale(request: NextRequest, forceNoIndex = false) {
   const requestHeaders = new Headers(request.headers);
   const locale = request.nextUrl.pathname.split("/")[1];
-  requestHeaders.set("x-manga-locale", locale === "es" ? "es" : "en");
+  requestHeaders.set("x-manga-locale", ["en", "es", "fr", "de", "pt"].includes(locale) ? locale : "en");
   const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   if (forceNoIndex || !isProductionHostname(request)) {

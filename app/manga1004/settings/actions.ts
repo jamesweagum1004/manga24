@@ -2,9 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateDeepSeekModel } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
+import { isLocale, locales } from "@/lib/i18n";
+import { uploadImages } from "@/lib/media/b2-upload";
+import { filesToImages } from "@/lib/media/zip-images";
 
 export async function updateAiSettingsAction(formData: FormData) {
   const parsed = z.enum(deepseekModels).safeParse(formData.get("deepseekModel"));
@@ -14,11 +17,15 @@ export async function updateAiSettingsAction(formData: FormData) {
 }
 
 const storageSchema = z.object({
-  bucketName: z.string().trim().min(6).max(160).regex(/^[a-zA-Z0-9.-]+$/),
-  endpoint: z.url().refine((value) => new URL(value).protocol === "https:", "HTTPS is required."),
-  region: z.string().trim().min(2).max(80).regex(/^[a-z0-9-]+$/),
-  keyId: z.string().trim().min(1).max(255),
+  provider: z.enum(["backblaze-b2", "bunny-storage"]),
+  bucketName: z.string().trim().max(160),
+  endpoint: z.string().trim().max(500),
+  region: z.string().trim().max(80),
+  keyId: z.string().trim().max(255),
   applicationKey: z.string().trim().max(500),
+  bunnyStorageZone: z.string().trim().max(160),
+  bunnyEndpoint: z.string().trim().max(500),
+  bunnyAccessKey: z.string().trim().max(500),
   bunnyPublicUrl: z.string().trim().url().transform((value, context) => {
     try {
       return validateImageCdnUrl(value);
@@ -27,17 +34,36 @@ const storageSchema = z.object({
       return z.NEVER;
     }
   })
+}).superRefine((value, context) => {
+  if (value.provider === "backblaze-b2") {
+    if (!value.bucketName || !value.endpoint || !value.region || !value.keyId) context.addIssue({ code: "custom", message: "Complete all Backblaze fields." });
+  } else {
+    if (!value.bunnyStorageZone || !value.bunnyEndpoint) context.addIssue({ code: "custom", message: "Complete all Bunny Storage fields." });
+  }
+  for (const endpoint of [value.endpoint, value.bunnyEndpoint].filter(Boolean)) {
+    try { if (new URL(endpoint).protocol !== "https:") throw new Error(); } catch { context.addIssue({ code: "custom", message: "Storage endpoints must be valid HTTPS URLs." }); }
+  }
+  if (value.bunnyEndpoint) {
+    try {
+      const hostname = new URL(value.bunnyEndpoint).hostname.toLowerCase();
+      if (hostname !== "storage.bunnycdn.com" && !hostname.endsWith(".storage.bunnycdn.com")) throw new Error();
+    } catch { context.addIssue({ code: "custom", message: "Use the Bunny Storage API endpoint shown in the Storage Zone Access page." }); }
+  }
 });
 
 export async function updateStorageSettingsAction(format: StorageFormat, formData: FormData) {
   const parsedFormat = z.enum(["manga", "manhwa"]).safeParse(format);
   const parsed = storageSchema.safeParse({
+    provider: formData.get("provider"),
     bucketName: formData.get("bucketName"),
     endpoint: formData.get("endpoint"),
     region: formData.get("region"),
     keyId: formData.get("keyId"),
     applicationKey: formData.get("applicationKey"),
-    bunnyPublicUrl: formData.get("bunnyPublicUrl")
+    bunnyPublicUrl: formData.get("bunnyPublicUrl"),
+    bunnyStorageZone: formData.get("bunnyStorageZone"),
+    bunnyEndpoint: formData.get("bunnyEndpoint"),
+    bunnyAccessKey: formData.get("bunnyAccessKey")
   });
   if (!parsedFormat.success || !parsed.success) redirect("/manga1004/settings?error=storage-fields#storage");
   try {
@@ -46,4 +72,29 @@ export async function updateStorageSettingsAction(format: StorageFormat, formDat
     redirect("/manga1004/settings?error=storage-secret#storage");
   }
   redirect(`/manga1004/settings?saved=${parsedFormat.data}#storage`);
+}
+
+export async function updateLanguageSettingsAction(formData: FormData) {
+  const selected = locales.filter((locale) => locale === "en" || formData.get(`locale_${locale}`) === "on");
+  await updateEnabledLocales(selected.filter(isLocale));
+  redirect("/manga1004/settings?saved=languages#languages");
+}
+
+export async function uploadBrandingAction(kind: "logo" | "favicon", formData: FormData) {
+  const format = formData.get("format") === "manhwa" ? "manhwa" : "manga";
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) redirect(`/manga1004/settings?error=branding#branding`);
+  try {
+    const [image] = await filesToImages([file]);
+    const [uploaded] = await uploadImages(format, `branding/${kind}`, [image], { singleFileName: `${kind}-${Date.now()}` });
+    await updateBrandingImage(kind, { publicUrl: uploaded.publicUrl, objectKey: uploaded.objectKey, format, width: uploaded.width, height: uploaded.height });
+  } catch {
+    redirect("/manga1004/settings?error=branding#branding");
+  }
+  redirect(`/manga1004/settings?saved=${kind}#branding`);
+}
+
+export async function deleteBrandingAction(kind: "logo" | "favicon") {
+  await updateBrandingImage(kind, null);
+  redirect(`/manga1004/settings?saved=${kind}-deleted#branding`);
 }

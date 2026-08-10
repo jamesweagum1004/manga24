@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const localeEnum = pgEnum("locale", ["en", "es"]);
+export const localeEnum = pgEnum("locale", ["en", "es", "fr", "de", "pt"]);
 export const publicationStatusEnum = pgEnum("publication_status", ["draft", "scheduled", "published", "archived"]);
 export const titleStatusEnum = pgEnum("title_status", ["ongoing", "completed", "hiatus", "cancelled"]);
 export const contentRatingEnum = pgEnum("content_rating", ["safe", "mature_18"]);
@@ -43,17 +43,24 @@ export const siteSettings = pgTable("site_settings", {
   id: integer("id").primaryKey().default(1),
   deepseekModel: varchar("deepseek_model", { length: 80 }).default("deepseek-v4-flash").notNull(),
   imageCdnUrl: text("image_cdn_url"),
+  enabledLocales: jsonb("enabled_locales").$type<string[]>().default(["en", "es"]).notNull(),
+  logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
+  favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
 export const storageConfigs = pgTable("storage_configs", {
   format: titleFormatEnum("format").primaryKey(),
+  provider: varchar("provider", { length: 40 }).default("backblaze-b2").notNull(),
   bucketName: varchar("bucket_name", { length: 160 }).notNull(),
   endpoint: text("endpoint").notNull(),
   region: varchar("region", { length: 80 }).notNull(),
   keyId: varchar("key_id", { length: 255 }).notNull(),
   encryptedApplicationKey: text("encrypted_application_key").notNull(),
   bunnyPublicUrl: text("bunny_public_url").notNull(),
+  bunnyStorageZone: varchar("bunny_storage_zone", { length: 160 }),
+  bunnyEndpoint: text("bunny_endpoint"),
+  encryptedBunnyAccessKey: text("encrypted_bunny_access_key"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 

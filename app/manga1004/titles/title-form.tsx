@@ -94,6 +94,12 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
         <TextField label="English keywords" name="enSeoKeywords" value={state.values.enSeoKeywords} errors={state.errors?.enSeoKeywords} disabled={disabled} hint="Comma-separated" />
         <TextAreaField label="Spanish SEO description" name="esSeoDescription" value={state.values.esSeoDescription} errors={state.errors?.esSeoDescription} disabled={disabled} />
         <TextField label="Spanish keywords" name="esSeoKeywords" value={state.values.esSeoKeywords} errors={state.errors?.esSeoKeywords} disabled={disabled} hint="Comma-separated" />
+        <div className="grid gap-4 sm:grid-cols-2"><TextField label="French SEO title" name="frSeoTitle" value={state.values.frSeoTitle} errors={state.errors?.frSeoTitle} disabled={disabled} /><TextField label="French keywords" name="frSeoKeywords" value={state.values.frSeoKeywords} errors={state.errors?.frSeoKeywords} disabled={disabled} /></div>
+        <TextAreaField label="French SEO description" name="frSeoDescription" value={state.values.frSeoDescription} errors={state.errors?.frSeoDescription} disabled={disabled} />
+        <div className="grid gap-4 sm:grid-cols-2"><TextField label="German SEO title" name="deSeoTitle" value={state.values.deSeoTitle} errors={state.errors?.deSeoTitle} disabled={disabled} /><TextField label="German keywords" name="deSeoKeywords" value={state.values.deSeoKeywords} errors={state.errors?.deSeoKeywords} disabled={disabled} /></div>
+        <TextAreaField label="German SEO description" name="deSeoDescription" value={state.values.deSeoDescription} errors={state.errors?.deSeoDescription} disabled={disabled} />
+        <div className="grid gap-4 sm:grid-cols-2"><TextField label="Portuguese SEO title" name="ptSeoTitle" value={state.values.ptSeoTitle} errors={state.errors?.ptSeoTitle} disabled={disabled} /><TextField label="Portuguese keywords" name="ptSeoKeywords" value={state.values.ptSeoKeywords} errors={state.errors?.ptSeoKeywords} disabled={disabled} /></div>
+        <TextAreaField label="Portuguese SEO description" name="ptSeoDescription" value={state.values.ptSeoDescription} errors={state.errors?.ptSeoDescription} disabled={disabled} />
       </section>
 
       <section className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -114,6 +120,10 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
         <TextAreaField label="Spanish description" name="esDescription" value={state.values.esDescription} errors={state.errors?.esDescription} disabled={disabled} />
       </section>
 
+      <LocalizationSection language="French" prefix="fr" values={state.values} errors={state.errors} disabled={disabled} />
+      <LocalizationSection language="German" prefix="de" values={state.values} errors={state.errors} disabled={disabled} />
+      <LocalizationSection language="Portuguese" prefix="pt" values={state.values} errors={state.errors} disabled={disabled} />
+
       <div className="flex justify-end">
         <button
           type="submit"
@@ -125,6 +135,13 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
       </div>
     </form>
   );
+}
+
+function LocalizationSection({ language, prefix, values, errors, disabled }: { language: string; prefix: "fr" | "de" | "pt"; values: TitleFormState["values"]; errors: TitleFormState["errors"]; disabled: boolean }) {
+  const titleKey = `${prefix}Title` as const;
+  const slugKey = `${prefix}Slug` as const;
+  const descriptionKey = `${prefix}Description` as const;
+  return <section className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5"><h2 className="text-lg font-black">{language} Localization</h2><div className="grid gap-4 sm:grid-cols-2"><TextField label={`${language} title`} name={titleKey} value={values[titleKey]} errors={errors?.[titleKey]} disabled={disabled} /><TextField label={`${language} slug`} name={slugKey} value={values[slugKey]} errors={errors?.[slugKey]} disabled={disabled} /></div><TextAreaField label={`${language} description`} name={descriptionKey} value={values[descriptionKey]} errors={errors?.[descriptionKey]} disabled={disabled} /></section>;
 }
 
 function TextField({

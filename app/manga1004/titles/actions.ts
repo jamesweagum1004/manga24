@@ -50,6 +50,12 @@ const titleFormSchema = z.object({
   esSeoTitle: z.string().trim().max(70, "Spanish SEO title must be 70 characters or fewer."),
   esSeoDescription: z.string().trim().max(170, "Spanish SEO description must be 170 characters or fewer."),
   esSeoKeywords: z.string().trim().max(500, "Spanish SEO keywords must be 500 characters or fewer."),
+  frTitle: requiredText("French title", 240), frSlug: slugSchema, frDescription: requiredText("French description", 4000),
+  frSeoTitle: z.string().trim().max(70), frSeoDescription: z.string().trim().max(170), frSeoKeywords: z.string().trim().max(500),
+  deTitle: requiredText("German title", 240), deSlug: slugSchema, deDescription: requiredText("German description", 4000),
+  deSeoTitle: z.string().trim().max(70), deSeoDescription: z.string().trim().max(170), deSeoKeywords: z.string().trim().max(500),
+  ptTitle: requiredText("Portuguese title", 240), ptSlug: slugSchema, ptDescription: requiredText("Portuguese description", 4000),
+  ptSeoTitle: z.string().trim().max(70), ptSeoDescription: z.string().trim().max(170), ptSeoKeywords: z.string().trim().max(500),
   tags: tagListSchema
 });
 
@@ -135,6 +141,12 @@ function parseTitleForm(formData: FormData) {
     esSeoTitle: getFormValue(formData, "esSeoTitle"),
     esSeoDescription: getFormValue(formData, "esSeoDescription"),
     esSeoKeywords: getFormValue(formData, "esSeoKeywords"),
+    frTitle: getFormValue(formData, "frTitle"), frSlug: getFormValue(formData, "frSlug"), frDescription: getFormValue(formData, "frDescription"),
+    frSeoTitle: getFormValue(formData, "frSeoTitle"), frSeoDescription: getFormValue(formData, "frSeoDescription"), frSeoKeywords: getFormValue(formData, "frSeoKeywords"),
+    deTitle: getFormValue(formData, "deTitle"), deSlug: getFormValue(formData, "deSlug"), deDescription: getFormValue(formData, "deDescription"),
+    deSeoTitle: getFormValue(formData, "deSeoTitle"), deSeoDescription: getFormValue(formData, "deSeoDescription"), deSeoKeywords: getFormValue(formData, "deSeoKeywords"),
+    ptTitle: getFormValue(formData, "ptTitle"), ptSlug: getFormValue(formData, "ptSlug"), ptDescription: getFormValue(formData, "ptDescription"),
+    ptSeoTitle: getFormValue(formData, "ptSeoTitle"), ptSeoDescription: getFormValue(formData, "ptSeoDescription"), ptSeoKeywords: getFormValue(formData, "ptSeoKeywords"),
     tags: getFormValue(formData, "tags")
   };
   const result = titleFormSchema.safeParse(values);

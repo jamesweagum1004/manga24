@@ -17,7 +17,10 @@ const localeSeoSchema = z.object({
 
 const generatedSeoSchema = z.object({
   en: localeSeoSchema,
-  es: localeSeoSchema
+  es: localeSeoSchema,
+  fr: localeSeoSchema,
+  de: localeSeoSchema,
+  pt: localeSeoSchema
 });
 
 const completionSchema = z.object({
@@ -48,7 +51,7 @@ export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekM
         {
           role: "system",
           content:
-            "You create accurate multilingual SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep titles under 60 characters when practical and descriptions between 120 and 160 characters. Output exactly: {\"en\":{\"title\":\"\",\"description\":\"\",\"keywords\":[\"\"]},\"es\":{\"title\":\"\",\"description\":\"\",\"keywords\":[\"\"]}}"
+            "You create accurate multilingual SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep titles under 60 characters when practical and descriptions between 120 and 160 characters. Output exactly five keys: en, es, fr, de, pt. Each key must contain title, description, and keywords."
         },
         {
           role: "user",
@@ -61,7 +64,10 @@ export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekM
             contentRating: values.contentRating,
             tags: values.tags,
             english: { title: values.enTitle, description: values.enDescription },
-            spanish: { title: values.esTitle, description: values.esDescription }
+            spanish: { title: values.esTitle, description: values.esDescription },
+            french: { title: values.frTitle, description: values.frDescription },
+            german: { title: values.deTitle, description: values.deDescription },
+            portuguese: { title: values.ptTitle, description: values.ptDescription }
           })
         }
       ]

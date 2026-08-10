@@ -10,7 +10,10 @@ const schema = z.object({
   canonicalSlug: z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
   publicationStatus: z.enum(["draft", "scheduled", "published", "archived"]),
   enTitle: z.string().trim().min(1).max(240),
-  esTitle: z.string().trim().min(1).max(240)
+  esTitle: z.string().trim().min(1).max(240),
+  frTitle: z.string().trim().min(1).max(240),
+  deTitle: z.string().trim().min(1).max(240),
+  ptTitle: z.string().trim().min(1).max(240)
 });
 
 export type ChapterFormState = {
@@ -45,7 +48,7 @@ export async function updateChapterAction(id: string, _state: ChapterFormState, 
 }
 
 function parse(formData: FormData) {
-  const values = Object.fromEntries(["titleId", "chapterNumber", "canonicalSlug", "publicationStatus", "enTitle", "esTitle"].map((key) => [key, formData.get(key)]));
+  const values = Object.fromEntries(["titleId", "chapterNumber", "canonicalSlug", "publicationStatus", "enTitle", "esTitle", "frTitle", "deTitle", "ptTitle"].map((key) => [key, formData.get(key)]));
   const result = schema.safeParse(values);
   return result.success
     ? { success: true as const, data: result.data }

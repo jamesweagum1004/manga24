@@ -1,7 +1,9 @@
 export const RECENT_READING_KEY = "manga24:recent-reading:v1";
 
+import type { Locale } from "./i18n";
+
 export type RecentReading = {
-  locale: "en" | "es";
+  locale: Locale;
   titleSlug: string;
   title: string;
   chapter: string;

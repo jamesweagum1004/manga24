@@ -29,11 +29,14 @@ const manifestSchema = z.object({
     esTitle: z.string().trim().min(1).max(240),
     esSlug: slug.optional(),
     esDescription: z.string().trim().min(1).max(4000),
+    frTitle: z.string().trim().min(1).max(240).optional(), frSlug: slug.optional(), frDescription: z.string().trim().min(1).max(4000).optional(),
+    deTitle: z.string().trim().min(1).max(240).optional(), deSlug: slug.optional(), deDescription: z.string().trim().min(1).max(4000).optional(),
+    ptTitle: z.string().trim().min(1).max(240).optional(), ptSlug: slug.optional(), ptDescription: z.string().trim().min(1).max(4000).optional(),
     tags: z.array(slug).max(60).default([]),
-    seo: z.object({ enTitle: z.string().max(70), enDescription: z.string().max(170), enKeywords: z.array(z.string().max(80)).max(20), esTitle: z.string().max(70), esDescription: z.string().max(170), esKeywords: z.array(z.string().max(80)).max(20) }).optional(),
+    seo: z.object({ enTitle: z.string().max(70), enDescription: z.string().max(170), enKeywords: z.array(z.string().max(80)).max(20), esTitle: z.string().max(70), esDescription: z.string().max(170), esKeywords: z.array(z.string().max(80)).max(20), frTitle: z.string().max(70).optional(), frDescription: z.string().max(170).optional(), frKeywords: z.array(z.string().max(80)).max(20).optional(), deTitle: z.string().max(70).optional(), deDescription: z.string().max(170).optional(), deKeywords: z.array(z.string().max(80)).max(20).optional(), ptTitle: z.string().max(70).optional(), ptDescription: z.string().max(170).optional(), ptKeywords: z.array(z.string().max(80)).max(20).optional() }).optional(),
     generateSeo: z.boolean().default(true)
   }),
-  chapter: z.object({ number: z.union([z.string(), z.number()]).transform(String), slug, enTitle: z.string().min(1).max(240), esTitle: z.string().min(1).max(240), publicationStatus: z.enum(["draft", "scheduled", "published", "archived"]).default("draft") }).optional(),
+  chapter: z.object({ number: z.union([z.string(), z.number()]).transform(String), slug, enTitle: z.string().min(1).max(240), esTitle: z.string().min(1).max(240), frTitle: z.string().min(1).max(240).optional(), deTitle: z.string().min(1).max(240).optional(), ptTitle: z.string().min(1).max(240).optional(), publicationStatus: z.enum(["draft", "scheduled", "published", "archived"]).default("draft") }).optional(),
   publish: z.boolean().default(false)
 });
 
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
     if (!manifest.title.seo && manifest.title.generateSeo) {
       const settings = await getSiteSettings();
       const generated = await generateTitleSeo(values, settings.deepseekModel);
-      values = { ...values, enSeoTitle: generated.en.title, enSeoDescription: generated.en.description, enSeoKeywords: generated.en.keywords.join(", "), esSeoTitle: generated.es.title, esSeoDescription: generated.es.description, esSeoKeywords: generated.es.keywords.join(", ") };
+      values = { ...values, enSeoTitle: generated.en.title, enSeoDescription: generated.en.description, enSeoKeywords: generated.en.keywords.join(", "), esSeoTitle: generated.es.title, esSeoDescription: generated.es.description, esSeoKeywords: generated.es.keywords.join(", "), frSeoTitle: generated.fr.title, frSeoDescription: generated.fr.description, frSeoKeywords: generated.fr.keywords.join(", "), deSeoTitle: generated.de.title, deSeoDescription: generated.de.description, deSeoKeywords: generated.de.keywords.join(", "), ptSeoTitle: generated.pt.title, ptSeoDescription: generated.pt.description, ptSeoKeywords: generated.pt.keywords.join(", ") };
     }
     const existing = await getDbTitleForAdmin(manifest.title.canonicalSlug);
     const titleId = existing ? (await updateDbTitle(existing.id, values), existing.id) : await createDbTitle(values);
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
 
     let chapterId: string | null = null;
     if (manifest.chapter) {
-      const chapterValues = { titleId, chapterNumber: manifest.chapter.number, canonicalSlug: manifest.chapter.slug, publicationStatus: "draft" as const, enTitle: manifest.chapter.enTitle, esTitle: manifest.chapter.esTitle };
+      const chapterValues = { titleId, chapterNumber: manifest.chapter.number, canonicalSlug: manifest.chapter.slug, publicationStatus: "draft" as const, enTitle: manifest.chapter.enTitle, esTitle: manifest.chapter.esTitle, frTitle: manifest.chapter.frTitle ?? manifest.chapter.enTitle, deTitle: manifest.chapter.deTitle ?? manifest.chapter.enTitle, ptTitle: manifest.chapter.ptTitle ?? manifest.chapter.enTitle };
       chapterId = await getChapterIdForImport(titleId, manifest.chapter.slug);
       if (chapterId) await updateDbChapter(chapterId, chapterValues); else chapterId = await createDbChapter(chapterValues);
       const zip = form.get("chapterZip");
@@ -107,5 +110,5 @@ function authorized(header: string | null) {
 
 function titleValues(input: z.infer<typeof manifestSchema>["title"]): TitleFormValues {
   const seo = input.seo;
-  return { canonicalSlug: input.canonicalSlug, originalTitle: input.originalTitle, authorName: input.authorName, originalLanguage: input.originalLanguage, format: input.format, contentRating: input.contentRating, publicationStatus: input.publicationStatus, enTitle: input.enTitle, enSlug: input.enSlug ?? input.canonicalSlug, enDescription: input.enDescription, esTitle: input.esTitle, esSlug: input.esSlug ?? input.canonicalSlug, esDescription: input.esDescription, tags: input.tags.join(", "), enSeoTitle: seo?.enTitle ?? "", enSeoDescription: seo?.enDescription ?? "", enSeoKeywords: seo?.enKeywords.join(", ") ?? "", esSeoTitle: seo?.esTitle ?? "", esSeoDescription: seo?.esDescription ?? "", esSeoKeywords: seo?.esKeywords.join(", ") ?? "" };
+  return { canonicalSlug: input.canonicalSlug, originalTitle: input.originalTitle, authorName: input.authorName, originalLanguage: input.originalLanguage, format: input.format, contentRating: input.contentRating, publicationStatus: input.publicationStatus, enTitle: input.enTitle, enSlug: input.enSlug ?? input.canonicalSlug, enDescription: input.enDescription, esTitle: input.esTitle, esSlug: input.esSlug ?? input.canonicalSlug, esDescription: input.esDescription, frTitle: input.frTitle ?? input.enTitle, frSlug: input.frSlug ?? input.canonicalSlug, frDescription: input.frDescription ?? input.enDescription, deTitle: input.deTitle ?? input.enTitle, deSlug: input.deSlug ?? input.canonicalSlug, deDescription: input.deDescription ?? input.enDescription, ptTitle: input.ptTitle ?? input.enTitle, ptSlug: input.ptSlug ?? input.canonicalSlug, ptDescription: input.ptDescription ?? input.enDescription, tags: input.tags.join(", "), enSeoTitle: seo?.enTitle ?? "", enSeoDescription: seo?.enDescription ?? "", enSeoKeywords: seo?.enKeywords.join(", ") ?? "", esSeoTitle: seo?.esTitle ?? "", esSeoDescription: seo?.esDescription ?? "", esSeoKeywords: seo?.esKeywords.join(", ") ?? "", frSeoTitle: seo?.frTitle ?? "", frSeoDescription: seo?.frDescription ?? "", frSeoKeywords: seo?.frKeywords?.join(", ") ?? "", deSeoTitle: seo?.deTitle ?? "", deSeoDescription: seo?.deDescription ?? "", deSeoKeywords: seo?.deKeywords?.join(", ") ?? "", ptSeoTitle: seo?.ptTitle ?? "", ptSeoDescription: seo?.ptDescription ?? "", ptSeoKeywords: seo?.ptKeywords?.join(", ") ?? "" };
 }

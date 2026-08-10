@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { env } from "@/lib/env";
-import { locales, type Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type MetadataInput = {
@@ -17,9 +17,9 @@ export function siteUrl(path = "") {
   return new URL(path, env.NEXT_PUBLIC_SITE_URL).toString();
 }
 
-export function localizedAlternates(locale: Locale, pathWithoutLocale: string) {
+export function localizedAlternates(locale: Locale, pathWithoutLocale: string, enabledLocales: Locale[]) {
   const languages = Object.fromEntries(
-    locales.map((locale) => [locale, siteUrl(`/${locale}${pathWithoutLocale}`)])
+    enabledLocales.map((locale) => [locale, siteUrl(`/${locale}${pathWithoutLocale}`)])
   ) as Record<string, string>;
 
   return {
@@ -39,7 +39,7 @@ export async function buildMetadata(input: MetadataInput): Promise<Metadata> {
     title: `${input.title} | Manga24`,
     description: input.description,
     keywords: input.keywords,
-    alternates: localizedAlternates(input.locale, input.path),
+    alternates: localizedAlternates(input.locale, input.path, settings.enabledLocales),
     openGraph: {
       title: `${input.title} | Manga24`,
       description: input.description,

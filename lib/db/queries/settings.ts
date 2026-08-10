@@ -2,6 +2,9 @@ import "server-only";
 import { auditLogs, siteSettings } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
+import { normalizeEnabledLocales, type Locale } from "@/lib/i18n";
+
+export type BrandingImage = { publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number };
 
 export const deepseekModels = ["deepseek-v4-flash", "deepseek-v4-pro"] as const;
 export type DeepSeekModel = (typeof deepseekModels)[number];
@@ -11,8 +14,21 @@ export async function getSiteSettings() {
   const [settings] = db ? await db.select().from(siteSettings).limit(1) : [];
   return {
     deepseekModel: isDeepSeekModel(settings?.deepseekModel) ? settings.deepseekModel : "deepseek-v4-flash",
-    imageCdnUrl: settings?.imageCdnUrl ?? process.env.NEXT_PUBLIC_IMAGE_CDN_URL ?? ""
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string };
+    imageCdnUrl: settings?.imageCdnUrl ?? process.env.NEXT_PUBLIC_IMAGE_CDN_URL ?? "",
+    enabledLocales: normalizeEnabledLocales(settings?.enabledLocales),
+    logo: settings?.logo ?? null,
+    favicon: settings?.favicon ?? null
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; logo: BrandingImage | null; favicon: BrandingImage | null };
+}
+
+export async function updateEnabledLocales(enabledLocales: Locale[]) {
+  const normalized = normalizeEnabledLocales(enabledLocales);
+  await getDb().insert(siteSettings).values({ id: 1, enabledLocales: normalized, updatedAt: new Date() }).onConflictDoUpdate({ target: siteSettings.id, set: { enabledLocales: normalized, updatedAt: new Date() } });
+}
+
+export async function updateBrandingImage(kind: "logo" | "favicon", value: BrandingImage | null) {
+  const update = kind === "logo" ? { logo: value } : { favicon: value };
+  await getDb().insert(siteSettings).values({ id: 1, ...update, updatedAt: new Date() }).onConflictDoUpdate({ target: siteSettings.id, set: { ...update, updatedAt: new Date() } });
 }
 
 export async function updateImageCdnUrl(imageCdnUrl: string, adminId: string) {

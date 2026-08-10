@@ -30,6 +30,9 @@ export function ChapterForm({ action, initialState, titles, submitLabel, setup =
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="English title" error={state.errors?.enTitle}><input name="enTitle" required defaultValue={state.values.enTitle} className={inputClass} /></Field>
           <Field label="Spanish title" error={state.errors?.esTitle}><input name="esTitle" required defaultValue={state.values.esTitle} className={inputClass} /></Field>
+          <Field label="French title" error={state.errors?.frTitle}><input name="frTitle" required defaultValue={state.values.frTitle} className={inputClass} /></Field>
+          <Field label="German title" error={state.errors?.deTitle}><input name="deTitle" required defaultValue={state.values.deTitle} className={inputClass} /></Field>
+          <Field label="Portuguese title" error={state.errors?.ptTitle}><input name="ptTitle" required defaultValue={state.values.ptTitle} className={inputClass} /></Field>
         </div>
       </section>
       <button disabled={pending} className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white shadow-sm disabled:opacity-50">{pending ? "Saving…" : submitLabel}</button>

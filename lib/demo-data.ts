@@ -39,6 +39,8 @@ export type DemoTitle = {
   chapters: DemoChapter[];
 };
 
+type BaseLocalizedText = { en: string; es: string };
+
 export const dictionary = {
   en: {
     latest: "Latest",
@@ -99,10 +101,19 @@ export const dictionary = {
     nextChapter: "Siguiente capitulo",
     noNextChapter: "Estas al dia.",
     admin: "Admin"
+  },
+  fr: {
+    latest: "Nouveautés", popular: "Populaires", tags: "Tags", search: "Rechercher", menu: "Menu", theme: "Thème", featured: "À la une", trending: "Tendances", latestUpdates: "Dernières mises à jour", popularTitles: "Titres populaires", popularTags: "Tags populaires", continueReading: "Continuer la lecture", readLatest: "Lire le dernier chapitre", startChapterOne: "Commencer au chapitre 1", bookmark: "Favori", chapters: "Chapitres", author: "Auteur", status: "Statut", language: "Langue", chapterCount: "Chapitres", views: "Vues", previous: "Précédent", next: "Suivant", chapterList: "Liste des chapitres", endOfChapter: "Fin du chapitre", nextChapter: "Chapitre suivant", noNextChapter: "Vous êtes à jour.", admin: "Admin"
+  },
+  de: {
+    latest: "Neuheiten", popular: "Beliebt", tags: "Tags", search: "Suchen", menu: "Menü", theme: "Design", featured: "Empfohlen", trending: "Im Trend", latestUpdates: "Neueste Updates", popularTitles: "Beliebte Titel", popularTags: "Beliebte Tags", continueReading: "Weiterlesen", readLatest: "Neuestes Kapitel lesen", startChapterOne: "Mit Kapitel 1 beginnen", bookmark: "Merken", chapters: "Kapitel", author: "Autor", status: "Status", language: "Sprache", chapterCount: "Kapitel", views: "Aufrufe", previous: "Zurück", next: "Weiter", chapterList: "Kapitelliste", endOfChapter: "Ende des Kapitels", nextChapter: "Nächstes Kapitel", noNextChapter: "Du bist auf dem neuesten Stand.", admin: "Admin"
+  },
+  pt: {
+    latest: "Recentes", popular: "Populares", tags: "Tags", search: "Pesquisar", menu: "Menu", theme: "Tema", featured: "Destaque", trending: "Em alta", latestUpdates: "Últimas atualizações", popularTitles: "Títulos populares", popularTags: "Tags populares", continueReading: "Continuar lendo", readLatest: "Ler o capítulo mais recente", startChapterOne: "Começar pelo capítulo 1", bookmark: "Favoritar", chapters: "Capítulos", author: "Autor", status: "Status", language: "Idioma", chapterCount: "Capítulos", views: "Visualizações", previous: "Anterior", next: "Próximo", chapterList: "Lista de capítulos", endOfChapter: "Fim do capítulo", nextChapter: "Próximo capítulo", noNextChapter: "Você está em dia.", admin: "Admin"
   }
 } satisfies Record<Locale, Record<string, string>>;
 
-export const demoTags: DemoTag[] = [
+const baseDemoTags: Array<Omit<DemoTag, "names"> & { names: BaseLocalizedText }> = [
   { slug: "romance", names: { en: "Romance", es: "Romance" } },
   { slug: "drama", names: { en: "Drama", es: "Drama" } },
   { slug: "fantasy", names: { en: "Fantasy", es: "Fantasia" } },
@@ -112,6 +123,7 @@ export const demoTags: DemoTag[] = [
   { slug: "mystery", names: { en: "Mystery", es: "Misterio" } },
   { slug: "supernatural", names: { en: "Supernatural", es: "Sobrenatural" } }
 ];
+export const demoTags: DemoTag[] = baseDemoTags.map((tag) => ({ ...tag, names: expandLocalization(tag.names) }));
 
 const readerPages: DemoAsset[] = Array.from({ length: 8 }, (_, index) => ({
   id: `reader-${index + 1}`,
@@ -125,10 +137,10 @@ function chaptersFor(titleSlug: string): DemoChapter[] {
   return [1, 2, 3, 4].map((number) => ({
     slug: `chapter-${number}`,
     number,
-    titles: {
+    titles: expandLocalization({
       en: `Chapter ${number}: ${["First Light", "Quiet Signal", "Open Door", "Late Return"][number - 1]}`,
       es: `Capitulo ${number}: ${["Primera luz", "Senal tranquila", "Puerta abierta", "Regreso tarde"][number - 1]}`
-    },
+    }),
     publishedAt: `2026-0${number + 2}-${String(number * 4).padStart(2, "0")}`,
     pages: readerPages.map((page, pageIndex) => ({
       ...page,
@@ -138,7 +150,7 @@ function chaptersFor(titleSlug: string): DemoChapter[] {
   }));
 }
 
-export const demoTitles: DemoTitle[] = [
+const baseDemoTitles: Array<Omit<DemoTitle, "titles" | "descriptions"> & { titles: BaseLocalizedText; descriptions: BaseLocalizedText }> = [
   {
     slug: "midnight-atelier",
     originalTitle: "Midnight Atelier",
@@ -428,6 +440,16 @@ export const demoTitles: DemoTitle[] = [
     chapters: chaptersFor("opal-stair")
   }
 ];
+
+export const demoTitles: DemoTitle[] = baseDemoTitles.map((title) => ({
+  ...title,
+  titles: expandLocalization(title.titles),
+  descriptions: expandLocalization(title.descriptions)
+}));
+
+function expandLocalization(value: BaseLocalizedText): Record<Locale, string> {
+  return { en: value.en, es: value.es, fr: value.en, de: value.en, pt: value.en };
+}
 
 export function findTitle(slug: string) {
   return demoTitles.find((title) => title.slug === slug);

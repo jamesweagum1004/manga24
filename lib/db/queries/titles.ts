@@ -38,6 +38,24 @@ export type TitleFormValues = {
   esSeoTitle: string;
   esSeoDescription: string;
   esSeoKeywords: string;
+  frTitle: string;
+  frSlug: string;
+  frDescription: string;
+  frSeoTitle: string;
+  frSeoDescription: string;
+  frSeoKeywords: string;
+  deTitle: string;
+  deSlug: string;
+  deDescription: string;
+  deSeoTitle: string;
+  deSeoDescription: string;
+  deSeoKeywords: string;
+  ptTitle: string;
+  ptSlug: string;
+  ptDescription: string;
+  ptSeoTitle: string;
+  ptSeoDescription: string;
+  ptSeoKeywords: string;
   tags: string;
 };
 
@@ -120,6 +138,9 @@ export const emptyTitleFormValues: TitleFormValues = {
   esSeoTitle: "",
   esSeoDescription: "",
   esSeoKeywords: "",
+  frTitle: "", frSlug: "", frDescription: "", frSeoTitle: "", frSeoDescription: "", frSeoKeywords: "",
+  deTitle: "", deSlug: "", deDescription: "", deSeoTitle: "", deSeoDescription: "", deSeoKeywords: "",
+  ptTitle: "", ptSlug: "", ptDescription: "", ptSeoTitle: "", ptSeoDescription: "", ptSeoKeywords: "",
   tags: ""
 };
 
@@ -196,28 +217,16 @@ export async function createDbTitle(values: TitleFormValues) {
       })
       .returning({ id: titles.id });
 
-    await tx.insert(titleLocalizations).values([
-      {
-        titleId: title.id,
-        locale: "en",
-        title: values.enTitle,
-        slug: values.enSlug,
-        description: values.enDescription,
-        seoTitle: values.enSeoTitle || null,
-        seoDescription: values.enSeoDescription || null,
-        seoKeywords: values.enSeoKeywords || null
-      },
-      {
-        titleId: title.id,
-        locale: "es",
-        title: values.esTitle,
-        slug: values.esSlug,
-        description: values.esDescription,
-        seoTitle: values.esSeoTitle || null,
-        seoDescription: values.esSeoDescription || null,
-        seoKeywords: values.esSeoKeywords || null
-      }
-    ]);
+    await tx.insert(titleLocalizations).values((["en", "es", "fr", "de", "pt"] as const).map((locale) => ({
+      titleId: title.id,
+      locale,
+      title: values[`${locale}Title`],
+      slug: values[`${locale}Slug`],
+      description: values[`${locale}Description`],
+      seoTitle: values[`${locale}SeoTitle`] || null,
+      seoDescription: values[`${locale}SeoDescription`] || null,
+      seoKeywords: values[`${locale}SeoKeywords`] || null
+    })));
 
     await attachTagsToTitle(tx, title.id, tagSlugs);
 
@@ -245,7 +254,7 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
       })
       .where(eq(titles.id, id));
 
-    for (const locale of ["en", "es"] as const) {
+    for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
       await tx
         .insert(titleLocalizations)
         .values({
@@ -285,16 +294,23 @@ export async function updateDbTitleSeo(
   const db = getDb();
   const now = new Date();
   await db.transaction(async (tx) => {
-    for (const locale of ["en", "es"] as const) {
-      await tx
-        .update(titleLocalizations)
-        .set({
+    const [base] = await tx.select({ slug: titles.slug, originalTitle: titles.originalTitle }).from(titles).where(eq(titles.id, id)).limit(1);
+    if (!base) throw new Error("Title not found.");
+    for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
+      await tx.insert(titleLocalizations).values({
+          titleId: id,
+          locale,
+          title: seo[locale].title || base.originalTitle,
+          slug: base.slug,
+          description: seo[locale].description,
           seoTitle: seo[locale].title,
           seoDescription: seo[locale].description,
           seoKeywords: seo[locale].keywords.join(", "),
           updatedAt: now
-        })
-        .where(and(eq(titleLocalizations.titleId, id), eq(titleLocalizations.locale, locale)));
+        }).onConflictDoUpdate({
+          target: [titleLocalizations.titleId, titleLocalizations.locale],
+          set: { seoTitle: seo[locale].title, seoDescription: seo[locale].description, seoKeywords: seo[locale].keywords.join(", "), updatedAt: now }
+        });
     }
   });
 }
@@ -320,6 +336,9 @@ export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues 
     esSeoTitle: "",
     esSeoDescription: "",
     esSeoKeywords: "",
+    frTitle: title.titles.fr, frSlug: title.slug, frDescription: title.descriptions.fr, frSeoTitle: "", frSeoDescription: "", frSeoKeywords: "",
+    deTitle: title.titles.de, deSlug: title.slug, deDescription: title.descriptions.de, deSeoTitle: "", deSeoDescription: "", deSeoKeywords: "",
+    ptTitle: title.titles.pt, ptSlug: title.slug, ptDescription: title.descriptions.pt, ptSeoTitle: "", ptSeoDescription: "", ptSeoKeywords: "",
     tags: title.tags.join(", ")
   };
 }
@@ -513,6 +532,12 @@ function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[],
     esSeoTitle: localizationMap.es.seoTitle,
     esSeoDescription: localizationMap.es.seoDescription,
     esSeoKeywords: localizationMap.es.seoKeywords,
+    frTitle: localizationMap.fr.title, frSlug: localizationMap.fr.slug, frDescription: localizationMap.fr.description,
+    frSeoTitle: localizationMap.fr.seoTitle, frSeoDescription: localizationMap.fr.seoDescription, frSeoKeywords: localizationMap.fr.seoKeywords,
+    deTitle: localizationMap.de.title, deSlug: localizationMap.de.slug, deDescription: localizationMap.de.description,
+    deSeoTitle: localizationMap.de.seoTitle, deSeoDescription: localizationMap.de.seoDescription, deSeoKeywords: localizationMap.de.seoKeywords,
+    ptTitle: localizationMap.pt.title, ptSlug: localizationMap.pt.slug, ptDescription: localizationMap.pt.description,
+    ptSeoTitle: localizationMap.pt.seoTitle, ptSeoDescription: localizationMap.pt.seoDescription, ptSeoKeywords: localizationMap.pt.seoKeywords,
     tags: tagRows.map((tag) => tag.slug).join(", ")
   };
 }
@@ -545,11 +570,17 @@ function mapTitleRow(
     originalTitle: row.originalTitle,
     titles: {
       en: localizationMap.en.title,
-      es: localizationMap.es.title
+      es: localizationMap.es.title,
+      fr: localizationMap.fr.title || localizationMap.en.title,
+      de: localizationMap.de.title || localizationMap.en.title,
+      pt: localizationMap.pt.title || localizationMap.en.title
     },
     descriptions: {
       en: localizationMap.en.description,
-      es: localizationMap.es.description
+      es: localizationMap.es.description,
+      fr: localizationMap.fr.description || localizationMap.en.description,
+      de: localizationMap.de.description || localizationMap.en.description,
+      pt: localizationMap.pt.description || localizationMap.en.description
     },
     seo: {
       en: {
@@ -561,6 +592,21 @@ function mapTitleRow(
         title: localizationMap.es.seoTitle || localizationMap.es.title,
         description: localizationMap.es.seoDescription || localizationMap.es.description,
         keywords: parseKeywords(localizationMap.es.seoKeywords)
+      },
+      fr: {
+        title: localizationMap.fr.seoTitle || localizationMap.fr.title || localizationMap.en.seoTitle || localizationMap.en.title,
+        description: localizationMap.fr.seoDescription || localizationMap.fr.description || localizationMap.en.seoDescription || localizationMap.en.description,
+        keywords: parseKeywords(localizationMap.fr.seoKeywords || localizationMap.en.seoKeywords)
+      },
+      de: {
+        title: localizationMap.de.seoTitle || localizationMap.de.title || localizationMap.en.seoTitle || localizationMap.en.title,
+        description: localizationMap.de.seoDescription || localizationMap.de.description || localizationMap.en.seoDescription || localizationMap.en.description,
+        keywords: parseKeywords(localizationMap.de.seoKeywords || localizationMap.en.seoKeywords)
+      },
+      pt: {
+        title: localizationMap.pt.seoTitle || localizationMap.pt.title || localizationMap.en.seoTitle || localizationMap.en.title,
+        description: localizationMap.pt.seoDescription || localizationMap.pt.description || localizationMap.en.seoDescription || localizationMap.en.description,
+        keywords: parseKeywords(localizationMap.pt.seoKeywords || localizationMap.en.seoKeywords)
       }
     },
     cover,
@@ -583,7 +629,10 @@ function mapChapterRow(
 ): { titleId: string; chapter: DemoChapter } {
   const localizedTitles = {
     en: `Chapter ${Number(row.chapterNumber)}`,
-    es: `Capitulo ${Number(row.chapterNumber)}`
+    es: `Capitulo ${Number(row.chapterNumber)}`,
+    fr: `Chapitre ${Number(row.chapterNumber)}`,
+    de: `Kapitel ${Number(row.chapterNumber)}`,
+    pt: `Capítulo ${Number(row.chapterNumber)}`
   };
 
   for (const localization of localizations) {
@@ -613,7 +662,10 @@ function mapChapterRow(
 function getLocalizationMap(row: BaseTitleRow, localizations: LocalizationRow[]) {
   const localizationMap: Record<Locale, { title: string; slug: string; description: string; seoTitle: string; seoDescription: string; seoKeywords: string }> = {
     en: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" },
-    es: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" }
+    es: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" },
+    fr: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" },
+    de: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" },
+    pt: { title: row.originalTitle, slug: row.slug, description: "", seoTitle: "", seoDescription: "", seoKeywords: "" }
   };
 
   for (const localization of localizations) {
@@ -625,6 +677,12 @@ function getLocalizationMap(row: BaseTitleRow, localizations: LocalizationRow[])
       seoDescription: localization.seoDescription ?? "",
       seoKeywords: localization.seoKeywords ?? ""
     };
+  }
+
+  for (const locale of ["fr", "de", "pt"] as const) {
+    if (!localizations.some((localization) => localization.locale === locale)) {
+      localizationMap[locale] = { ...localizationMap.en };
+    }
   }
 
   return localizationMap;

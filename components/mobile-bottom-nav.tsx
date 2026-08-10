@@ -6,10 +6,10 @@ import type { Locale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 
 const items = [
-  { key: "home", path: "", label: { en: "Home", es: "Inicio" }, icon: HomeIcon },
-  { key: "latest", path: "/latest", label: { en: "Latest", es: "Nuevos" }, icon: SparkIcon },
-  { key: "popular", path: "/popular", label: { en: "Popular", es: "Popular" }, icon: FlameIcon },
-  { key: "tags", path: "/tags/romance", label: { en: "Genres", es: "Géneros" }, icon: GridIcon }
+  { key: "home", path: "", label: { en: "Home", es: "Inicio", fr: "Accueil", de: "Start", pt: "Início" }, icon: HomeIcon },
+  { key: "latest", path: "/latest", label: { en: "Latest", es: "Nuevos", fr: "Nouveaux", de: "Neu", pt: "Recentes" }, icon: SparkIcon },
+  { key: "popular", path: "/popular", label: { en: "Popular", es: "Popular", fr: "Populaire", de: "Beliebt", pt: "Popular" }, icon: FlameIcon },
+  { key: "tags", path: "/tags/romance", label: { en: "Genres", es: "Géneros", fr: "Genres", de: "Genres", pt: "Gêneros" }, icon: GridIcon }
 ] as const;
 
 export function MobileBottomNav({ locale }: { locale: Locale }) {

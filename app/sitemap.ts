@@ -1,15 +1,15 @@
 import type { MetadataRoute } from "next";
 import { getCatalogTitles } from "@/lib/data/source";
-import { locales } from "@/lib/i18n";
 import { siteUrl } from "@/lib/metadata";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const titles = await getCatalogTitles();
+  const [titles, settings] = await Promise.all([getCatalogTitles(), getSiteSettings()]);
   const entries: MetadataRoute.Sitemap = [];
 
-  for (const locale of locales) {
+  for (const locale of settings.enabledLocales) {
     entries.push(
       sitemapEntry(`/${locale}`, "daily", 1),
       sitemapEntry(`/${locale}/latest`, "hourly", 0.9),

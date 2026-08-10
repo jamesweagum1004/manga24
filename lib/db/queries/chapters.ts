@@ -24,6 +24,9 @@ export type ChapterFormValues = {
   publicationStatus: "draft" | "scheduled" | "published" | "archived";
   enTitle: string;
   esTitle: string;
+  frTitle: string;
+  deTitle: string;
+  ptTitle: string;
 };
 
 export const emptyChapterFormValues: ChapterFormValues = {
@@ -32,7 +35,10 @@ export const emptyChapterFormValues: ChapterFormValues = {
   canonicalSlug: "chapter-1",
   publicationStatus: "draft",
   enTitle: "Chapter 1",
-  esTitle: "Capítulo 1"
+  esTitle: "Capítulo 1",
+  frTitle: "Chapitre 1",
+  deTitle: "Kapitel 1",
+  ptTitle: "Capítulo 1"
 };
 
 export async function getDbChapterBySlug(titleSlug: string, chapterSlug: string) {
@@ -97,6 +103,9 @@ export async function getDbChapterForAdmin(id: string) {
   ]);
   const en = localizations.find((item) => item.locale === "en");
   const es = localizations.find((item) => item.locale === "es");
+  const fr = localizations.find((item) => item.locale === "fr");
+  const de = localizations.find((item) => item.locale === "de");
+  const pt = localizations.find((item) => item.locale === "pt");
   return {
     id: chapter.id,
     pageCount: pages.length,
@@ -106,7 +115,10 @@ export async function getDbChapterForAdmin(id: string) {
       canonicalSlug: chapter.slug,
       publicationStatus: chapter.publicationStatus,
       enTitle: en?.title ?? `Chapter ${formatChapterNumber(chapter.chapterNumber)}`,
-      esTitle: es?.title ?? `Capítulo ${formatChapterNumber(chapter.chapterNumber)}`
+      esTitle: es?.title ?? `Capítulo ${formatChapterNumber(chapter.chapterNumber)}`,
+      frTitle: fr?.title ?? `Chapitre ${formatChapterNumber(chapter.chapterNumber)}`,
+      deTitle: de?.title ?? `Kapitel ${formatChapterNumber(chapter.chapterNumber)}`,
+      ptTitle: pt?.title ?? `Capítulo ${formatChapterNumber(chapter.chapterNumber)}`
     } satisfies ChapterFormValues
   };
 }
@@ -121,10 +133,7 @@ export async function createDbChapter(values: ChapterFormValues) {
       publicationStatus: values.publicationStatus,
       publishedAt: values.publicationStatus === "published" ? now : null
     }).returning({ id: chapters.id });
-    await tx.insert(chapterLocalizations).values([
-      { chapterId: chapter.id, locale: "en", title: values.enTitle },
-      { chapterId: chapter.id, locale: "es", title: values.esTitle }
-    ]);
+    await tx.insert(chapterLocalizations).values((["en", "es", "fr", "de", "pt"] as const).map((locale) => ({ chapterId: chapter.id, locale, title: values[`${locale}Title`] })));
     return chapter.id;
   });
 }
@@ -141,7 +150,8 @@ export async function updateDbChapter(id: string, values: ChapterFormValues) {
       publishedAt: values.publicationStatus === "published" ? current?.publishedAt ?? now : null,
       updatedAt: now
     }).where(eq(chapters.id, id));
-    for (const [locale, title] of [["en", values.enTitle], ["es", values.esTitle]] as const) {
+    for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
+      const title = values[`${locale}Title`];
       await tx.insert(chapterLocalizations).values({ chapterId: id, locale, title, updatedAt: now }).onConflictDoUpdate({
         target: [chapterLocalizations.chapterId, chapterLocalizations.locale],
         set: { title, updatedAt: now }

@@ -1,15 +1,15 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Locale } from "@/lib/i18n";
-import { locales } from "@/lib/i18n";
 import { dictionary } from "@/lib/demo-data";
 import { localizedPath, switchLocalePath } from "@/lib/routes";
 import { ThemeToggle } from "./theme-toggle";
 
-export function CompactSiteHeader({ locale }: { locale: Locale }) {
+export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale: Locale; enabledLocales: Locale[]; logoUrl: string | null }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -24,10 +24,7 @@ export function CompactSiteHeader({ locale }: { locale: Locale }) {
     <header className="sticky top-0 z-40 border-b border-black/5 bg-[var(--surface)]/88 shadow-[0_6px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl md:border-[var(--border)] md:shadow-none">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-2 px-3 sm:h-[58px] sm:px-4 lg:h-[72px] lg:px-6">
         <Link href={localizedPath(locale)} className="flex min-w-0 shrink items-center gap-2" aria-label="Manga24 home">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-[11px] font-black text-white shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)] lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">
-            M24
-          </span>
-          <span className="truncate text-xl font-black leading-none tracking-[-0.035em] lg:text-2xl lg:tracking-[-0.04em]">Manga24</span>
+          {logoUrl ? <img src={logoUrl} alt="Manga24" className="h-9 max-w-40 object-contain lg:h-11" /> : <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-[11px] font-black text-white shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)] lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">M24</span><span className="truncate text-xl font-black leading-none tracking-[-0.035em] lg:text-2xl lg:tracking-[-0.04em]">Manga24</span></>}
         </Link>
 
         <nav className="ml-3 hidden items-center gap-1 md:flex lg:ml-8 lg:gap-2">
@@ -53,7 +50,7 @@ export function CompactSiteHeader({ locale }: { locale: Locale }) {
             onChange={(event) => router.push(switchLocalePath(pathname, event.target.value as Locale))}
             className="h-10 w-[54px] shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-black uppercase"
           >
-            {locales.map((item) => (
+            {enabledLocales.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>

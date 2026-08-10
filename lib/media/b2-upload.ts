@@ -10,7 +10,7 @@ type Authorization = {
 };
 
 export type UploadedMedia = {
-  provider: "backblaze-b2";
+  provider: "backblaze-b2" | "bunny-storage";
   bucket: string;
   objectKey: string;
   publicUrl: string;
@@ -23,6 +23,9 @@ export type UploadedMedia = {
 export async function uploadImages(format: StorageFormat, prefix: string, images: UploadImage[], options?: { singleFileName?: string }): Promise<UploadedMedia[]> {
   const credentials = await getStorageCredentials(format);
   const imageCdnBaseUrl = validateImageCdnUrl(credentials.bunnyPublicUrl);
+  if (credentials.provider === "bunny-storage") {
+    return uploadToBunnyStorage(credentials, prefix, images, imageCdnBaseUrl, options);
+  }
   const authResponse = await fetch("https://api.backblazeb2.com/b2api/v4/b2_authorize_account", {
     headers: { Authorization: `Basic ${Buffer.from(`${credentials.keyId}:${credentials.applicationKey}`).toString("base64")}` },
     cache: "no-store"
@@ -60,6 +63,39 @@ export async function uploadImages(format: StorageFormat, prefix: string, images
     });
     if (!response.ok) throw new Error(`Backblaze rejected ${image.name}.`);
     uploaded.push({ provider: "backblaze-b2", bucket: credentials.bucketName, objectKey, publicUrl: imageCdnUrl(objectKey, imageCdnBaseUrl), width: metadata.width, height: metadata.height, contentType: image.contentType, fileSize: image.bytes.length });
+  }
+  return uploaded;
+}
+
+async function uploadToBunnyStorage(
+  credentials: Extract<Awaited<ReturnType<typeof getStorageCredentials>>, { provider: "bunny-storage" }>,
+  prefix: string,
+  images: UploadImage[],
+  imageCdnBaseUrl: string,
+  options?: { singleFileName?: string }
+): Promise<UploadedMedia[]> {
+  const endpoint = new URL(credentials.endpoint);
+  if (endpoint.protocol !== "https:") throw new Error("Bunny Storage requires an HTTPS endpoint.");
+  const uploaded: UploadedMedia[] = [];
+
+  for (const [index, image] of images.entries()) {
+    const extension = image.contentType === "image/jpeg" ? "jpg" : image.contentType.split("/")[1];
+    const filename = images.length === 1 && options?.singleFileName ? `${options.singleFileName}.${extension}` : `${String(index + 1).padStart(4, "0")}.${extension}`;
+    const objectKey = `${prefix}/${filename}`;
+    const metadata = imageDimensions(image.bytes, image.contentType);
+    if (!metadata) throw new Error(`${image.name} has an invalid or mismatched image header.`);
+    const uploadUrl = new URL(`${encodeB2Name(credentials.storageZone)}/${encodeB2Name(objectKey)}`, `${endpoint.toString().replace(/\/$/u, "")}/`);
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        AccessKey: credentials.accessKey,
+        "Content-Type": image.contentType,
+        Checksum: createHash("sha256").update(image.bytes).digest("hex").toUpperCase()
+      },
+      body: new Uint8Array(image.bytes)
+    });
+    if (!response.ok) throw new Error(`Bunny Storage rejected ${image.name} (${response.status}).`);
+    uploaded.push({ provider: "bunny-storage", bucket: credentials.storageZone, objectKey, publicUrl: imageCdnUrl(objectKey, imageCdnBaseUrl), width: metadata.width, height: metadata.height, contentType: image.contentType, fileSize: image.bytes.length });
   }
   return uploaded;
 }

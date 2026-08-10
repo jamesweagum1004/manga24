@@ -71,6 +71,13 @@
       "when": 1785619476764,
       "tag": "0009_sticky_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786400365030,
+      "tag": "0010_simple_skaar",
+      "breakpoints": true
     }
   ]
 }
