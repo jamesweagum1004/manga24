@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Locale } from "@/lib/i18n";
+import { localeFlags, type Locale } from "@/lib/i18n";
 import { dictionary } from "@/lib/demo-data";
 import { localizedPath, switchLocalePath } from "@/lib/routes";
 import { ThemeToggle } from "./theme-toggle";
@@ -48,11 +48,11 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
             aria-label="Locale"
             value={locale}
             onChange={(event) => router.push(switchLocalePath(pathname, event.target.value as Locale))}
-            className="h-10 w-[54px] shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-black uppercase"
+            className="h-10 w-[82px] shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-black uppercase"
           >
             {enabledLocales.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {localeFlags[item]} {item}
               </option>
             ))}
           </select>

@@ -16,9 +16,19 @@ export async function getSiteSettings() {
     deepseekModel: isDeepSeekModel(settings?.deepseekModel) ? settings.deepseekModel : "deepseek-v4-flash",
     imageCdnUrl: settings?.imageCdnUrl ?? process.env.NEXT_PUBLIC_IMAGE_CDN_URL ?? "",
     enabledLocales: normalizeEnabledLocales(settings?.enabledLocales),
+    pwaEnabled: settings?.pwaEnabled ?? false,
+    pwaPromptEnabled: settings?.pwaPromptEnabled ?? false,
+    pwaPromptThreshold: normalizePwaThreshold(settings?.pwaPromptThreshold),
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; logo: BrandingImage | null; favicon: BrandingImage | null };
+}
+
+export async function updatePwaSettings(input: { pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5 }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
 }
 
 export async function updateEnabledLocales(enabledLocales: Locale[]) {
@@ -57,4 +67,8 @@ export async function updateDeepSeekModel(deepseekModel: DeepSeekModel) {
 
 function isDeepSeekModel(value: string | undefined): value is DeepSeekModel {
   return deepseekModels.includes(value as DeepSeekModel);
+}
+
+function normalizePwaThreshold(value: number | undefined): 3 | 4 | 5 {
+  return value === 4 || value === 5 ? value : 3;
 }

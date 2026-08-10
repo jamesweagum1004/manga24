@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updatePwaSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -78,6 +78,17 @@ export async function updateLanguageSettingsAction(formData: FormData) {
   const selected = locales.filter((locale) => locale === "en" || formData.get(`locale_${locale}`) === "on");
   await updateEnabledLocales(selected.filter(isLocale));
   redirect("/manga1004/settings?saved=languages#languages");
+}
+
+export async function updatePwaSettingsAction(formData: FormData) {
+  const threshold = z.coerce.number().int().min(3).max(5).safeParse(formData.get("pwaPromptThreshold"));
+  if (!threshold.success) redirect("/manga1004/settings?error=pwa#pwa");
+  await updatePwaSettings({
+    pwaEnabled: formData.get("pwaEnabled") === "on",
+    pwaPromptEnabled: formData.get("pwaPromptEnabled") === "on",
+    pwaPromptThreshold: threshold.data as 3 | 4 | 5
+  });
+  redirect("/manga1004/settings?saved=pwa#pwa");
 }
 
 export async function uploadBrandingAction(kind: "logo" | "favicon", formData: FormData) {

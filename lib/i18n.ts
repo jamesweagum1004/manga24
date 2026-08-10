@@ -11,6 +11,14 @@ export const localeLabels: Record<Locale, string> = {
   pt: "Português"
 };
 
+export const localeFlags: Record<Locale, string> = {
+  en: "🇬🇧",
+  es: "🇪🇸",
+  fr: "🇫🇷",
+  de: "🇩🇪",
+  pt: "🇵🇹🇧🇷"
+};
+
 export function isLocale(value: string): value is Locale {
   return locales.includes(value as Locale);
 }

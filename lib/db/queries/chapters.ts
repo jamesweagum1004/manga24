@@ -15,6 +15,7 @@ export type AdminChapterListItem = {
   publicationStatusValue: "draft" | "scheduled" | "published" | "archived";
   pageCount: number;
   updatedAt: string;
+  updatedAtValue: number;
 };
 
 export type ChapterFormValues = {
@@ -90,7 +91,8 @@ export async function listDbAdminChapters(): Promise<AdminChapterListItem[]> {
     publicationStatus: displayPublicationStatus(chapter.publicationStatus),
     publicationStatusValue: chapter.publicationStatus,
     pageCount: pageCounts.get(chapter.id) ?? 0,
-    updatedAt: formatDateTime(chapter.updatedAt)
+    updatedAt: formatDateTime(chapter.updatedAt),
+    updatedAtValue: chapter.updatedAt.getTime()
   }));
 }
 
@@ -172,7 +174,8 @@ export function adminChapterListFromDemoTitles(demoTitles: DemoTitle[]): AdminCh
       publicationStatus: "Published",
       publicationStatusValue: "published",
       pageCount: chapter.pages.length,
-      updatedAt: chapter.publishedAt
+      updatedAt: chapter.publishedAt,
+      updatedAtValue: new Date(chapter.publishedAt).getTime()
     }))
   );
 }

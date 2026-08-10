@@ -47,6 +47,7 @@ export function VerticalReader({
   const [dataSaver, setDataSaver] = useState(false);
   const [canTrackProgress, setCanTrackProgress] = useState(false);
   const restored = useRef(false);
+  const countedChapter = useRef(false);
 
   const preloadUrls = useMemo(() => pages.slice(1, 4).map((page) => page.src), [pages]);
 
@@ -83,6 +84,19 @@ export function VerticalReader({
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
       const nextProgress = scrollHeight <= 0 ? 0 : Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)));
       setProgress(nextProgress);
+      if (nextProgress >= 60 && !countedChapter.current) {
+        countedChapter.current = true;
+        const streakKey = "manga24:pwa-read-streak:v1";
+        let previous: { count?: number; lastChapter?: string; updatedAt?: number } = {};
+        try { previous = JSON.parse(window.localStorage.getItem(streakKey) ?? "{}"); } catch { previous = {}; }
+        const chapterIdentity = `${titleSlug}:${chapterHref}`;
+        if (previous.lastChapter !== chapterIdentity) {
+          const fresh = typeof previous.updatedAt === "number" && Date.now() - previous.updatedAt < 7 * 24 * 60 * 60 * 1000;
+          const count = (fresh ? previous.count ?? 0 : 0) + 1;
+          window.localStorage.setItem(streakKey, JSON.stringify({ count, lastChapter: chapterIdentity, updatedAt: Date.now() }));
+          window.dispatchEvent(new CustomEvent("manga24:pwa-read", { detail: { count } }));
+        }
+      }
       window.localStorage.setItem(storageKey, String(Math.round(scrollTop)));
       if (scrollTop > 80) {
         const recent: RecentReading = {

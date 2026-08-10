@@ -122,9 +122,6 @@ export default async function HomePage({ params }: PageProps) {
         ) : null}
         <PopularTagList locale={locale} />
       </main>
-      <footer className="mx-auto max-w-[1480px] px-3 pb-8 pt-2 text-center text-[11px] font-bold text-[var(--muted)] md:px-5">
-        Manga24 demo catalog uses synthetic, non-explicit placeholder content.
-      </footer>
     </SiteShell>
   );
 }

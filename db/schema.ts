@@ -44,6 +44,9 @@ export const siteSettings = pgTable("site_settings", {
   deepseekModel: varchar("deepseek_model", { length: 80 }).default("deepseek-v4-flash").notNull(),
   imageCdnUrl: text("image_cdn_url"),
   enabledLocales: jsonb("enabled_locales").$type<string[]>().default(["en", "es"]).notNull(),
+  pwaEnabled: boolean("pwa_enabled").default(false).notNull(),
+  pwaPromptEnabled: boolean("pwa_prompt_enabled").default(false).notNull(),
+  pwaPromptThreshold: integer("pwa_prompt_threshold").default(3).notNull(),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

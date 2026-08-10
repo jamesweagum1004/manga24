@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { env } from "@/lib/env";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { PwaManager } from "@/components/pwa-manager";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
     title: "Manga24",
     description: "A multilingual vertical-scroll manga reader platform.",
+    manifest: settings.pwaEnabled ? "/manifest.webmanifest" : undefined,
     icons: settings.favicon ? { icon: settings.favicon.publicUrl, shortcut: settings.favicon.publicUrl } : undefined,
     verification: env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : undefined
   };
@@ -22,12 +24,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const requestHeaders = await headers();
+  const [requestHeaders, settings] = await Promise.all([headers(), getSiteSettings()]);
   const rawLocale = requestHeaders.get("x-manga-locale") ?? "en";
   const locale = ["en", "es", "fr", "de", "pt"].includes(rawLocale) ? rawLocale : "en";
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body>{children}</body>
+      <body>{children}<PwaManager locale={locale as "en" | "es" | "fr" | "de" | "pt"} enabled={settings.pwaEnabled} promptEnabled={settings.pwaPromptEnabled} threshold={settings.pwaPromptThreshold} /></body>
     </html>
   );
 }

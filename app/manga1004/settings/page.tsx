@@ -2,8 +2,8 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 /* eslint-disable @next/next/no-img-element */
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
-import { localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateLanguageSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
+import { localeFlags, localeLabels, locales } from "@/lib/i18n";
+import { deleteBrandingAction, updateAiSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +31,20 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <h2 className="text-xl font-black">Site languages</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">English is always enabled. Disabled locale URLs permanently redirect to English and are removed from hreflang and sitemap output.</p>
         <form action={updateLanguageSettingsAction} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {locales.map((locale) => <label key={locale} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 font-black"><input type="checkbox" name={`locale_${locale}`} defaultChecked={settings.enabledLocales.includes(locale)} disabled={locale === "en"} className="h-5 w-5 accent-[var(--accent)]" /><span>{localeLabels[locale]}</span>{locale === "en" ? <input type="hidden" name="locale_en" value="on" /> : null}</label>)}
+          {locales.map((locale) => <label key={locale} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 font-black"><input type="checkbox" name={`locale_${locale}`} defaultChecked={settings.enabledLocales.includes(locale)} disabled={locale === "en"} className="h-5 w-5 accent-[var(--accent)]" /><span aria-hidden="true" className={locale === "pt" ? "text-sm tracking-[-0.35em] pr-1" : "text-lg"}>{localeFlags[locale]}</span><span>{localeLabels[locale]}</span>{locale === "en" ? <input type="hidden" name="locale_en" value="on" /> : null}</label>)}
           <button className="rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white sm:col-span-2 lg:col-span-5 lg:w-fit">Save languages</button>
+        </form>
+      </section>
+
+      <section id="pwa" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Progressive Web App</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Enable native browser installation without caching pages, images, API calls, or advertisements. Normal exposure stays inside the browser address bar and menu.</p>
+        <form action={updatePwaSettingsAction} className="mt-5 grid gap-4">
+          <Toggle name="pwaEnabled" defaultChecked={settings.pwaEnabled} title="Enable PWA installation" description="Publishes the install manifest and registers a pass-through service worker." />
+          <Toggle name="pwaPromptEnabled" defaultChecked={settings.pwaPromptEnabled} title="Enable gentle reader reminder" description="Shows one small bottom notice only after the configured number of different chapters have been read." />
+          <label className="grid max-w-sm gap-1.5 text-sm font-black"><span>Show after consecutive chapters</span><select name="pwaPromptThreshold" defaultValue={settings.pwaPromptThreshold} className={inputClass}><option value="3">3 chapters</option><option value="4">4 chapters</option><option value="5">5 chapters</option></select></label>
+          <p className="text-xs leading-5 text-[var(--muted)]">The reminder has no backdrop, does not reserve an ad slot, and never intercepts ad requests or impression scripts.</p>
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save PWA settings</button>
         </form>
       </section>
 
@@ -90,4 +102,5 @@ function BrandingCard({ kind, title, image }: { kind: "logo" | "favicon"; title:
 
 function Field({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) { return <label className={`grid gap-1.5 text-sm font-black ${wide ? "sm:col-span-2" : ""}`}><span>{label}</span>{children}</label>; }
 function Notice({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) { return <p className={`mt-5 rounded-xl border p-4 text-sm font-bold ${tone === "success" ? "border-green-300 bg-green-50 text-green-800" : "border-red-300 bg-red-50 text-red-800"}`}>{children}</p>; }
+function Toggle({ name, defaultChecked, title, description }: { name: string; defaultChecked: boolean; title: string; description: string }) { return <label className="flex max-w-2xl items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4"><input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-5 w-5 accent-[var(--accent)]" /><span><strong className="block text-sm">{title}</strong><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{description}</span></span></label>; }
 const inputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 font-medium";
