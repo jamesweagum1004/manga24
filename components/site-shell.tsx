@@ -6,11 +6,11 @@ import { MobileBottomNav } from "./mobile-bottom-nav";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export async function SiteShell({ locale, children }: { locale: Locale; children: React.ReactNode }) {
-  const [headerAds, settings] = await Promise.all([listActiveAds("header"), getSiteSettings()]);
+  const [headerAds, settings] = await Promise.all([listActiveAds("header", locale), getSiteSettings()]);
   return (
     <>
       <CompactSiteHeader locale={locale} enabledLocales={settings.enabledLocales} logoUrl={settings.logo?.publicUrl ?? null} />
-      <AdStrip ads={headerAds} label="Top advertisements" />
+      <AdStrip ads={headerAds} label="Top advertisements" pwaAdsEnabled={settings.pwaAdsEnabled} />
       {children}
       <MobileBottomNav locale={locale} />
     </>

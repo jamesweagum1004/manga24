@@ -12,6 +12,7 @@ import { dictionary, type DemoTitle } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 import { listActiveAds } from "@/lib/db/queries/ads";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -41,7 +42,7 @@ export default async function HomePage({ params }: PageProps) {
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
   const manhwa = catalog.filter((title) => title.format === "manhwa");
   const featured = mangaPopular[0] ?? promo;
-  const contentAds = await listActiveAds("content");
+  const [contentAds, settings] = await Promise.all([listActiveAds("content", locale), getSiteSettings()]);
   const railSections = [
     {
       title: locale === "en" ? "Trending Manga" : "Manga en tendencia",
@@ -109,7 +110,7 @@ export default async function HomePage({ params }: PageProps) {
               cardVariant={section.cardVariant}
               locale={locale}
             />
-            <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} />
+            <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
           </div>
         ))}
         {manhwa.length > 0 ? (

@@ -47,6 +47,8 @@ export const siteSettings = pgTable("site_settings", {
   pwaEnabled: boolean("pwa_enabled").default(false).notNull(),
   pwaPromptEnabled: boolean("pwa_prompt_enabled").default(false).notNull(),
   pwaPromptThreshold: integer("pwa_prompt_threshold").default(3).notNull(),
+  pwaAdsEnabled: boolean("pwa_ads_enabled").default(true).notNull(),
+  adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
@@ -74,6 +76,8 @@ export const ads = pgTable(
     name: varchar("name", { length: 120 }).notNull(),
     kind: adKindEnum("kind").notNull(),
     position: adPositionEnum("position").notNull(),
+    surface: varchar("surface", { length: 16 }).$type<"both" | "web" | "pwa">().default("both").notNull(),
+    locale: varchar("locale", { length: 8 }).$type<"en" | "es" | "fr" | "de" | "pt">(),
     imageUrl: text("image_url"),
     clickUrl: text("click_url"),
     altText: varchar("alt_text", { length: 240 }),

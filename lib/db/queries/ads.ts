@@ -2,14 +2,19 @@ import "server-only";
 import { asc, eq } from "drizzle-orm";
 import { ads } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
+import { getSiteSettings } from "./settings";
+import type { Locale } from "@/lib/i18n";
 
 export type AdKind = "static" | "exoclick";
 export type AdPosition = "header" | "content";
+export type AdSurface = "both" | "web" | "pwa";
 
 export type AdValues = {
   name: string;
   kind: AdKind;
   position: AdPosition;
+  surface: AdSurface;
+  locale: Locale | null;
   imageUrl: string | null;
   clickUrl: string | null;
   altText: string | null;
@@ -27,9 +32,10 @@ export async function listAds() {
   return db.select().from(ads).orderBy(asc(ads.position), asc(ads.insertAfter), asc(ads.sortOrder));
 }
 
-export async function listActiveAds(position: AdPosition) {
-  const rows = await listAds();
-  return rows.filter((ad) => ad.isActive && ad.position === position);
+export async function listActiveAds(position: AdPosition, locale: Locale) {
+  const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
+  const selectedLocale = settings.adLocaleModes[locale] === "separate" ? locale : null;
+  return rows.filter((ad) => ad.isActive && ad.position === position && ad.locale === selectedLocale);
 }
 
 export async function getAd(id: string) {

@@ -1,10 +1,14 @@
-import type { AdKind, AdPosition } from "@/lib/db/queries/ads";
+"use client";
+
+import { useEffect, useState } from "react";
+import type { AdKind, AdPosition, AdSurface } from "@/lib/db/queries/ads";
 
 type Ad = {
   id: string;
   name: string;
   kind: AdKind;
   position: AdPosition;
+  surface: AdSurface;
   imageUrl: string | null;
   clickUrl: string | null;
   altText: string | null;
@@ -13,12 +17,24 @@ type Ad = {
   height: number;
 };
 
-export function AdStrip({ ads, label = "Advertisement" }: { ads: Ad[]; label?: string }) {
-  if (ads.length === 0) return null;
+export function AdStrip({ ads, label = "Advertisement", pwaAdsEnabled = true }: { ads: Ad[]; label?: string; pwaAdsEnabled?: boolean }) {
+  const [standalone, setStandalone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(display-mode: standalone)");
+    const update = () => setStandalone(query.matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone));
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  if (standalone === null || (standalone && !pwaAdsEnabled)) return null;
+  const visibleAds = ads.filter((ad) => ad.surface === "both" || ad.surface === (standalone ? "pwa" : "web"));
+  if (visibleAds.length === 0) return null;
 
   return (
     <aside aria-label={label} className="mx-auto grid w-full max-w-[1480px] grid-cols-1 gap-2 px-2 py-2 sm:grid-cols-2 sm:px-3 lg:grid-cols-3 lg:gap-3 lg:px-0 lg:py-3">
-      {ads.map((ad) => <AdUnit key={ad.id} ad={ad} />)}
+      {visibleAds.map((ad) => <AdUnit key={ad.id} ad={ad} />)}
     </aside>
   );
 }

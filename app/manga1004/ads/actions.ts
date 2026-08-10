@@ -6,6 +6,8 @@ import path from "node:path";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAd, deleteAd, getAd, updateAd, type AdValues } from "@/lib/db/queries/ads";
+import { updateAdDeliverySettings } from "@/lib/db/queries/settings";
+import { isLocale, locales } from "@/lib/i18n";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const optionalUrl = z
@@ -15,6 +17,8 @@ const baseSchema = z.object({
   name: z.string().trim().min(1).max(120),
   kind: z.enum(["static", "exoclick"]),
   position: z.enum(["header", "content"]),
+  surface: z.enum(["both", "web", "pwa"]),
+  locale: z.union([z.literal(""), z.enum(locales)]),
   clickUrl: optionalUrl,
   altText: z.string().trim().max(240),
   embedCode: z.string().trim().max(20000),
@@ -61,11 +65,19 @@ export async function deleteAdAction(formData: FormData) {
   redirect("/manga1004/ads?saved=deleted");
 }
 
+export async function updateAdDeliverySettingsAction(formData: FormData) {
+  const adLocaleModes = Object.fromEntries(locales.map((locale) => [locale, formData.get(`mode_${locale}`) === "separate" ? "separate" : "inherit"])) as Record<(typeof locales)[number], "inherit" | "separate">;
+  await updateAdDeliverySettings({ pwaAdsEnabled: formData.get("pwaAdsEnabled") === "on", adLocaleModes });
+  redirect("/manga1004/ads?saved=delivery");
+}
+
 function parseForm(formData: FormData) {
   return baseSchema.safeParse({
     name: formData.get("name"),
     kind: formData.get("kind"),
     position: formData.get("position"),
+    surface: formData.get("surface"),
+    locale: formData.get("locale"),
     clickUrl: formData.get("clickUrl"),
     altText: formData.get("altText"),
     embedCode: formData.get("embedCode"),
@@ -80,6 +92,7 @@ function parseForm(formData: FormData) {
 function makeValues(data: z.infer<typeof baseSchema>, imageUrl: string | null): AdValues {
   return {
     ...data,
+    locale: data.locale && isLocale(data.locale) ? data.locale : null,
     imageUrl: data.kind === "static" ? imageUrl : null,
     clickUrl: data.clickUrl || null,
     altText: data.altText || null,

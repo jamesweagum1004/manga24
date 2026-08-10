@@ -19,12 +19,21 @@ export async function getSiteSettings() {
     pwaEnabled: settings?.pwaEnabled ?? false,
     pwaPromptEnabled: settings?.pwaPromptEnabled ?? false,
     pwaPromptThreshold: normalizePwaThreshold(settings?.pwaPromptThreshold),
+    pwaAdsEnabled: settings?.pwaAdsEnabled ?? true,
+    adLocaleModes: normalizeAdLocaleModes(settings?.adLocaleModes),
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; adLocaleModes: Record<Locale, "inherit" | "separate">; logo: BrandingImage | null; favicon: BrandingImage | null };
 }
 
 export async function updatePwaSettings(input: { pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5 }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
+}
+
+export async function updateAdDeliverySettings(input: { pwaAdsEnabled: boolean; adLocaleModes: Record<Locale, "inherit" | "separate"> }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
     target: siteSettings.id,
     set: { ...input, updatedAt: new Date() }
@@ -71,4 +80,9 @@ function isDeepSeekModel(value: string | undefined): value is DeepSeekModel {
 
 function normalizePwaThreshold(value: number | undefined): 3 | 4 | 5 {
   return value === 4 || value === 5 ? value : 3;
+}
+
+function normalizeAdLocaleModes(value: unknown): Record<Locale, "inherit" | "separate"> {
+  const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return Object.fromEntries(["en", "es", "fr", "de", "pt"].map((locale) => [locale, input[locale] === "separate" ? "separate" : "inherit"])) as Record<Locale, "inherit" | "separate">;
 }
