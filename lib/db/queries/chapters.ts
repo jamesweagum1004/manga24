@@ -164,7 +164,7 @@ export async function updateDbChapter(id: string, values: ChapterFormValues) {
   });
 }
 
-export async function setDbChapterPublicationStatus(id: string, publicationStatus: "draft" | "published") {
+export async function setDbChapterPublicationStatus(id: string, publicationStatus: "draft" | "published" | "archived") {
   const now = new Date();
   await getDb().update(chapters).set({
     publicationStatus,

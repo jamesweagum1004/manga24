@@ -6,12 +6,14 @@ import {
   getAdminTitleList,
   isDatabaseConfigured
 } from "@/lib/data/source";
+import { BulkActionToolbar } from "@/components/admin/bulk-action-toolbar";
+import { bulkTitleAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 type Folder = "all" | "manga" | "manhwa";
 
-type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; deleted?: string };
+type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; deleted?: string; bulk?: string; bulkError?: string; changed?: string; skipped?: string };
 
 export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<Query> }) {
   const titles = await getAdminTitleList();
@@ -51,6 +53,8 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         </div>
       ) : null}
       {query.deleted === "title" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Title and all connected chapters were deleted.</p> : null}
+      {query.bulk ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Bulk action complete: {query.changed ?? "0"} title(s) updated{Number(query.skipped) > 0 ? `, ${query.skipped} skipped because they were not ready to publish` : ""}.</p> : null}
+      {query.bulkError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">Select at least one title and choose an action.</p> : null}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
         <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />
@@ -68,21 +72,36 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         <button className="rounded-xl bg-[var(--foreground)] px-4 py-2.5 text-sm font-black text-[var(--background)]">Search</button>
         <Link href={activeFolder === "all" ? "/manga1004/titles" : `/manga1004/titles?folder=${activeFolder}`} className="self-center text-center text-sm font-black text-[var(--muted)]">Reset</Link>
       </form>
-      <p className="mt-3 text-sm font-bold text-[var(--muted)]">{visibleTitles.length} results</p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-bold text-[var(--muted)]">{visibleTitles.length} results</p>
+      </div>
+      {visibleTitles.length > 0 && writesEnabled ? <div className="mt-3">
+        <form id="bulk-title-form" action={bulkTitleAction} />
+        <BulkActionToolbar
+          formId="bulk-title-form"
+          checkboxName="titleIds"
+          options={[
+            { value: "publish", label: "Publish ready titles" },
+            { value: "unpublish", label: "Unpublish / move to draft" },
+            { value: "ongoing", label: "Set status: Ongoing" },
+            { value: "completed", label: "Set status: Completed" },
+            { value: "hiatus", label: "Set status: Hiatus" },
+            { value: "cancelled", label: "Set status: Cancelled" },
+            { value: "delete", label: "Delete selected titles", destructive: true }
+          ]}
+        />
+      </div> : null}
       <div className="mt-6 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         {visibleTitles.length === 0 ? (
           <div className="p-6 text-sm font-bold text-[var(--muted)]">No titles are available in this folder.</div>
         ) : (
           visibleTitles.map((title) => (
-            <Link
-              key={title.id}
-              href={`/manga1004/titles/${title.id}`}
-              className="grid gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)] md:grid-cols-[1.2fr_1fr_auto]"
-            >
-              <span className="min-w-0">
+            <div key={title.id} className="grid gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-strong)] md:grid-cols-[auto_1.2fr_1fr_auto]">
+              <input type="checkbox" name="titleIds" value={title.id} form="bulk-title-form" aria-label={`Select ${title.originalTitle}`} className="h-5 w-5 self-center accent-[var(--accent)]" />
+              <Link href={`/manga1004/titles/${title.id}`} className="min-w-0">
                 <span className="block truncate text-sm font-black">{title.originalTitle}</span>
                 <span className="mt-1 block truncate text-xs text-[var(--muted)]">{title.canonicalSlug}</span>
-              </span>
+              </Link>
               <span className="grid gap-1 text-xs font-bold text-[var(--muted)]">
                 <span>
                   {title.format === "manga" ? "Manga" : "Manhwa"} · {title.isPublished ? "Live" : "Unpublished"} · {title.publicationStatus} · {title.contentRating} · Updated {title.updatedAt}
@@ -91,8 +110,8 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
                 <span className="truncate">EN: {title.enTitle}</span>
                 <span className="truncate">ES: {title.esTitle}</span>
               </span>
-              <span className="self-center text-xs font-bold text-[var(--accent)]">Edit</span>
-            </Link>
+              <Link href={`/manga1004/titles/${title.id}`} className="self-center text-xs font-bold text-[var(--accent)]">Edit</Link>
+            </div>
           ))
         )}
       </div>

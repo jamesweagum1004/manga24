@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createDbTitle, deleteDbTitle, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
+import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
 import { locales } from "@/lib/i18n";
+import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
 
 const slugSchema = z
   .string()
@@ -126,6 +127,46 @@ export async function deleteTitleAction(id: string) {
   if (!isDatabaseConfigured()) redirect("/manga1004/titles");
   await deleteDbTitle(id);
   redirect("/manga1004/titles?deleted=title");
+}
+
+const bulkTitleSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  action: z.enum(["publish", "unpublish", "ongoing", "completed", "hiatus", "cancelled", "delete"])
+});
+
+export async function bulkTitleAction(formData: FormData) {
+  const parsed = bulkTitleSchema.safeParse({
+    ids: [...new Set(formData.getAll("titleIds").filter((value): value is string => typeof value === "string"))],
+    action: formData.get("bulkAction")
+  });
+  if (!parsed.success || !isDatabaseConfigured()) redirect("/manga1004/titles?bulkError=selection");
+
+  const { ids, action } = parsed.data;
+  let updated = 0;
+  let skipped = 0;
+
+  if (action === "publish") {
+    for (const id of ids) {
+      const state = await getTitlePublishingState(id);
+      if (!state?.ready) {
+        skipped += 1;
+        continue;
+      }
+      await publishTitle(id);
+      updated += 1;
+    }
+  } else if (action === "unpublish") {
+    await Promise.all(ids.map((id) => unpublishTitle(id)));
+    updated = ids.length;
+  } else if (action === "delete") {
+    for (const id of ids) await deleteDbTitle(id);
+    updated = ids.length;
+  } else {
+    await updateDbTitlesPublicationStatus(ids, action);
+    updated = ids.length;
+  }
+
+  redirect(`/manga1004/titles?bulk=${action}&changed=${updated}&skipped=${skipped}`);
 }
 
 function parseTitleForm(formData: FormData) {

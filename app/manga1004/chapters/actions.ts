@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createDbChapter, deleteDbChapter, setDbChapterPublicationStatus, updateDbChapter, type ChapterFormValues } from "@/lib/db/queries/chapters";
+import { getAdminChapterList } from "@/lib/data/source";
 
 const schema = z.object({
   titleId: z.string().uuid("Choose a title."),
@@ -55,6 +56,36 @@ export async function setChapterPublicationAction(titleId: string, chapterId: st
 export async function deleteChapterAction(titleId: string, chapterId: string) {
   await deleteDbChapter(chapterId);
   redirect(`/manga1004/titles/${titleId}?deleted=chapter`);
+}
+
+const bulkChapterSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(300),
+  action: z.enum(["published", "draft", "archived", "delete"])
+});
+
+export async function bulkChapterAction(titleId: string, formData: FormData) {
+  const parsed = bulkChapterSchema.safeParse({
+    ids: [...new Set(formData.getAll("chapterIds").filter((value): value is string => typeof value === "string"))],
+    action: formData.get("bulkAction")
+  });
+  if (!parsed.success) redirect(`/manga1004/titles/${titleId}?bulkError=selection`);
+
+  const chapters = await getAdminChapterList(titleId);
+  const selected = chapters.filter((chapter) => parsed.data.ids.includes(chapter.id));
+  let updated = 0;
+  let skipped = parsed.data.ids.length - selected.length;
+
+  for (const chapter of selected) {
+    if (parsed.data.action === "published" && chapter.pageCount === 0) {
+      skipped += 1;
+      continue;
+    }
+    if (parsed.data.action === "delete") await deleteDbChapter(chapter.id);
+    else await setDbChapterPublicationStatus(chapter.id, parsed.data.action);
+    updated += 1;
+  }
+
+  redirect(`/manga1004/titles/${titleId}?bulk=${parsed.data.action}&changed=${updated}&skipped=${skipped}`);
 }
 
 function parse(formData: FormData) {
