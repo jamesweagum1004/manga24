@@ -23,6 +23,7 @@ export type TitleFormValues = {
   originalTitle: string;
   authorName: string;
   originalLanguage: string;
+  displayLocales: Locale[];
   contentRating: "safe" | "mature_18";
   publicationStatus: "ongoing" | "completed" | "hiatus" | "cancelled";
   format: "manga" | "manhwa";
@@ -64,11 +65,19 @@ export type AdminTitleListItem = {
   originalTitle: string;
   canonicalSlug: string;
   publicationStatus: string;
+  publicationStatusValue: DbTitleStatus;
   contentRating: string;
   format: "manga" | "manhwa";
+  originalLanguage: string;
+  displayLocales: Locale[];
+  isPublished: boolean;
+  updatedAtValue: number;
   updatedAt: string;
   enTitle: string;
   esTitle: string;
+  frTitle: string;
+  deTitle: string;
+  ptTitle: string;
 };
 
 type DbTitleStatus = (typeof titleStatusEnum.enumValues)[number];
@@ -79,6 +88,7 @@ type BaseTitleRow = {
   slug: string;
   originalTitle: string;
   originalLanguage: string;
+  displayLocales: string[];
   authorName: string;
   format: "manga" | "manhwa";
   publicationStatus: DbTitleStatus;
@@ -123,6 +133,7 @@ export const emptyTitleFormValues: TitleFormValues = {
   originalTitle: "",
   authorName: "",
   originalLanguage: "en",
+  displayLocales: ["en", "es", "fr", "de", "pt"],
   contentRating: "mature_18",
   publicationStatus: "ongoing",
   format: "manga",
@@ -165,11 +176,19 @@ export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
       originalTitle: row.originalTitle,
       canonicalSlug: row.slug,
       publicationStatus: displayStatus(row.publicationStatus),
+      publicationStatusValue: row.publicationStatus,
       contentRating: displayContentRating(row.contentRating),
       format: row.format,
+      originalLanguage: row.originalLanguage,
+      displayLocales: normalizeDisplayLocales(row.displayLocales),
+      isPublished: Boolean(row.publishedAt),
+      updatedAtValue: row.updatedAt.getTime(),
       updatedAt: formatDateTime(row.updatedAt),
       enTitle: localizations.en.title,
-      esTitle: localizations.es.title
+      esTitle: localizations.es.title,
+      frTitle: localizations.fr.title,
+      deTitle: localizations.de.title,
+      ptTitle: localizations.pt.title
     };
   });
 }
@@ -209,6 +228,7 @@ export async function createDbTitle(values: TitleFormValues) {
         slug: values.canonicalSlug,
         originalTitle: values.originalTitle,
         originalLanguage: values.originalLanguage,
+        displayLocales: values.displayLocales,
         authorName: values.authorName,
         format: values.format,
         publicationStatus: values.publicationStatus,
@@ -246,6 +266,7 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
         slug: values.canonicalSlug,
         originalTitle: values.originalTitle,
         originalLanguage: values.originalLanguage,
+        displayLocales: values.displayLocales,
         authorName: values.authorName,
         format: values.format,
         publicationStatus: values.publicationStatus,
@@ -321,6 +342,7 @@ export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues 
     originalTitle: title.originalTitle,
     authorName: title.author,
     originalLanguage: title.originalLanguage === "English" ? "en" : title.originalLanguage,
+    displayLocales: title.displayLocales ?? ["en", "es", "fr", "de", "pt"],
     contentRating: title.contentRating === "Safe" ? "safe" : "mature_18",
     publicationStatus: title.publicationStatus.toLowerCase() as TitleFormValues["publicationStatus"],
     format: "manga",
@@ -349,11 +371,19 @@ export function adminTitleListFromDemoTitles(titles: DemoTitle[]): AdminTitleLis
     originalTitle: title.originalTitle,
     canonicalSlug: title.slug,
     publicationStatus: title.publicationStatus,
+    publicationStatusValue: title.publicationStatus.toLowerCase() as DbTitleStatus,
     contentRating: title.contentRating,
     format: "manga",
+    originalLanguage: title.originalLanguage,
+    displayLocales: title.displayLocales ?? ["en", "es", "fr", "de", "pt"],
+    isPublished: true,
+    updatedAtValue: new Date(title.publishedAt).getTime(),
     updatedAt: title.publishedAt,
     enTitle: title.titles.en,
-    esTitle: title.titles.es
+    esTitle: title.titles.es,
+    frTitle: title.titles.fr,
+    deTitle: title.titles.de,
+    ptTitle: title.titles.pt
   }));
 }
 
@@ -364,6 +394,7 @@ function selectBaseTitle() {
       slug: titles.slug,
       originalTitle: titles.originalTitle,
       originalLanguage: titles.originalLanguage,
+      displayLocales: titles.displayLocales,
       authorName: titles.authorName,
       format: titles.format,
       publicationStatus: titles.publicationStatus,
@@ -517,6 +548,7 @@ function mapTitleFormValues(row: BaseTitleRow, localizations: LocalizationRow[],
     originalTitle: row.originalTitle,
     authorName: row.authorName,
     originalLanguage: row.originalLanguage,
+    displayLocales: normalizeDisplayLocales(row.displayLocales),
     contentRating: row.contentRating,
     publicationStatus: row.publicationStatus,
     format: row.format,
@@ -566,6 +598,7 @@ function mapTitleRow(
   return {
     id: row.id,
     format: row.format,
+    displayLocales: normalizeDisplayLocales(row.displayLocales),
     slug: row.slug,
     originalTitle: row.originalTitle,
     titles: {
@@ -619,6 +652,14 @@ function mapTitleRow(
     viewCount: row.viewCount,
     chapters: related.chapters
   };
+}
+
+function normalizeDisplayLocales(value: unknown): Locale[] {
+  const supported = new Set<Locale>(["en", "es", "fr", "de", "pt"]);
+  const selected = Array.isArray(value)
+    ? value.filter((item): item is Locale => typeof item === "string" && supported.has(item as Locale))
+    : [];
+  return selected.length > 0 ? selected : ["en", "es", "fr", "de", "pt"];
 }
 
 function mapChapterRow(

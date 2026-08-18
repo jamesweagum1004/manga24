@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function LatestPage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const titles = await getLatestCatalogTitles();
+  const titles = await getLatestCatalogTitles(locale);
 
   return (
     <SiteShell locale={locale}>

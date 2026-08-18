@@ -120,6 +120,7 @@ export const titles = pgTable(
     slug: varchar("slug", { length: 180 }).notNull(),
     originalTitle: varchar("original_title", { length: 240 }).notNull(),
     originalLanguage: varchar("original_language", { length: 16 }).notNull(),
+    displayLocales: jsonb("display_locales").$type<string[]>().default(["en", "es", "fr", "de", "pt"]).notNull(),
     authorName: varchar("author_name", { length: 160 }).notNull(),
     format: titleFormatEnum("format").default("manga").notNull(),
     publicationStatus: titleStatusEnum("publication_status").default("ongoing").notNull(),

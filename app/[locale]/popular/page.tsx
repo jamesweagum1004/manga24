@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PopularPage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const titles = await getPopularCatalogTitles();
+  const titles = await getPopularCatalogTitles(locale);
 
   return (
     <SiteShell locale={locale}>

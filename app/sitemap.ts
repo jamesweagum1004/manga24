@@ -10,18 +10,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
 
   for (const locale of settings.enabledLocales) {
+    const localeTitles = titles.filter((title) => !title.displayLocales || title.displayLocales.includes(locale));
     entries.push(
       sitemapEntry(`/${locale}`, "daily", 1),
       sitemapEntry(`/${locale}/latest`, "hourly", 0.9),
       sitemapEntry(`/${locale}/popular`, "daily", 0.8)
     );
 
-    const tagSlugs = new Set(titles.flatMap((title) => title.tags));
+    const tagSlugs = new Set(localeTitles.flatMap((title) => title.tags));
     for (const tagSlug of tagSlugs) {
       entries.push(sitemapEntry(`/${locale}/tags/${tagSlug}`, "weekly", 0.6));
     }
 
-    for (const title of titles) {
+    for (const title of localeTitles) {
       entries.push({
         ...sitemapEntry(`/${locale}/manga/${title.slug}`, "daily", 0.8),
         lastModified: new Date(title.publishedAt)

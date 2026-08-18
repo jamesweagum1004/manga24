@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const result = await getCatalogChapterBySlug(slug, chapterSlug);
+  const result = await getCatalogChapterBySlug(slug, chapterSlug, locale);
   if (!result) {
     return buildMetadata({
       locale,
@@ -32,14 +32,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: `/manga/${slug}/chapter/${chapterSlug}`,
     title: `${result.title.titles[locale]} - ${result.chapter.titles[locale]}`,
     description: `${dictionary[locale].chapters}: ${result.chapter.titles[locale]}`,
-    image: result.title.cover.src
+    image: result.title.cover.src,
+    availableLocales: result.title.displayLocales
   });
 }
 
 export default async function ChapterReaderPage({ params }: PageProps) {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const result = await getCatalogChapterBySlug(slug, chapterSlug);
+  const result = await getCatalogChapterBySlug(slug, chapterSlug, locale);
   if (!result) {
     notFound();
   }

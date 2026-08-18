@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const title = await getCatalogTitleBySlug(slug);
+  const title = await getCatalogTitleBySlug(slug, locale);
   if (!title) {
     return buildMetadata({ locale, path: `/manga/${slug}`, title: "Title", description: "Manga title page." });
   }
@@ -32,14 +32,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: title.seo?.[locale].title ?? title.titles[locale],
     description: title.seo?.[locale].description ?? title.descriptions[locale],
     keywords: title.seo?.[locale].keywords,
-    image: title.cover.src
+    image: title.cover.src,
+    availableLocales: title.displayLocales
   });
 }
 
 export default async function TitleDetailPage({ params }: PageProps) {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const title = await getCatalogTitleBySlug(slug);
+  const title = await getCatalogTitleBySlug(slug, locale);
   if (!title) {
     notFound();
   }

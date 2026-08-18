@@ -22,6 +22,7 @@ export type DemoChapter = {
 };
 
 export type DemoTitle = {
+  displayLocales?: Locale[];
   format?: "manga" | "manhwa";
   slug: string;
   originalTitle: string;

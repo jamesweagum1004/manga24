@@ -1,0 +1,1 @@
+ALTER TABLE "titles" ADD COLUMN "display_locales" jsonb DEFAULT '["en","es","fr","de","pt"]'::jsonb NOT NULL;

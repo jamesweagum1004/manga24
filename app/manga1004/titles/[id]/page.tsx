@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
+import { getAdminChapterList, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
 import { updateTitleAction } from "../actions";
 import { TitleForm } from "../title-form";
 import { generateSeoAction } from "./seo-actions";
 import { getTitlePublishingState } from "@/lib/db/queries/media";
-import { publishTitleAction, uploadCoverAction } from "../../media-actions";
+import { publishTitleAction, unpublishTitleAction, uploadCoverAction } from "../../media-actions";
+import { setChapterPublicationAction } from "../../chapters/actions";
 import { TitleSetupSteps } from "@/components/admin/title-setup-steps";
 import Link from "next/link";
 
@@ -24,7 +25,8 @@ export default async function AdminTitleEditPage({ params, searchParams }: PageP
   const updateAction = updateTitleAction.bind(null, title.id);
   const writesEnabled = isDatabaseConfigured();
   const generateAction = generateSeoAction.bind(null, title.id);
-  const publishing = await getTitlePublishingState(title.id);
+  const [publishing, titleChapterRows] = await Promise.all([getTitlePublishingState(title.id), getAdminChapterList(title.id)]);
+  const titleChapters = titleChapterRows.sort((a, b) => Number(b.chapterNumber) - Number(a.chapterNumber));
   const setupStep = query.setup === "cover" ? 2 : query.setup === "chapter" ? 3 : query.setup === "seo" || query.setup === "complete" ? 5 : null;
   const regularEdit = !query.setup;
 
@@ -43,7 +45,19 @@ export default async function AdminTitleEditPage({ params, searchParams }: PageP
       {query.setup === "complete" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Setup complete. This title is now live on the public site.</p> : null}
       {regularEdit || query.setup === "seo" || query.setup === "complete" ? <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <div><p className="text-xs font-black uppercase text-[var(--accent)]">Site visibility</p><p className="mt-1 text-sm font-bold">{publishing?.publishedAt ? "Published on the public catalog" : publishing?.reason ?? "Draft"}</p></div>
-        {!publishing?.publishedAt ? <form action={publishTitleAction.bind(null, title.id)}>{query.setup ? <input type="hidden" name="setup" value="1" /> : null}<button disabled={!publishing?.ready} className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Publish to site</button></form> : <span className="rounded-full bg-green-100 px-3 py-2 text-xs font-black text-green-800">LIVE</span>}
+        {!publishing?.publishedAt ? <form action={publishTitleAction.bind(null, title.id)}>{query.setup ? <input type="hidden" name="setup" value="1" /> : null}<button disabled={!publishing?.ready} className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Publish to site</button></form> : <form action={unpublishTitleAction.bind(null, title.id)} className="flex items-center gap-3"><span className="rounded-full bg-green-100 px-3 py-2 text-xs font-black text-green-800">LIVE</span><button className="rounded-xl border border-red-200 px-4 py-2 text-xs font-black text-red-700">Unpublish</button></form>}
+      </section> : null}
+      {regularEdit ? <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-5">
+          <div><h2 className="text-lg font-black">Chapters</h2><p className="mt-1 text-sm font-bold text-[var(--muted)]">Manage this title and its chapters in one place.</p></div>
+          <Link href={`/manga1004/chapters/new?title=${title.id}`} className="rounded-xl bg-[var(--foreground)] px-4 py-2.5 text-sm font-black text-[var(--background)]">+ Add chapter</Link>
+        </div>
+        {titleChapters.length === 0 ? <p className="p-5 text-sm font-bold text-[var(--muted)]">No chapters yet.</p> : titleChapters.map((chapter) => <div key={chapter.id} className="grid items-center gap-3 border-b border-[var(--border)] p-4 last:border-0 sm:grid-cols-[1fr_auto_auto_auto]">
+          <div><p className="font-black">Chapter {chapter.chapterNumber}</p><p className="text-xs font-bold text-[var(--muted)]">{chapter.canonicalSlug} · {chapter.pageCount} pages · Updated {chapter.updatedAt}</p></div>
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${chapter.publicationStatusValue === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>{chapter.publicationStatus}</span>
+          <form action={setChapterPublicationAction.bind(null, title.id, chapter.id, chapter.publicationStatusValue === "published" ? "draft" : "published")}><button disabled={chapter.publicationStatusValue !== "published" && chapter.pageCount === 0} className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-black disabled:opacity-40">{chapter.publicationStatusValue === "published" ? "Unpublish" : "Publish"}</button></form>
+          <Link href={`/manga1004/chapters/${chapter.id}`} className="text-sm font-black text-[var(--accent)]">Edit →</Link>
+        </div>)}
       </section> : null}
       {regularEdit || query.setup === "seo" ? <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

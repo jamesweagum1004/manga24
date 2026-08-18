@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { attachCover, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
+import { attachCover, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages, unpublishTitle } from "@/lib/db/queries/media";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
 import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
@@ -48,6 +48,11 @@ export async function publishTitleAction(titleId: string, formData?: FormData) {
   if (!state.ready) redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent(state.reason ?? "Title is not ready.")}${setup ? "&setup=seo" : ""}`);
   await publishTitle(titleId);
   redirect(`/manga1004/titles/${titleId}?mediaSaved=published${setup ? "&setup=complete" : ""}`);
+}
+
+export async function unpublishTitleAction(titleId: string) {
+  await unpublishTitle(titleId);
+  redirect(`/manga1004/titles/${titleId}?mediaSaved=unpublished`);
 }
 
 function message(error: unknown) { return error instanceof Error ? error.message.slice(0, 300) : "Media upload failed."; }

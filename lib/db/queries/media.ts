@@ -24,6 +24,10 @@ export async function publishTitle(id: string) {
   await getDb().update(titles).set({ publishedAt: new Date(), updatedAt: new Date() }).where(eq(titles.id, id));
 }
 
+export async function unpublishTitle(id: string) {
+  await getDb().update(titles).set({ publishedAt: null, updatedAt: new Date() }).where(eq(titles.id, id));
+}
+
 export async function getChapterMediaTarget(id: string) {
   const [row] = await getDb().select({ id: chapters.id, titleId: chapters.titleId, slug: chapters.slug, titleSlug: titles.slug, title: titles.originalTitle, format: titles.format, titleCreatedAt: titles.createdAt, publicationStatus: chapters.publicationStatus }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
   if (!row) return null;

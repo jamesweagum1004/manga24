@@ -36,7 +36,7 @@ export default async function TagPage({ params }: PageProps) {
   if (!tag) {
     notFound();
   }
-  const titles = (await getCatalogTitles()).filter((title) => title.tags.includes(slug));
+  const titles = (await getCatalogTitles(locale)).filter((title) => title.tags.includes(slug));
 
   return (
     <SiteShell locale={locale}>

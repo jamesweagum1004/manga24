@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createDbTitle, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
+import { locales } from "@/lib/i18n";
 
 const slugSchema = z
   .string()
@@ -35,6 +36,7 @@ const titleFormSchema = z.object({
   originalTitle: requiredText("Original title", 240),
   authorName: requiredText("Author name", 160),
   originalLanguage: requiredText("Original language", 16),
+  displayLocales: z.array(z.enum(locales)).min(1, "Choose at least one display language."),
   contentRating: z.enum(["safe", "mature_18"], "Choose a content rating."),
   publicationStatus: z.enum(["ongoing", "completed", "hiatus", "cancelled"], "Choose a publication status."),
   format: z.enum(["manga", "manhwa"], "Choose Manga or Manhwa."),
@@ -126,6 +128,7 @@ function parseTitleForm(formData: FormData) {
     originalTitle: getFormValue(formData, "originalTitle"),
     authorName: getFormValue(formData, "authorName"),
     originalLanguage: getFormValue(formData, "originalLanguage"),
+    displayLocales: locales.filter((locale) => formData.get(`displayLocale_${locale}`) === "on"),
     contentRating: getFormValue(formData, "contentRating"),
     publicationStatus: getFormValue(formData, "publicationStatus"),
     format: getFormValue(formData, "format"),
@@ -167,7 +170,7 @@ function parseTitleForm(formData: FormData) {
   };
 }
 
-function getFormValue(formData: FormData, key: keyof TitleFormValues) {
+function getFormValue(formData: FormData, key: Exclude<keyof TitleFormValues, "displayLocales">) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }

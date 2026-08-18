@@ -11,6 +11,7 @@ type MetadataInput = {
   image?: string;
   noIndex?: boolean;
   keywords?: string[];
+  availableLocales?: Locale[];
 };
 
 export function siteUrl(path = "") {
@@ -18,6 +19,7 @@ export function siteUrl(path = "") {
 }
 
 export function localizedAlternates(locale: Locale, pathWithoutLocale: string, enabledLocales: Locale[]) {
+  const defaultAlternate = enabledLocales.includes("en") ? "en" : enabledLocales[0] ?? locale;
   const languages = Object.fromEntries(
     enabledLocales.map((locale) => [locale, siteUrl(`/${locale}${pathWithoutLocale}`)])
   ) as Record<string, string>;
@@ -26,7 +28,7 @@ export function localizedAlternates(locale: Locale, pathWithoutLocale: string, e
     canonical: siteUrl(`/${locale}${pathWithoutLocale}`),
     languages: {
       ...languages,
-      "x-default": siteUrl(`/en${pathWithoutLocale}`)
+      "x-default": siteUrl(`/${defaultAlternate}${pathWithoutLocale}`)
     }
   };
 }
@@ -39,7 +41,7 @@ export async function buildMetadata(input: MetadataInput): Promise<Metadata> {
     title: `${input.title} | Manga24`,
     description: input.description,
     keywords: input.keywords,
-    alternates: localizedAlternates(input.locale, input.path, settings.enabledLocales),
+    alternates: localizedAlternates(input.locale, input.path, input.availableLocales ? settings.enabledLocales.filter((locale) => input.availableLocales?.includes(locale)) : settings.enabledLocales),
     openGraph: {
       title: `${input.title} | Manga24`,
       description: input.description,

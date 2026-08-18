@@ -34,10 +34,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function HomePage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const catalog = await getCatalogTitles();
+  const catalog = await getCatalogTitles(locale);
   const promo = catalog[10] ?? catalog[0];
-  const latest = await getLatestCatalogTitles();
-  const popular = await getPopularCatalogTitles();
+  const latest = await getLatestCatalogTitles(locale);
+  const popular = await getPopularCatalogTitles(locale);
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
   const manhwa = catalog.filter((title) => title.format === "manhwa");

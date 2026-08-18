@@ -14,6 +14,7 @@ import {
   titleFormValuesFromDemoTitle
 } from "@/lib/db/queries/titles";
 import { hasDatabaseUrl } from "@/lib/env";
+import type { Locale } from "@/lib/i18n";
 
 export const databaseNotConfiguredMessage = "Database is not configured. Set DATABASE_URL to enable writes.";
 
@@ -25,12 +26,12 @@ export function getActiveDataSource() {
   return isDatabaseConfigured() ? "database" : "demo";
 }
 
-export async function getCatalogTitles() {
+export async function getCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
-    return listDbTitles();
+    return filterByLocale(await listDbTitles(), locale);
   }
 
-  return demoTitles;
+  return filterByLocale(demoTitles, locale);
 }
 
 export async function getAdminTitleList() {
@@ -41,38 +42,50 @@ export async function getAdminTitleList() {
   return adminTitleListFromDemoTitles(demoTitles);
 }
 
-export async function getLatestCatalogTitles() {
+export async function getLatestCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
     const titles = await listDbTitles();
-    return [...titles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+    return filterByLocale([...titles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)), locale);
   }
 
-  return latestTitles();
+  return filterByLocale(latestTitles(), locale);
 }
 
-export async function getPopularCatalogTitles() {
+export async function getPopularCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
     const titles = await listDbTitles();
-    return [...titles].sort((a, b) => b.viewCount - a.viewCount);
+    return filterByLocale([...titles].sort((a, b) => b.viewCount - a.viewCount), locale);
   }
 
-  return popularTitles();
+  return filterByLocale(popularTitles(), locale);
 }
 
-export async function getCatalogTitleBySlug(slug: string) {
+export async function getCatalogTitleBySlug(slug: string, locale?: Locale) {
   if (isDatabaseConfigured()) {
-    return getDbTitleBySlug(slug);
+    const title = await getDbTitleBySlug(slug);
+    return title && isVisibleInLocale(title, locale) ? title : null;
   }
 
-  return findTitle(slug) ?? null;
+  const title = findTitle(slug) ?? null;
+  return title && isVisibleInLocale(title, locale) ? title : null;
 }
 
-export async function getCatalogChapterBySlug(titleSlug: string, chapterSlug: string) {
+export async function getCatalogChapterBySlug(titleSlug: string, chapterSlug: string, locale?: Locale) {
   if (isDatabaseConfigured()) {
-    return getDbChapterBySlug(titleSlug, chapterSlug);
+    const result = await getDbChapterBySlug(titleSlug, chapterSlug);
+    return result && isVisibleInLocale(result.title, locale) ? result : null;
   }
 
-  return findChapter(titleSlug, chapterSlug);
+  const result = findChapter(titleSlug, chapterSlug);
+  return result && isVisibleInLocale(result.title, locale) ? result : null;
+}
+
+function filterByLocale<T extends { displayLocales?: Locale[] }>(titles: T[], locale?: Locale) {
+  return locale ? titles.filter((title) => isVisibleInLocale(title, locale)) : titles;
+}
+
+function isVisibleInLocale(title: { displayLocales?: Locale[] }, locale?: Locale) {
+  return !locale || !title.displayLocales || title.displayLocales.includes(locale);
 }
 
 export async function getAdminTitleById(id: string) {
@@ -84,12 +97,12 @@ export async function getAdminTitleById(id: string) {
   return title ? { id: title.slug, values: titleFormValuesFromDemoTitle(title) } : null;
 }
 
-export async function getAdminChapterList() {
+export async function getAdminChapterList(titleId?: string) {
   if (isDatabaseConfigured()) {
-    return listDbAdminChapters();
+    return listDbAdminChapters(titleId);
   }
 
-  return adminChapterListFromDemoTitles(demoTitles);
+  return adminChapterListFromDemoTitles(demoTitles).filter((chapter) => !titleId || chapter.titleId === titleId);
 }
 
 export async function getAdminTagList() {

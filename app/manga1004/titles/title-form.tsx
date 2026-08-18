@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { TitleFormState } from "./actions";
+import { localeFlags, localeLabels, locales } from "@/lib/i18n";
 
 type TitleFormProps = {
   action: (state: TitleFormState, formData: FormData) => Promise<TitleFormState>;
@@ -71,6 +72,19 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
             disabled={disabled}
           />
         </div>
+        <fieldset className="rounded-xl border border-[var(--border)] p-4">
+          <legend className="px-2 text-sm font-black">Display languages</legend>
+          <p className="mb-3 text-xs font-bold text-[var(--muted)]">The title only appears on the selected language sites. This is separate from the original language.</p>
+          <div className="flex flex-wrap gap-3">
+            {locales.map((locale) => (
+              <label key={locale} className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm font-bold">
+                <input type="checkbox" name={`displayLocale_${locale}`} defaultChecked={state.values.displayLocales.includes(locale)} disabled={disabled} />
+                <span>{localeFlags[locale]} {localeLabels[locale]}</span>
+              </label>
+            ))}
+          </div>
+          {state.errors?.displayLocales?.map((error) => <p key={error} className="mt-2 text-xs font-bold text-red-700">{error}</p>)}
+        </fieldset>
         <TextField
           label="Tags"
           name="tags"

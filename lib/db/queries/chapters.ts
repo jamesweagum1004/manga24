@@ -52,8 +52,8 @@ export async function getDbChapterBySlug(titleSlug: string, chapterSlug: string)
   return chapter ? { title, chapter } : null;
 }
 
-export async function listDbAdminChapters(): Promise<AdminChapterListItem[]> {
-  const chapterRows = await getDb()
+export async function listDbAdminChapters(titleId?: string): Promise<AdminChapterListItem[]> {
+  const query = getDb()
     .select({
       id: chapters.id,
       titleId: chapters.titleId,
@@ -65,8 +65,10 @@ export async function listDbAdminChapters(): Promise<AdminChapterListItem[]> {
       updatedAt: chapters.updatedAt
     })
     .from(chapters)
-    .innerJoin(titles, eq(chapters.titleId, titles.id))
-    .orderBy(asc(titles.originalTitle), asc(chapters.chapterNumber));
+    .innerJoin(titles, eq(chapters.titleId, titles.id));
+  const chapterRows = titleId
+    ? await query.where(eq(chapters.titleId, titleId)).orderBy(asc(chapters.chapterNumber))
+    : await query.orderBy(asc(titles.originalTitle), asc(chapters.chapterNumber));
 
   if (chapterRows.length === 0) {
     return [];
@@ -160,6 +162,15 @@ export async function updateDbChapter(id: string, values: ChapterFormValues) {
       });
     }
   });
+}
+
+export async function setDbChapterPublicationStatus(id: string, publicationStatus: "draft" | "published") {
+  const now = new Date();
+  await getDb().update(chapters).set({
+    publicationStatus,
+    publishedAt: publicationStatus === "published" ? now : null,
+    updatedAt: now
+  }).where(eq(chapters.id, id));
 }
 
 export function adminChapterListFromDemoTitles(demoTitles: DemoTitle[]): AdminChapterListItem[] {

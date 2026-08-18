@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { localeFlags, localeLabels, locales, type Locale } from "@/lib/i18n";
 import {
   databaseNotConfiguredMessage,
   getActiveDataSource,
@@ -10,11 +11,26 @@ export const dynamic = "force-dynamic";
 
 type Folder = "all" | "manga" | "manhwa";
 
-export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<{ folder?: string }> }) {
+type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string };
+
+export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<Query> }) {
   const titles = await getAdminTitleList();
   const query = await searchParams;
   const activeFolder: Folder = query.folder === "manga" || query.folder === "manhwa" ? query.folder : "all";
-  const visibleTitles = activeFolder === "all" ? titles : titles.filter((title) => title.format === activeFolder);
+  const selectedLocale = locales.includes(query.locale as Locale) ? query.locale as Locale : "";
+  const q = query.q?.trim().toLocaleLowerCase() ?? "";
+  const ageDays = query.updated === "1" ? 1 : query.updated === "7" ? 7 : query.updated === "30" ? 30 : 0;
+  const cutoff = ageDays ? Date.now() - ageDays * 86400000 : 0;
+  const visibleTitles = titles.filter((title) => {
+    if (activeFolder !== "all" && title.format !== activeFolder) return false;
+    if (selectedLocale && !title.displayLocales.includes(selectedLocale)) return false;
+    if (query.visibility === "live" && !title.isPublished) return false;
+    if (query.visibility === "draft" && title.isPublished) return false;
+    if (query.status && title.publicationStatusValue !== query.status) return false;
+    if (cutoff && title.updatedAtValue < cutoff) return false;
+    if (q && ![title.originalTitle, title.canonicalSlug, title.enTitle, title.esTitle, title.frTitle, title.deTitle, title.ptTitle].some((value) => value.toLocaleLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a, b) => query.sort === "title" ? a.originalTitle.localeCompare(b.originalTitle) : b.updatedAtValue - a.updatedAtValue);
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
 
@@ -40,6 +56,18 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         <FolderLink href="/manga1004/titles?folder=manhwa" label="Manhwa" count={titles.filter((title) => title.format === "manhwa").length} active={activeFolder === "manhwa"} />
       </div>
       <h2 className="mt-7 text-xl font-black">{activeFolder === "all" ? "All Titles" : activeFolder === "manga" ? "Manga" : "Manhwa"}</h2>
+      <form className="mt-4 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-3 lg:grid-cols-6">
+        {activeFolder !== "all" ? <input type="hidden" name="folder" value={activeFolder} /> : null}
+        <input name="q" defaultValue={query.q} placeholder="Title, slug or translation" className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm font-bold md:col-span-2" />
+        <FilterSelect name="locale" value={selectedLocale} options={[["", "All display languages"], ...locales.map((locale) => [locale, `${localeFlags[locale]} ${localeLabels[locale]}`])]} />
+        <FilterSelect name="visibility" value={query.visibility} options={[["", "All visibility"], ["live", "Live"], ["draft", "Unpublished"]]} />
+        <FilterSelect name="status" value={query.status} options={[["", "All statuses"], ["ongoing", "Ongoing"], ["completed", "Completed"], ["hiatus", "Hiatus"], ["cancelled", "Cancelled"]]} />
+        <FilterSelect name="updated" value={query.updated} options={[["", "Any update date"], ["1", "Updated today"], ["7", "Last 7 days"], ["30", "Last 30 days"]]} />
+        <FilterSelect name="sort" value={query.sort} options={[["updated", "Newest updated"], ["title", "Title A–Z"]]} />
+        <button className="rounded-xl bg-[var(--foreground)] px-4 py-2.5 text-sm font-black text-[var(--background)]">Search</button>
+        <Link href={activeFolder === "all" ? "/manga1004/titles" : `/manga1004/titles?folder=${activeFolder}`} className="self-center text-center text-sm font-black text-[var(--muted)]">Reset</Link>
+      </form>
+      <p className="mt-3 text-sm font-bold text-[var(--muted)]">{visibleTitles.length} results</p>
       <div className="mt-6 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         {visibleTitles.length === 0 ? (
           <div className="p-6 text-sm font-bold text-[var(--muted)]">No titles are available in this folder.</div>
@@ -56,8 +84,9 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
               </span>
               <span className="grid gap-1 text-xs font-bold text-[var(--muted)]">
                 <span>
-                  {title.format === "manga" ? "Manga" : "Manhwa"} - {title.publicationStatus} - {title.contentRating} - Updated {title.updatedAt}
+                  {title.format === "manga" ? "Manga" : "Manhwa"} · {title.isPublished ? "Live" : "Unpublished"} · {title.publicationStatus} · {title.contentRating} · Updated {title.updatedAt}
                 </span>
+                <span>{title.displayLocales.map((locale) => localeFlags[locale]).join(" ")} · Original: {title.originalLanguage.toUpperCase()}</span>
                 <span className="truncate">EN: {title.enTitle}</span>
                 <span className="truncate">ES: {title.esTitle}</span>
               </span>
@@ -68,6 +97,10 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
       </div>
     </main>
   );
+}
+
+function FilterSelect({ name, value, options }: { name: string; value?: string; options: string[][] }) {
+  return <select name={name} defaultValue={value ?? ""} className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm font-bold">{options.map(([optionValue, label]) => <option key={optionValue} value={optionValue}>{label}</option>)}</select>;
 }
 
 function FolderLink({ href, label, count, active }: { href: string; label: string; count: number; active: boolean }) {
