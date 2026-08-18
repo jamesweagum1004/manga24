@@ -49,6 +49,7 @@ export const siteSettings = pgTable("site_settings", {
   pwaPromptThreshold: integer("pwa_prompt_threshold").default(3).notNull(),
   pwaAdsEnabled: boolean("pwa_ads_enabled").default(true).notNull(),
   homeManhwaEnabled: boolean("home_manhwa_enabled").default(true).notNull(),
+  maintenanceEnabled: boolean("maintenance_enabled").default(false).notNull(),
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),
   googleAnalyticsMeasurementId: varchar("google_analytics_measurement_id", { length: 32 }),

@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,15 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       <p className="mt-1 text-sm font-bold text-[var(--muted)]">Configure private integrations and media delivery.</p>
       {query.saved ? <Notice tone="success">Settings saved successfully.</Notice> : null}
       {query.error ? <Notice tone="error">Unable to save. Check every field and confirm the server encryption key is configured.</Notice> : null}
+
+      <section id="maintenance" className="mt-7 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+        <h2 className="text-xl font-black text-amber-950">Maintenance mode</h2>
+        <p className="mt-1 text-sm font-bold text-amber-900">Temporarily replace every public language page with a maintenance notice. Signed-in administrators bypass it automatically.</p>
+        <form action={updateMaintenanceSettingsAction} className="mt-5 grid gap-4">
+          <Toggle name="maintenanceEnabled" defaultChecked={settings.maintenanceEnabled} title="Enable maintenance page" description="Public catalog and reader pages are hidden. Admin pages and internal APIs remain available." />
+          <button className="w-fit rounded-xl bg-amber-700 px-5 py-3 font-black text-white">Save maintenance mode</button>
+        </form>
+      </section>
 
       <section id="branding" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
         <h2 className="text-xl font-black">Logo &amp; favicon</h2>

@@ -13,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "A multilingual vertical-scroll manga reader platform.",
     manifest: settings.pwaEnabled ? "/manifest.webmanifest" : undefined,
     icons: settings.favicon ? { icon: settings.favicon.publicUrl, shortcut: settings.favicon.publicUrl } : undefined,
-    verification: env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : undefined
+    verification: env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : undefined,
+    robots: settings.maintenanceEnabled ? { index: false, follow: false, nocache: true } : undefined
   };
 }
 
@@ -29,7 +30,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const locale = ["en", "es", "fr", "de", "pt"].includes(rawLocale) ? rawLocale : "en";
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body>{children}<PwaManager locale={locale as "en" | "es" | "fr" | "de" | "pt"} enabled={settings.pwaEnabled} promptEnabled={settings.pwaPromptEnabled} threshold={settings.pwaPromptThreshold} /></body>
+      <body>{children}<PwaManager locale={locale as "en" | "es" | "fr" | "de" | "pt"} enabled={settings.pwaEnabled && !settings.maintenanceEnabled} promptEnabled={settings.pwaPromptEnabled} threshold={settings.pwaPromptThreshold} /></body>
     </html>
   );
 }
