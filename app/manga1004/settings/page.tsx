@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,15 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <form action={updateLanguageSettingsAction} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {locales.map((locale) => <label key={locale} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 font-black"><input type="checkbox" name={`locale_${locale}`} defaultChecked={settings.enabledLocales.includes(locale)} disabled={locale === "en"} className="h-5 w-5 accent-[var(--accent)]" /><span aria-hidden="true" className={locale === "pt" ? "text-sm tracking-[-0.35em] pr-1" : "text-lg"}>{localeFlags[locale]}</span><span>{localeLabels[locale]}</span>{locale === "en" ? <input type="hidden" name="locale_en" value="on" /> : null}</label>)}
           <button className="rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white sm:col-span-2 lg:col-span-5 lg:w-fit">Save languages</button>
+        </form>
+      </section>
+
+      <section id="home-content" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Homepage content</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Control optional sections on the main public homepage without unpublishing their titles.</p>
+        <form action={updateHomeContentSettingsAction} className="mt-5 grid gap-4">
+          <Toggle name="homeManhwaEnabled" defaultChecked={settings.homeManhwaEnabled} title="Show Manhwa on the main homepage" description="When disabled, the Manhwa Spotlight section is hidden from every language homepage. Manhwa title URLs and other catalog pages remain available." />
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save homepage settings</button>
         </form>
       </section>
 

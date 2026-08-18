@@ -113,7 +113,7 @@ export default async function HomePage({ params }: PageProps) {
             <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
           </div>
         ))}
-        {manhwa.length > 0 ? (
+        {settings.homeManhwaEnabled && manhwa.length > 0 ? (
           <MangaRail
             title={locale === "en" ? "Manhwa Spotlight" : "Manhwa destacado"}
             subtitle={locale === "en" ? "Korean comics" : "Cómic coreano"}

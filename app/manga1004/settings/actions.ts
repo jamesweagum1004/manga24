@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updatePwaSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updatePwaSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -78,6 +78,11 @@ export async function updateLanguageSettingsAction(formData: FormData) {
   const selected = locales.filter((locale) => locale === "en" || formData.get(`locale_${locale}`) === "on");
   await updateEnabledLocales(selected.filter(isLocale));
   redirect("/manga1004/settings?saved=languages#languages");
+}
+
+export async function updateHomeContentSettingsAction(formData: FormData) {
+  await updateHomeContentSettings({ homeManhwaEnabled: formData.get("homeManhwaEnabled") === "on" });
+  redirect("/manga1004/settings?saved=home-content#home-content");
 }
 
 export async function updatePwaSettingsAction(formData: FormData) {
