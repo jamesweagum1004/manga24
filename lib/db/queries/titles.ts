@@ -308,6 +308,21 @@ export async function updateDbTitle(id: string, values: TitleFormValues) {
   });
 }
 
+export async function deleteDbTitle(id: string) {
+  await getDb().transaction(async (tx) => {
+    const [title] = await tx.select({ coverAssetId: titles.coverAssetId }).from(titles).where(eq(titles.id, id)).limit(1);
+    if (!title) return;
+    const pageAssets = await tx
+      .select({ id: chapterPages.assetId })
+      .from(chapterPages)
+      .innerJoin(chapters, eq(chapterPages.chapterId, chapters.id))
+      .where(eq(chapters.titleId, id));
+    const assetIds = [...new Set([title.coverAssetId, ...pageAssets.map((asset) => asset.id)].filter((value): value is string => Boolean(value)))];
+    await tx.delete(titles).where(eq(titles.id, id));
+    if (assetIds.length > 0) await tx.delete(assets).where(inArray(assets.id, assetIds));
+  });
+}
+
 export async function updateDbTitleSeo(
   id: string,
   seo: Record<Locale, { title: string; description: string; keywords: string[] }>

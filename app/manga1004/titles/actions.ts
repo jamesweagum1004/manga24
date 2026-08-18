@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createDbTitle, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
+import { createDbTitle, deleteDbTitle, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
 import { locales } from "@/lib/i18n";
 
@@ -120,6 +120,12 @@ export async function updateTitleAction(
   }
 
   redirect(`/manga1004/titles/${id}`);
+}
+
+export async function deleteTitleAction(id: string) {
+  if (!isDatabaseConfigured()) redirect("/manga1004/titles");
+  await deleteDbTitle(id);
+  redirect("/manga1004/titles?deleted=title");
 }
 
 function parseTitleForm(formData: FormData) {

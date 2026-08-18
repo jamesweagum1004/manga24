@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createDbChapter, setDbChapterPublicationStatus, updateDbChapter, type ChapterFormValues } from "@/lib/db/queries/chapters";
+import { createDbChapter, deleteDbChapter, setDbChapterPublicationStatus, updateDbChapter, type ChapterFormValues } from "@/lib/db/queries/chapters";
 
 const schema = z.object({
   titleId: z.string().uuid("Choose a title."),
@@ -50,6 +50,11 @@ export async function updateChapterAction(id: string, _state: ChapterFormState, 
 export async function setChapterPublicationAction(titleId: string, chapterId: string, status: "draft" | "published") {
   await setDbChapterPublicationStatus(chapterId, status);
   redirect(`/manga1004/titles/${titleId}?chapterSaved=${status}`);
+}
+
+export async function deleteChapterAction(titleId: string, chapterId: string) {
+  await deleteDbChapter(chapterId);
+  redirect(`/manga1004/titles/${titleId}?deleted=chapter`);
 }
 
 function parse(formData: FormData) {

@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { getAdminChapterList, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
-import { updateTitleAction } from "../actions";
+import { deleteTitleAction, updateTitleAction } from "../actions";
 import { TitleForm } from "../title-form";
 import { generateSeoAction } from "./seo-actions";
 import { getTitlePublishingState } from "@/lib/db/queries/media";
 import { publishTitleAction, unpublishTitleAction, uploadCoverAction } from "../../media-actions";
-import { setChapterPublicationAction } from "../../chapters/actions";
+import { deleteChapterAction, setChapterPublicationAction } from "../../chapters/actions";
 import { TitleSetupSteps } from "@/components/admin/title-setup-steps";
 import Link from "next/link";
+import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -15,7 +16,7 @@ type PageProps = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTitleEditPage({ params, searchParams }: PageProps & { searchParams: Promise<{ seoGenerated?: string; seoError?: string; mediaSaved?: string; mediaError?: string; setup?: string }> }) {
+export default async function AdminTitleEditPage({ params, searchParams }: PageProps & { searchParams: Promise<{ seoGenerated?: string; seoError?: string; mediaSaved?: string; mediaError?: string; setup?: string; deleted?: string }> }) {
   const { id } = await params;
   const query = await searchParams;
   const title = await getAdminTitleById(id);
@@ -43,6 +44,7 @@ export default async function AdminTitleEditPage({ params, searchParams }: PageP
         </section>
       ) : null}
       {query.setup === "complete" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Setup complete. This title is now live on the public site.</p> : null}
+      {query.deleted === "chapter" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Chapter deleted successfully.</p> : null}
       {regularEdit || query.setup === "seo" || query.setup === "complete" ? <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <div><p className="text-xs font-black uppercase text-[var(--accent)]">Site visibility</p><p className="mt-1 text-sm font-bold">{publishing?.publishedAt ? "Published on the public catalog" : publishing?.reason ?? "Draft"}</p></div>
         {!publishing?.publishedAt ? <form action={publishTitleAction.bind(null, title.id)}>{query.setup ? <input type="hidden" name="setup" value="1" /> : null}<button disabled={!publishing?.ready} className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Publish to site</button></form> : <form action={unpublishTitleAction.bind(null, title.id)} className="flex items-center gap-3"><span className="rounded-full bg-green-100 px-3 py-2 text-xs font-black text-green-800">LIVE</span><button className="rounded-xl border border-red-200 px-4 py-2 text-xs font-black text-red-700">Unpublish</button></form>}
@@ -56,7 +58,7 @@ export default async function AdminTitleEditPage({ params, searchParams }: PageP
           <div><p className="font-black">Chapter {chapter.chapterNumber}</p><p className="text-xs font-bold text-[var(--muted)]">{chapter.canonicalSlug} · {chapter.pageCount} pages · Updated {chapter.updatedAt}</p></div>
           <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${chapter.publicationStatusValue === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>{chapter.publicationStatus}</span>
           <form action={setChapterPublicationAction.bind(null, title.id, chapter.id, chapter.publicationStatusValue === "published" ? "draft" : "published")}><button disabled={chapter.publicationStatusValue !== "published" && chapter.pageCount === 0} className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-black disabled:opacity-40">{chapter.publicationStatusValue === "published" ? "Unpublish" : "Publish"}</button></form>
-          <Link href={`/manga1004/chapters/${chapter.id}`} className="text-sm font-black text-[var(--accent)]">Edit →</Link>
+          <div className="flex items-center gap-3"><Link href={`/manga1004/chapters/${chapter.id}`} className="text-sm font-black text-[var(--accent)]">Edit →</Link><form action={deleteChapterAction.bind(null, title.id, chapter.id)}><ConfirmSubmitButton message={`Delete Chapter ${chapter.chapterNumber}? This cannot be undone.`} className="text-xs font-black text-red-700">Delete</ConfirmSubmitButton></form></div>
         </div>)}
       </section> : null}
       {regularEdit || query.setup === "seo" ? <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -92,6 +94,13 @@ export default async function AdminTitleEditPage({ params, searchParams }: PageP
           <TitleForm action={updateAction} initialState={{ values: title.values }} submitLabel="Save advanced settings" writesEnabled={writesEnabled} />
         </details>
       ) : <TitleForm action={updateAction} initialState={{ values: title.values }} submitLabel="Save Title" writesEnabled={writesEnabled} />}
+      {regularEdit ? <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+        <h2 className="font-black text-red-900">Danger zone</h2>
+        <p className="mt-2 text-sm font-bold text-red-800">Deleting this title also removes all of its chapters, page records, localizations and tag connections. This cannot be undone.</p>
+        <form action={deleteTitleAction.bind(null, title.id)} className="mt-4">
+          <ConfirmSubmitButton message={`Delete “${title.values.originalTitle}” and every chapter? This cannot be undone.`} className="rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white">Delete title permanently</ConfirmSubmitButton>
+        </form>
+      </section> : null}
     </main>
   );
 }

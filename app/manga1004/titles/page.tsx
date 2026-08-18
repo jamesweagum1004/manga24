@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type Folder = "all" | "manga" | "manhwa";
 
-type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string };
+type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; deleted?: string };
 
 export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<Query> }) {
   const titles = await getAdminTitleList();
@@ -50,6 +50,7 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
           {databaseNotConfiguredMessage}
         </div>
       ) : null}
+      {query.deleted === "title" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Title and all connected chapters were deleted.</p> : null}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
         <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />

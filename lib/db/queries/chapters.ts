@@ -1,5 +1,5 @@
 import { asc, eq, inArray } from "drizzle-orm";
-import { chapterLocalizations, chapterPages, chapters, titles } from "@/db/schema";
+import { assets, chapterLocalizations, chapterPages, chapters, titles } from "@/db/schema";
 import type { DemoTitle } from "@/lib/demo-data";
 import { getDb } from "../client";
 import { getDbTitleBySlug } from "./titles";
@@ -171,6 +171,15 @@ export async function setDbChapterPublicationStatus(id: string, publicationStatu
     publishedAt: publicationStatus === "published" ? now : null,
     updatedAt: now
   }).where(eq(chapters.id, id));
+}
+
+export async function deleteDbChapter(id: string) {
+  await getDb().transaction(async (tx) => {
+    const pageAssets = await tx.select({ id: chapterPages.assetId }).from(chapterPages).where(eq(chapterPages.chapterId, id));
+    await tx.delete(chapters).where(eq(chapters.id, id));
+    const assetIds = [...new Set(pageAssets.map((asset) => asset.id))];
+    if (assetIds.length > 0) await tx.delete(assets).where(inArray(assets.id, assetIds));
+  });
 }
 
 export function adminChapterListFromDemoTitles(demoTitles: DemoTitle[]): AdminChapterListItem[] {

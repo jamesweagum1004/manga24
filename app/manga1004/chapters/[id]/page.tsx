@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminTitleList } from "@/lib/data/source";
 import { getDbChapterForAdmin } from "@/lib/db/queries/chapters";
-import { updateChapterAction } from "../actions";
+import { deleteChapterAction, updateChapterAction } from "../actions";
 import { ChapterForm } from "../chapter-form";
 import { uploadChapterPagesAction } from "../../media-actions";
 import { TitleSetupSteps } from "@/components/admin/title-setup-steps";
+import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function AdminChapterPage({ params, searchParams }: { param
   const setup = query.setup === "pages";
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <Link href="/manga1004/chapters" className="text-sm font-bold text-[var(--accent)]">← Back to chapters</Link>
+      <Link href={`/manga1004/titles/${chapter.values.titleId}`} className="text-sm font-bold text-[var(--accent)]">← Back to title</Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="text-3xl font-black">Edit Chapter</h1><p className="mt-1 text-sm font-bold text-[var(--muted)]">{chapter.pageCount} uploaded pages</p></div>
         <span className="rounded-full bg-[var(--surface-strong)] px-3 py-2 text-xs font-black">ID: {chapter.id.slice(0, 8)}</span>
@@ -38,6 +39,13 @@ export default async function AdminChapterPage({ params, searchParams }: { param
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white">{setup ? "Upload pages and continue" : "Upload and replace pages"}</button>
         </form>
       </section>
+      {!setup ? <section className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+        <h2 className="font-black text-red-900">Delete chapter</h2>
+        <p className="mt-2 text-sm font-bold text-red-800">This removes the chapter and all connected page records. This cannot be undone.</p>
+        <form action={deleteChapterAction.bind(null, chapter.values.titleId, chapter.id)} className="mt-4">
+          <ConfirmSubmitButton message="Delete this chapter and all its pages? This cannot be undone." className="rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white">Delete chapter permanently</ConfirmSubmitButton>
+        </form>
+      </section> : null}
     </main>
   );
 }
