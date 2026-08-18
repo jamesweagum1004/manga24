@@ -21,9 +21,18 @@ export async function getSiteSettings() {
     pwaPromptThreshold: normalizePwaThreshold(settings?.pwaPromptThreshold),
     pwaAdsEnabled: settings?.pwaAdsEnabled ?? true,
     adLocaleModes: normalizeAdLocaleModes(settings?.adLocaleModes),
+    googleAnalyticsEnabled: settings?.googleAnalyticsEnabled ?? false,
+    googleAnalyticsMeasurementId: settings?.googleAnalyticsMeasurementId ?? "",
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; adLocaleModes: Record<Locale, "inherit" | "separate">; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
+}
+
+export async function updateGoogleAnalyticsSettings(input: { googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string | null }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
 }
 
 export async function updatePwaSettings(input: { pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5 }) {

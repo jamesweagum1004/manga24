@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { isLocale } from "@/lib/i18n";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { GoogleAnalytics } from "@/components/google-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +21,5 @@ export default async function LocaleLayout({
     permanentRedirect("/en");
   }
 
-  return children;
+  return <>{children}{settings.googleAnalyticsEnabled && settings.googleAnalyticsMeasurementId ? <GoogleAnalytics measurementId={settings.googleAnalyticsMeasurementId} /> : null}</>;
 }

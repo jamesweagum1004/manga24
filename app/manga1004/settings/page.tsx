@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateLanguageSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +45,16 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           <label className="grid max-w-sm gap-1.5 text-sm font-black"><span>Show after consecutive chapters</span><select name="pwaPromptThreshold" defaultValue={settings.pwaPromptThreshold} className={inputClass}><option value="3">3 chapters</option><option value="4">4 chapters</option><option value="5">5 chapters</option></select></label>
           <p className="text-xs leading-5 text-[var(--muted)]">The reminder has no backdrop, does not reserve an ad slot, and never intercepts ad requests or impression scripts.</p>
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save PWA settings</button>
+        </form>
+      </section>
+
+      <section id="analytics" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Google Analytics 4</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Track public language pages and the installed PWA. Administrator pages and internal APIs are never tracked.</p>
+        <form action={updateGoogleAnalyticsSettingsAction} className="mt-5 grid max-w-2xl gap-4">
+          <Toggle name="googleAnalyticsEnabled" defaultChecked={settings.googleAnalyticsEnabled} title="Enable Google Analytics" description="Loads GA4 only on public /en, /es, /fr, /de and /pt routes." />
+          <label className="grid gap-1.5 text-sm font-black"><span>GA4 Measurement ID</span><input name="googleAnalyticsMeasurementId" defaultValue={settings.googleAnalyticsMeasurementId} placeholder="G-XXXXXXXXXX" autoComplete="off" className={inputClass} /><span className="text-xs font-medium text-[var(--muted)]">Google Analytics → Admin → Data streams → Web stream → Measurement ID</span></label>
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save analytics settings</button>
         </form>
       </section>
 

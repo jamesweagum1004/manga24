@@ -49,6 +49,8 @@ export const siteSettings = pgTable("site_settings", {
   pwaPromptThreshold: integer("pwa_prompt_threshold").default(3).notNull(),
   pwaAdsEnabled: boolean("pwa_ads_enabled").default(true).notNull(),
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
+  googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),
+  googleAnalyticsMeasurementId: varchar("google_analytics_measurement_id", { length: 32 }),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

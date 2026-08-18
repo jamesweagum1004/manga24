@@ -164,6 +164,13 @@ and AVIF files up to 10 MB. ExoClick zone code runs inside a sandboxed iframe. A
 `public/uploads/ads` path and never use the Manga/Manhwa B2 buckets or `NEXT_PUBLIC_IMAGE_CDN_URL`. Production deployments
 must preserve this directory between releases.
 
+### Google Analytics
+
+**Admin → Settings → Google Analytics 4** stores a GA4 Measurement ID and controls whether analytics is enabled. The
+tracking script is rendered only inside public locale routes, including standalone PWA sessions. Administrator pages and
+internal API routes do not load Google Analytics. Disabling the setting keeps the Measurement ID for later use but stops
+the script from loading.
+
 ### B2 and Bunny media storage
 
 Set `STORAGE_CONFIG_ENCRYPTION_KEY` to a long random server-only value before saving media credentials. **Admin → Settings**

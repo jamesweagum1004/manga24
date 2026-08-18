@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updatePwaSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updatePwaSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -89,6 +89,16 @@ export async function updatePwaSettingsAction(formData: FormData) {
     pwaPromptThreshold: threshold.data as 3 | 4 | 5
   });
   redirect("/manga1004/settings?saved=pwa#pwa");
+}
+
+export async function updateGoogleAnalyticsSettingsAction(formData: FormData) {
+  const enabled = formData.get("googleAnalyticsEnabled") === "on";
+  const measurementId = String(formData.get("googleAnalyticsMeasurementId") ?? "").trim().toUpperCase();
+  const parsed = z.string().regex(/^G-[A-Z0-9]{4,20}$/u).safeParse(measurementId);
+  if (enabled && !parsed.success) redirect("/manga1004/settings?error=analytics#analytics");
+  if (measurementId && !parsed.success) redirect("/manga1004/settings?error=analytics#analytics");
+  await updateGoogleAnalyticsSettings({ googleAnalyticsEnabled: enabled, googleAnalyticsMeasurementId: measurementId || null });
+  redirect("/manga1004/settings?saved=analytics#analytics");
 }
 
 export async function uploadBrandingAction(kind: "logo" | "favicon", formData: FormData) {
