@@ -12,6 +12,9 @@ import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 900;
+
+const maxImportBodyBytes = 160 * 1024 * 1024;
 
 const slug = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u).max(180);
 const manifestSchema = z.object({
@@ -43,8 +46,31 @@ const manifestSchema = z.object({
 
 export async function POST(request: Request) {
   if (!authorized(request.headers.get("authorization"))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
+    return NextResponse.json({ error: "Content-Type must be multipart/form-data with a boundary." }, { status: 415 });
+  }
+  const contentLength = parseContentLength(request.headers.get("content-length"));
+  if (contentLength !== null && contentLength > maxImportBodyBytes) {
+    return NextResponse.json({ error: "Import request must be 160 MB or smaller." }, { status: 413 });
+  }
+
+  let form: FormData;
   try {
-    const form = await request.formData();
+    form = await request.formData();
+  } catch (error) {
+    console.error("Unable to parse import multipart body.", {
+      contentLength,
+      contentType,
+      cause: error instanceof Error ? error.message : String(error)
+    });
+    return NextResponse.json(
+      { error: "Unable to parse multipart upload. Confirm the boundary and keep the complete request under 160 MB." },
+      { status: 400 }
+    );
+  }
+
+  try {
     const manifestRaw = form.get("manifest");
     if (typeof manifestRaw !== "string") return NextResponse.json({ error: "manifest is required" }, { status: 400 });
     const parsed = manifestSchema.safeParse(JSON.parse(manifestRaw));
@@ -98,6 +124,12 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Import failed" }, { status: 500 });
   }
+}
+
+function parseContentLength(value: string | null) {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function authorized(header: string | null) {

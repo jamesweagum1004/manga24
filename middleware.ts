@@ -26,7 +26,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads/).*)"]
+  // The import endpoint authenticates its own Bearer token and accepts large
+  // multipart bodies. Excluding it prevents middleware from cloning the upload.
+  matcher: ["/((?!api/internal/import|_next/static|_next/image|favicon.ico|uploads/).*)"]
 };
 
 function nextWithLocale(request: NextRequest, forceNoIndex = false) {
