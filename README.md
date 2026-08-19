@@ -62,6 +62,21 @@ curl -I http://127.0.0.1:3001/en
 curl -I https://dev.manga24.net/en
 ```
 
+### Nginx upload limits
+
+The chapter uploader accepts ZIP files up to 120 MB. Production Nginx is configured with a 512 MB request ceiling and
+15-minute client/proxy timeouts so multipart overhead and slow connections do not interrupt valid uploads. Install or
+refresh the settings from the repository, then validate and reload Nginx:
+
+```bash
+cd /srv/manga24/app
+bash ops/install-nginx-upload-limits.sh
+```
+
+The installer writes `/etc/nginx/conf.d/manga24-upload.conf`, runs `nginx -t`, removes the new file automatically if
+validation fails, and only reloads Nginx after successful validation. `proxy_request_buffering off` streams request
+bodies to Next.js instead of making Nginx buffer the complete upload first.
+
 Deployment note: the dev domain may be blocked from Korea because the domain is already warning-blocked domestically. The deployment can still be healthy and reachable through VPN or non-Korean networks.
 
 Server ownership should stay with the HestiaCP user:
