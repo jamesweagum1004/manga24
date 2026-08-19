@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePwaSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePwaSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -83,6 +83,11 @@ export async function updateLanguageSettingsAction(formData: FormData) {
 export async function updateHomeContentSettingsAction(formData: FormData) {
   await updateHomeContentSettings({ homeManhwaEnabled: formData.get("homeManhwaEnabled") === "on" });
   redirect("/manga1004/settings?saved=home-content#home-content");
+}
+
+export async function updateViewCountSettingsAction(formData: FormData) {
+  await updateViewCountSettings({ viewCountsEnabled: formData.get("viewCountsEnabled") === "on" });
+  redirect("/manga1004/settings?saved=view-counts#view-counts");
 }
 
 export async function updateMaintenanceSettingsAction(formData: FormData) {

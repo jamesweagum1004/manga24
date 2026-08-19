@@ -11,6 +11,7 @@ import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TitleDetailPage({ params }: PageProps) {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const title = await getCatalogTitleBySlug(slug, locale);
+  const [title, settings] = await Promise.all([getCatalogTitleBySlug(slug, locale), getSiteSettings()]);
   if (!title) {
     notFound();
   }
@@ -119,7 +120,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
               <Stat label={t.status} value={title.publicationStatus} />
               <Stat label={t.language} value={title.originalLanguage} />
               <Stat label={t.chapterCount} value={String(title.chapters.length)} />
-              <Stat label={t.views} value={title.viewCount.toLocaleString()} />
+              {settings.viewCountsEnabled ? <Stat label={t.views} value={title.viewCount.toLocaleString()} /> : null}
               <Stat label="Published" value={title.publishedAt} />
             </dl>
 

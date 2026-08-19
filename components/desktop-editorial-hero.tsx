@@ -7,11 +7,13 @@ import { localizedPath } from "@/lib/routes";
 export function DesktopEditorialHero({
   featured,
   ranking,
-  locale
+  locale,
+  showViewCounts = true
 }: {
   featured: DemoTitle;
   ranking: DemoTitle[];
   locale: Locale;
+  showViewCounts?: boolean;
 }) {
   const latestChapter = featured.chapters.at(-1);
   const labels = locale === "en"
@@ -69,7 +71,7 @@ export function DesktopEditorialHero({
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-black">{title.titles[locale]}</h3>
                   <p className="mt-1 truncate text-xs font-bold text-[var(--muted)]">{title.author}</p>
-                  <p className="mt-1 text-[11px] font-black text-[var(--accent)]">{formatViews(title.viewCount)} views</p>
+                  {showViewCounts ? <p className="mt-1 text-[11px] font-black text-[var(--accent)]">{formatViews(title.viewCount)} views</p> : null}
                 </div>
               </Link>
             </li>

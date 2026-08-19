@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "view_counts_enabled" boolean DEFAULT true NOT NULL;

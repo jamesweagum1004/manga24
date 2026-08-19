@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,15 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <form action={updateHomeContentSettingsAction} className="mt-5 grid gap-4">
           <Toggle name="homeManhwaEnabled" defaultChecked={settings.homeManhwaEnabled} title="Show Manhwa on the main homepage" description="When disabled, the Manhwa Spotlight section is hidden from every language homepage. Manhwa title URLs and other catalog pages remain available." />
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save homepage settings</button>
+        </form>
+      </section>
+
+      <section id="view-counts" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">View count visibility</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Hide or show view totals across the public site without deleting or resetting collected view data.</p>
+        <form action={updateViewCountSettingsAction} className="mt-5 grid gap-4">
+          <Toggle name="viewCountsEnabled" defaultChecked={settings.viewCountsEnabled} title="Show view counts to visitors" description="Controls view totals on the homepage ranking, popular page, and title detail pages. Ranking order is not changed." />
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save view count setting</button>
         </form>
       </section>
 

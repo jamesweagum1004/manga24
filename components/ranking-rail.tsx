@@ -3,7 +3,7 @@ import type { Locale } from "@/lib/i18n";
 import type { DemoTitle } from "@/lib/demo-data";
 import { localizedPath } from "@/lib/routes";
 
-export function RankingRail({ titles, locale }: { titles: DemoTitle[]; locale: Locale }) {
+export function RankingRail({ titles, locale, showViewCounts = true }: { titles: DemoTitle[]; locale: Locale; showViewCounts?: boolean }) {
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <ol className="flex min-w-max gap-3 pb-2">
@@ -18,9 +18,9 @@ export function RankingRail({ titles, locale }: { titles: DemoTitle[]; locale: L
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold">{title.titles[locale]}</span>
-                <span className="mt-1 block text-xs font-semibold text-[var(--muted)]">
+                {showViewCounts ? <span className="mt-1 block text-xs font-semibold text-[var(--muted)]">
                   {title.viewCount.toLocaleString()} views
-                </span>
+                </span> : null}
               </span>
             </Link>
           </li>
