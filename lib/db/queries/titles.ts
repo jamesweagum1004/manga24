@@ -356,6 +356,26 @@ export async function updateDbTitleSeo(
   });
 }
 
+export async function updateDbTitleGeneratedContent(
+  id: string,
+  content: Record<Locale, { catalogDescription: string; title: string; description: string; keywords: string[] }>
+) {
+  const db = getDb();
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
+      await tx.update(titleLocalizations).set({
+        description: content[locale].catalogDescription,
+        seoTitle: content[locale].title,
+        seoDescription: content[locale].description,
+        seoKeywords: content[locale].keywords.join(", "),
+        updatedAt: now
+      }).where(and(eq(titleLocalizations.titleId, id), eq(titleLocalizations.locale, locale)));
+    }
+    await tx.update(titles).set({ updatedAt: now }).where(eq(titles.id, id));
+  });
+}
+
 export function titleFormValuesFromDemoTitle(title: DemoTitle): TitleFormValues {
   return {
     canonicalSlug: title.slug,

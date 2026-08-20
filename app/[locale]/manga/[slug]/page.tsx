@@ -65,11 +65,11 @@ export default async function TitleDetailPage({ params }: PageProps) {
               alternateName: title.originalTitle,
               description: title.descriptions[locale],
               image: coverUrl,
-              creator: title.author,
+              ...(settings.showAuthor ? { creator: title.author } : {}),
               inLanguage: locale,
               genre: title.tags,
               contentRating: title.contentRating,
-              datePublished: title.publishedAt
+              ...(settings.showPublishedDate ? { datePublished: title.publishedAt } : {})
             },
             {
               "@type": "BreadcrumbList",
@@ -116,12 +116,12 @@ export default async function TitleDetailPage({ params }: PageProps) {
             </div>
 
             <dl className="grid grid-cols-2 gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-4">
-              <Stat label={t.author} value={title.author} />
+              {settings.showAuthor ? <Stat label={t.author} value={title.author} /> : null}
               <Stat label={t.status} value={title.publicationStatus} />
               <Stat label={t.language} value={title.originalLanguage} />
-              <Stat label={t.chapterCount} value={String(title.chapters.length)} />
+              {settings.showChapters ? <Stat label={t.chapterCount} value={String(title.chapters.length)} /> : null}
               {settings.viewCountsEnabled ? <Stat label={t.views} value={title.viewCount.toLocaleString()} /> : null}
-              <Stat label="Published" value={title.publishedAt} />
+              {settings.showPublishedDate ? <Stat label="Published" value={title.publishedAt} /> : null}
             </dl>
 
             <div className="flex flex-wrap gap-2">
@@ -131,7 +131,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {firstChapter ? (
+              {settings.showChapters ? <>{firstChapter ? (
                 <Link
                   href={localizedPath(locale, `/manga/${title.slug}/chapter/${firstChapter.slug}`)}
                   className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-center text-sm font-bold text-white"
@@ -154,7 +154,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
                 >
                   {t.startChapterOne}
                 </Link>
-              ) : null}
+              ) : null}</> : null}
               <button
                 type="button"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold"
@@ -166,10 +166,10 @@ export default async function TitleDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="mt-8">
+        {settings.showChapters ? <section className="mt-8">
           <h2 className="mb-3 text-xl font-black">{t.chapters}</h2>
-          <ChapterList locale={locale} titleSlug={title.slug} chapters={title.chapters} />
-        </section>
+          <ChapterList locale={locale} titleSlug={title.slug} chapters={title.chapters} showPublishedDate={settings.showPublishedDate} />
+        </section> : null}
       </main>
     </SiteShell>
   );

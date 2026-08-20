@@ -23,13 +23,34 @@ const generatedSeoSchema = z.object({
   pt: localeSeoSchema
 });
 
+const localeContentSchema = localeSeoSchema.extend({
+  catalogDescription: z.string().trim().min(40).transform((value) => value.slice(0, 1200))
+});
+
+const generatedContentSchema = z.object({
+  en: localeContentSchema,
+  es: localeContentSchema,
+  fr: localeContentSchema,
+  de: localeContentSchema,
+  pt: localeContentSchema
+});
+
 const completionSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().nullable() }) })).min(1)
 });
 
 export type GeneratedTitleSeo = z.infer<typeof generatedSeoSchema>;
+export type GeneratedTitleContent = z.infer<typeof generatedContentSchema>;
 
 export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
+  return generatedSeoSchema.parse(await requestDeepSeek(values, model, false));
+}
+
+export async function generateTitleContent(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleContent> {
+  return generatedContentSchema.parse(await requestDeepSeek(values, model, true));
+}
+
+async function requestDeepSeek(values: TitleFormValues, model: DeepSeekModel, includeCatalogDescription: boolean) {
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY is not configured.");
@@ -51,12 +72,12 @@ export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekM
         {
           role: "system",
           content:
-            "You create accurate multilingual SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep titles under 60 characters when practical and descriptions between 120 and 160 characters. Output exactly five keys: en, es, fr, de, pt. Each key must contain title, description, and keywords."
+            `You create accurate multilingual catalog copy and SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep SEO titles under 60 characters when practical and SEO descriptions between 120 and 160 characters. Output exactly five keys: en, es, fr, de, pt. Each key must contain title, description, keywords${includeCatalogDescription ? ", and catalogDescription (a natural 2-4 sentence catalog summary based only on supplied facts)" : ""}.`
         },
         {
           role: "user",
           content: JSON.stringify({
-            instruction: "Generate SEO metadata in JSON from only the supplied catalog facts.",
+            instruction: includeCatalogDescription ? "Rewrite catalog descriptions and generate SEO metadata using only the supplied catalog facts." : "Generate SEO metadata in JSON from only the supplied catalog facts.",
             originalTitle: values.originalTitle,
             author: values.authorName,
             originalLanguage: values.originalLanguage,
@@ -85,7 +106,7 @@ export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekM
     throw new Error("DeepSeek returned an empty response.");
   }
 
-  return generatedSeoSchema.parse(JSON.parse(stripJsonFence(content)));
+  return JSON.parse(stripJsonFence(content)) as unknown;
 }
 
 function stripJsonFence(content: string) {

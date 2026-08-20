@@ -3,7 +3,7 @@ import type { Locale } from "@/lib/i18n";
 import type { DemoChapter } from "@/lib/demo-data";
 import { localizedPath } from "@/lib/routes";
 
-export function ChapterList({ locale, titleSlug, chapters }: { locale: Locale; titleSlug: string; chapters: DemoChapter[] }) {
+export function ChapterList({ locale, titleSlug, chapters, showPublishedDate = true }: { locale: Locale; titleSlug: string; chapters: DemoChapter[]; showPublishedDate?: boolean }) {
   if (chapters.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
@@ -22,9 +22,9 @@ export function ChapterList({ locale, titleSlug, chapters }: { locale: Locale; t
           >
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold">{chapter.titles[locale]}</span>
-              <time className="mt-1 block text-xs text-[var(--muted)]" dateTime={chapter.publishedAt}>
+              {showPublishedDate ? <time className="mt-1 block text-xs text-[var(--muted)]" dateTime={chapter.publishedAt}>
                 {chapter.publishedAt}
-              </time>
+              </time> : null}
             </span>
             <span className="shrink-0 text-xs font-bold text-[var(--accent)]">Read</span>
           </Link>

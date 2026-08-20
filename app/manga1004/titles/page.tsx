@@ -53,8 +53,8 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         </div>
       ) : null}
       {query.deleted === "title" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Title and all connected chapters were deleted.</p> : null}
-      {query.bulk ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Bulk action complete: {query.changed ?? "0"} title(s) updated{Number(query.skipped) > 0 ? `, ${query.skipped} skipped because they were not ready to publish` : ""}.</p> : null}
-      {query.bulkError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">Select at least one title and choose an action.</p> : null}
+      {query.bulk ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Bulk action complete: {query.changed ?? "0"} title(s) updated{Number(query.skipped) > 0 ? `, ${query.skipped} skipped or failed` : ""}.</p> : null}
+      {query.bulkError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{query.bulkError === "ai-limit" ? "DeepSeek bulk generation accepts up to 10 titles at a time." : "Select at least one title and choose an action."}</p> : null}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
         <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />
@@ -87,6 +87,7 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
             { value: "completed", label: "Set status: Completed" },
             { value: "hiatus", label: "Set status: Hiatus" },
             { value: "cancelled", label: "Set status: Cancelled" },
+            { value: "deepseek-content", label: "DeepSeek: rewrite descriptions + SEO" },
             { value: "delete", label: "Delete selected titles", destructive: true }
           ]}
         />

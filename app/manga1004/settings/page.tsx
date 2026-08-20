@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
+import { createHomeSectionAction, deleteBrandingAction, deleteHomeSectionAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateHomeSectionAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePublicMetadataSettingsAction, updatePwaSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +52,29 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           <Toggle name="homeManhwaEnabled" defaultChecked={settings.homeManhwaEnabled} title="Show Manhwa on the main homepage" description="When disabled, the Manhwa Spotlight section is hidden from every language homepage. Manhwa title URLs and other catalog pages remain available." />
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save homepage settings</button>
         </form>
+      </section>
+
+      <section id="public-metadata" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Title page information</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Choose which catalog details visitors can see. The stored data is not deleted.</p>
+        <form action={updatePublicMetadataSettingsAction} className="mt-5 grid gap-3">
+          <Toggle name="showPublishedDate" defaultChecked={settings.showPublishedDate} title="Show publish date" description="Displays the title publication date and chapter publication dates." />
+          <Toggle name="showAuthor" defaultChecked={settings.showAuthor} title="Show author" description="Displays the author or creator name on title pages." />
+          <Toggle name="showChapters" defaultChecked={settings.showChapters} title="Show chapter information" description="Displays chapter count, chapter buttons, and the chapter list. Existing reader URLs remain active." />
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save title information</button>
+        </form>
+      </section>
+
+      <section id="home-sections" className="mt-7">
+        <div><h2 className="text-xl font-black">Homepage categories</h2><p className="mt-1 text-sm text-[var(--muted)]">Add, edit, hide, or delete homepage rails. Item count controls how many titles each category exposes.</p></div>
+        <div className="mt-4 grid gap-4">
+          {settings.homeSections.map((section) => <HomeSectionCard key={section.id} section={section} />)}
+          <form action={createHomeSectionAction} className="rounded-2xl border border-dashed border-[var(--accent)] bg-[var(--surface)] p-5 shadow-sm">
+            <h3 className="font-black">Add homepage category</h3>
+            <HomeSectionFields />
+            <button className="mt-4 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white">Add category</button>
+          </form>
+        </div>
       </section>
 
       <section id="view-counts" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
@@ -141,3 +164,12 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
 function Notice({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) { return <p className={`mt-5 rounded-xl border p-4 text-sm font-bold ${tone === "success" ? "border-green-300 bg-green-50 text-green-800" : "border-red-300 bg-red-50 text-red-800"}`}>{children}</p>; }
 function Toggle({ name, defaultChecked, title, description }: { name: string; defaultChecked: boolean; title: string; description: string }) { return <label className="flex max-w-2xl items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4"><input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 h-5 w-5 accent-[var(--accent)]" /><span><strong className="block text-sm">{title}</strong><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{description}</span></span></label>; }
 const inputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 font-medium";
+
+type HomeSectionValue = Awaited<ReturnType<typeof getSiteSettings>>["homeSections"][number];
+function HomeSectionCard({ section }: { section: HomeSectionValue }) {
+  return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><form action={updateHomeSectionAction.bind(null, section.id)}><div className="flex items-center justify-between gap-3"><h3 className="font-black">{section.title}</h3><span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-xs font-black">{section.itemCount} items</span></div><HomeSectionFields section={section} /><button className="mt-4 rounded-xl bg-[var(--foreground)] px-5 py-3 text-sm font-black text-[var(--background)]">Save category</button></form><form action={deleteHomeSectionAction.bind(null, section.id)} className="mt-2"><button className="rounded-xl border border-red-300 px-4 py-2 text-sm font-black text-red-700">Delete category</button></form></div>;
+}
+
+function HomeSectionFields({ section }: { section?: HomeSectionValue }) {
+  return <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Field label="Category title"><input name="title" required maxLength={80} defaultValue={section?.title} placeholder="Romance" className={inputClass} /></Field><Field label="Small label"><input name="subtitle" maxLength={80} defaultValue={section?.subtitle} placeholder="Updated" className={inputClass} /></Field><Field label="Content source"><select name="source" defaultValue={section?.source ?? "latest"} className={inputClass}><option value="popular">Popular manga</option><option value="latest">Latest manga</option><option value="adult">Adult manga</option><option value="tag">Tag category</option><option value="manhwa">Manhwa</option></select></Field><Field label="Tag slug"><input name="tag" defaultValue={section?.tag} placeholder="romance" className={inputClass} /></Field><Field label="Number shown"><input name="itemCount" type="number" min={1} max={30} defaultValue={section?.itemCount ?? 12} className={inputClass} /></Field><label className="flex items-center gap-2 text-sm font-black sm:col-span-2"><input type="checkbox" name="enabled" defaultChecked={section?.enabled ?? true} className="h-5 w-5 accent-[var(--accent)]" />Show this category</label></div>;
+}

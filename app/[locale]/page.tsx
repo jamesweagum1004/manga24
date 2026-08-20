@@ -8,11 +8,11 @@ import { PopularTagList } from "@/components/popular-tag-list";
 import { SiteShell } from "@/components/site-shell";
 import { getCatalogTitles, getLatestCatalogTitles, getPopularCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { dictionary, type DemoTitle } from "@/lib/demo-data";
+import type { DemoTitle } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
-import { localizedPath } from "@/lib/routes";
 import { listActiveAds } from "@/lib/db/queries/ads";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { homeSectionHref, type HomeSection } from "@/lib/home-sections";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -40,58 +40,12 @@ export default async function HomePage({ params }: PageProps) {
   const popular = await getPopularCatalogTitles(locale);
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
-  const manhwa = catalog.filter((title) => title.format === "manhwa");
   const featured = mangaPopular[0] ?? promo;
   const [contentAds, settings] = await Promise.all([listActiveAds("content", locale), getSiteSettings()]);
-  const railSections = [
-    {
-      title: locale === "en" ? "Trending Manga" : "Manga en tendencia",
-      subtitle: locale === "en" ? "Live" : "En vivo",
-      href: localizedPath(locale, "/popular"),
-      items: mangaPopular,
-      ranked: true
-    },
-    {
-      title: locale === "en" ? "Trending Adult Manga" : "Adultos en tendencia",
-      subtitle: "18+",
-      href: localizedPath(locale, "/popular"),
-      items: rotate(mangaPopular, 3),
-      ranked: true
-    },
-    {
-      title: locale === "en" ? "Romance" : "Romance",
-      subtitle: locale === "en" ? "Updated" : "Actualizado",
-      href: localizedPath(locale, "/tags/romance"),
-      items: prioritizeByTags(["romance"], mangaLatest)
-    },
-    {
-      title: locale === "en" ? "Fantasy" : "Fantasia",
-      subtitle: locale === "en" ? "New arcs" : "Nuevos arcos",
-      href: localizedPath(locale, "/tags/fantasy"),
-      items: prioritizeByTags(["fantasy", "supernatural"], rotate(mangaLatest, 2))
-    },
-    {
-      title: dictionary[locale].latestUpdates,
-      subtitle: locale === "en" ? "Last 6 hours" : "Ultimas 6 h",
-      href: localizedPath(locale, "/latest"),
-      items: mangaLatest,
-      cardVariant: "updates" as const
-    },
-    {
-      title: locale === "en" ? "Popular This Week" : "Popular esta semana",
-      subtitle: locale === "en" ? "Weekly" : "Semanal",
-      href: localizedPath(locale, "/popular"),
-      items: rotate(mangaPopular, 1),
-      ranked: true
-    },
-    {
-      title: locale === "en" ? "New Releases" : "Nuevos lanzamientos",
-      subtitle: locale === "en" ? "Fresh" : "Nuevo",
-      href: localizedPath(locale, "/latest"),
-      items: rotate(mangaLatest, 4),
-      cardVariant: "updates" as const
-    }
-  ];
+  const railSections = settings.homeSections
+    .filter((section) => section.enabled && (section.source !== "manhwa" || settings.homeManhwaEnabled))
+    .map((section) => buildHomeSection(section, { catalog, mangaPopular, mangaLatest }, locale))
+    .filter((section) => section.items.length > 0);
 
   return (
     <SiteShell locale={locale}>
@@ -113,28 +67,25 @@ export default async function HomePage({ params }: PageProps) {
             <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
           </div>
         ))}
-        {settings.homeManhwaEnabled && manhwa.length > 0 ? (
-          <MangaRail
-            title={locale === "en" ? "Manhwa Spotlight" : "Manhwa destacado"}
-            subtitle={locale === "en" ? "Korean comics" : "Cómic coreano"}
-            items={manhwa}
-            locale={locale}
-          />
-        ) : null}
         <PopularTagList locale={locale} />
       </main>
     </SiteShell>
   );
 }
 
-function rotate(items: DemoTitle[], offset: number) {
-  return [...items.slice(offset), ...items.slice(0, offset)];
-}
-
-function prioritizeByTags(tags: string[], items: DemoTitle[]) {
-  return [...items].sort((a, b) => {
-    const aScore = a.tags.some((tag) => tags.includes(tag)) ? 0 : 1;
-    const bScore = b.tags.some((tag) => tags.includes(tag)) ? 0 : 1;
-    return aScore - bScore || b.publishedAt.localeCompare(a.publishedAt);
-  });
+function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[] }, locale: Parameters<typeof homeSectionHref>[0]) {
+  let items: DemoTitle[];
+  if (section.source === "popular") items = data.mangaPopular;
+  else if (section.source === "adult") items = data.mangaPopular.filter((title) => title.contentRating !== "Safe");
+  else if (section.source === "tag") items = data.mangaLatest.filter((title) => title.tags.includes(section.tag));
+  else if (section.source === "manhwa") items = data.catalog.filter((title) => title.format === "manhwa");
+  else items = data.mangaLatest;
+  return {
+    title: section.title,
+    subtitle: section.subtitle,
+    href: homeSectionHref(locale, section),
+    items: items.slice(0, section.itemCount),
+    ranked: section.source === "popular" || section.source === "adult",
+    cardVariant: section.source === "latest" ? "updates" as const : undefined
+  };
 }

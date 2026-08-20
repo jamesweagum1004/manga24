@@ -3,6 +3,7 @@ import { auditLogs, siteSettings } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { normalizeEnabledLocales, type Locale } from "@/lib/i18n";
+import { normalizeHomeSections, type HomeSection } from "@/lib/home-sections";
 
 export type BrandingImage = { publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number };
 
@@ -23,12 +24,16 @@ export async function getSiteSettings() {
     homeManhwaEnabled: settings?.homeManhwaEnabled ?? true,
     viewCountsEnabled: settings?.viewCountsEnabled ?? true,
     maintenanceEnabled: settings?.maintenanceEnabled ?? false,
+    showPublishedDate: settings?.showPublishedDate ?? true,
+    showAuthor: settings?.showAuthor ?? true,
+    showChapters: settings?.showChapters ?? true,
+    homeSections: normalizeHomeSections(settings?.homeSections),
     adLocaleModes: normalizeAdLocaleModes(settings?.adLocaleModes),
     googleAnalyticsEnabled: settings?.googleAnalyticsEnabled ?? false,
     googleAnalyticsMeasurementId: settings?.googleAnalyticsMeasurementId ?? "",
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
 }
 
 export async function updateMaintenanceSettings(input: { maintenanceEnabled: boolean }) {
@@ -42,6 +47,21 @@ export async function updateHomeContentSettings(input: { homeManhwaEnabled: bool
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
     target: siteSettings.id,
     set: { ...input, updatedAt: new Date() }
+  });
+}
+
+export async function updatePublicMetadataSettings(input: { showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
+}
+
+export async function updateHomeSections(homeSections: HomeSection[]) {
+  const normalized = normalizeHomeSections(homeSections);
+  await getDb().insert(siteSettings).values({ id: 1, homeSections: normalized, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { homeSections: normalized, updatedAt: new Date() }
   });
 }
 

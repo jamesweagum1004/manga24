@@ -2,10 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
-import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
+import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
+import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
 import { locales } from "@/lib/i18n";
 import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
+import { generateTitleContent } from "@/lib/deepseek/seo";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 const slugSchema = z
   .string()
@@ -131,7 +133,7 @@ export async function deleteTitleAction(id: string) {
 
 const bulkTitleSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(200),
-  action: z.enum(["publish", "unpublish", "ongoing", "completed", "hiatus", "cancelled", "delete"])
+  action: z.enum(["publish", "unpublish", "ongoing", "completed", "hiatus", "cancelled", "deepseek-content", "delete"])
 });
 
 export async function bulkTitleAction(formData: FormData) {
@@ -158,6 +160,17 @@ export async function bulkTitleAction(formData: FormData) {
   } else if (action === "unpublish") {
     await Promise.all(ids.map((id) => unpublishTitle(id)));
     updated = ids.length;
+  } else if (action === "deepseek-content") {
+    if (ids.length > 10) redirect("/manga1004/titles?bulkError=ai-limit");
+    const settings = await getSiteSettings();
+    const results = await Promise.allSettled(ids.map(async (id) => {
+      const title = await getAdminTitleById(id);
+      if (!title) throw new Error("Title not found");
+      const generated = await generateTitleContent(title.values, settings.deepseekModel);
+      await updateDbTitleGeneratedContent(id, generated);
+    }));
+    updated = results.filter((result) => result.status === "fulfilled").length;
+    skipped = results.length - updated;
   } else if (action === "delete") {
     for (const id of ids) await deleteDbTitle(id);
     updated = ids.length;
