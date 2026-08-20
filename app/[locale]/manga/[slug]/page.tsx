@@ -6,6 +6,7 @@ import { ChapterList } from "@/components/chapter-list";
 import { SiteShell } from "@/components/site-shell";
 import { StructuredData } from "@/components/structured-data";
 import { TagChip } from "@/components/tag-chip";
+import { TitleViewTracker } from "@/components/title-view-tracker";
 import { getCatalogTitleBySlug } from "@/lib/data/source";
 import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
@@ -53,6 +54,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
 
   return (
     <SiteShell locale={locale}>
+      <TitleViewTracker slug={title.slug} />
       <StructuredData
         data={{
           "@context": "https://schema.org",

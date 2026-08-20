@@ -11,6 +11,7 @@ import {
   getDbTitleForAdmin,
   getDbTitleBySlug,
   listDbAdminTitles,
+  listDbRecentTitleViews,
   listDbTitles,
   titleFormValuesFromDemoTitle
 } from "@/lib/db/queries/titles";
@@ -61,6 +62,18 @@ export async function getPopularCatalogTitles(locale?: Locale) {
   }
 
   return filterByLocale(popularTitles(), locale);
+}
+
+export async function getRecentPopularCatalogTitles(locale: Locale, hours: number) {
+  const catalog = await getCatalogTitles(locale);
+  if (!isDatabaseConfigured()) return [...catalog].sort((a, b) => b.viewCount - a.viewCount);
+
+  const rows = await listDbRecentTitleViews(new Date(Date.now() - hours * 60 * 60 * 1000));
+  const recentViews = new Map(rows.map((row) => [row.slug, row.views]));
+  return [...catalog].sort((left, right) => {
+    const recentDifference = (recentViews.get(right.slug) ?? 0) - (recentViews.get(left.slug) ?? 0);
+    return recentDifference || right.viewCount - left.viewCount;
+  });
 }
 
 export async function getCatalogTitleBySlug(slug: string, locale?: Locale) {

@@ -6,7 +6,7 @@ import { AdStrip } from "@/components/ad-unit";
 import { MangaRail } from "@/components/manga-rail";
 import { PopularTagList } from "@/components/popular-tag-list";
 import { SiteShell } from "@/components/site-shell";
-import { getCatalogTitles, getLatestCatalogTitles, getPopularCatalogTitles } from "@/lib/data/source";
+import { getCatalogTitles, getLatestCatalogTitles, getPopularCatalogTitles, getRecentPopularCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
 import type { DemoTitle } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
@@ -34,17 +34,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function HomePage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const catalog = await getCatalogTitles(locale);
+  const [catalog, latest, popular, contentAds, settings] = await Promise.all([
+    getCatalogTitles(locale),
+    getLatestCatalogTitles(locale),
+    getPopularCatalogTitles(locale),
+    listActiveAds("content", locale),
+    getSiteSettings()
+  ]);
   const promo = catalog[10] ?? catalog[0];
-  const latest = await getLatestCatalogTitles(locale);
-  const popular = await getPopularCatalogTitles(locale);
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
   const featured = mangaPopular[0] ?? promo;
-  const [contentAds, settings] = await Promise.all([listActiveAds("content", locale), getSiteSettings()]);
+  const popularityHours = [...new Set(settings.homeSections.flatMap((section) => {
+    if (section.source === "live") return [0.25];
+    if (section.source !== "popular_period") return [];
+    return [section.popularityPeriod === "daily" ? 24 : section.popularityPeriod === "custom" ? section.customHours : 1];
+  }))];
+  const timeRankings = new Map(await Promise.all(popularityHours.map(async (hours) => [hours, (await getRecentPopularCatalogTitles(locale, hours)).filter((title) => title.format !== "manhwa")] as const)));
   const railSections = settings.homeSections
     .filter((section) => section.enabled && (section.source !== "manhwa" || settings.homeManhwaEnabled))
-    .map((section) => buildHomeSection(section, { catalog, mangaPopular, mangaLatest }, locale))
+    .map((section) => buildHomeSection(section, { catalog, mangaPopular, mangaLatest, timeRankings }, locale))
     .filter((section) => section.items.length > 0);
 
   return (
@@ -74,9 +83,15 @@ export default async function HomePage({ params }: PageProps) {
   );
 }
 
-function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[] }, locale: Parameters<typeof homeSectionHref>[0]) {
+function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[]; timeRankings: Map<number, DemoTitle[]> }, locale: Parameters<typeof homeSectionHref>[0]) {
   let items: DemoTitle[];
   if (section.source === "popular") items = data.mangaPopular;
+  else if (section.source === "live") items = data.timeRankings.get(0.25) ?? data.mangaPopular;
+  else if (section.source === "random") items = shuffle(data.catalog.filter((title) => title.format !== "manhwa"));
+  else if (section.source === "popular_period") {
+    const hours = section.popularityPeriod === "daily" ? 24 : section.popularityPeriod === "custom" ? section.customHours : 1;
+    items = data.timeRankings.get(hours) ?? data.mangaPopular;
+  }
   else if (section.source === "adult") items = data.mangaPopular.filter((title) => title.contentRating !== "Safe");
   else if (section.source === "tag") items = data.mangaLatest.filter((title) => title.tags.includes(section.tag));
   else if (section.source === "manhwa") items = data.catalog.filter((title) => title.format === "manhwa");
@@ -86,7 +101,16 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
     subtitle: section.subtitle,
     href: homeSectionHref(locale, section),
     items: items.slice(0, section.itemCount),
-    ranked: section.source === "popular" || section.source === "adult",
+    ranked: section.source === "popular" || section.source === "live" || section.source === "popular_period" || section.source === "adult",
     cardVariant: section.source === "latest" ? "updates" as const : undefined
   };
+}
+
+function shuffle<T>(values: T[]) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
 }

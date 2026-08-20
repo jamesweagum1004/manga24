@@ -8,6 +8,7 @@ import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 import { listReaderAds } from "@/lib/db/queries/ads";
+import { TitleViewTracker } from "@/components/title-view-tracker";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string; chapterSlug: string }>;
@@ -56,6 +57,7 @@ export default async function ChapterReaderPage({ params }: PageProps) {
 
   return (
     <>
+      <TitleViewTracker slug={result.title.slug} />
       {imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
       {imageOrigin ? <link rel="dns-prefetch" href={imageOrigin} /> : null}
       {firstPage ? <link rel="preload" as="image" href={firstPage.src} fetchPriority="high" /> : null}

@@ -55,7 +55,7 @@ export const siteSettings = pgTable("site_settings", {
   showAuthor: boolean("show_author").default(true).notNull(),
   showChapters: boolean("show_chapters").default(true).notNull(),
   readerRecommendationCount: integer("reader_recommendation_count").default(8).notNull(),
-  homeSections: jsonb("home_sections").$type<Array<{ id: string; title: string; subtitle: string; source: "popular" | "latest" | "adult" | "tag" | "manhwa"; tag: string; itemCount: number; enabled: boolean }>>(),
+  homeSections: jsonb("home_sections").$type<Array<{ id: string; title: string; subtitle: string; source: "popular" | "live" | "random" | "popular_period" | "latest" | "adult" | "tag" | "manhwa"; tag: string; itemCount: number; enabled: boolean; popularityPeriod: "hourly" | "custom" | "daily"; customHours: number }>>(),
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),
   googleAnalyticsMeasurementId: varchar("google_analytics_measurement_id", { length: 32 }),
@@ -143,6 +143,21 @@ export const titles = pgTable(
   (table) => ({
     slugIdx: uniqueIndex("titles_slug_idx").on(table.slug),
     publishedIdx: index("titles_published_at_idx").on(table.publishedAt)
+  })
+);
+
+export const titleViewEvents = pgTable(
+  "title_view_events",
+  {
+    id: serial("id").primaryKey(),
+    titleId: uuid("title_id")
+      .notNull()
+      .references(() => titles.id, { onDelete: "cascade" }),
+    viewedAt: timestamp("viewed_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    viewedAtIdx: index("title_view_events_viewed_at_idx").on(table.viewedAt),
+    titleViewedAtIdx: index("title_view_events_title_viewed_at_idx").on(table.titleId, table.viewedAt)
   })
 );
 

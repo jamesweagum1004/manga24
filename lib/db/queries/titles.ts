@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import {
   assets,
   chapterLocalizations,
@@ -8,6 +8,7 @@ import {
   tags,
   titleLocalizations,
   titleStatusEnum,
+  titleViewEvents,
   titles,
   titleTags
 } from "@/db/schema";
@@ -160,6 +161,38 @@ export const emptyTitleFormValues: TitleFormValues = {
 export async function listDbTitles() {
   const rows = await selectPublishedTitleRows();
   return hydrateTitleRows(rows, false);
+}
+
+export async function listDbRecentTitleViews(since: Date) {
+  return getDb()
+    .select({
+      slug: titles.slug,
+      views: sql<number>`count(*)`.mapWith(Number)
+    })
+    .from(titleViewEvents)
+    .innerJoin(titles, eq(titleViewEvents.titleId, titles.id))
+    .where(gte(titleViewEvents.viewedAt, since))
+    .groupBy(titles.slug)
+    .orderBy(desc(sql`count(*)`));
+}
+
+export async function recordDbTitleView(slug: string) {
+  const db = getDb();
+  const [title] = await db
+    .select({ id: titles.id })
+    .from(titles)
+    .where(and(eq(titles.slug, slug), isNotNull(titles.publishedAt)))
+    .limit(1);
+  if (!title) return false;
+
+  await db.transaction(async (transaction) => {
+    await transaction.insert(titleViewEvents).values({ titleId: title.id });
+    await transaction
+      .update(titles)
+      .set({ viewCount: sql`${titles.viewCount} + 1` })
+      .where(eq(titles.id, title.id));
+  });
+  return true;
 }
 
 export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
