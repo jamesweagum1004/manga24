@@ -16,7 +16,7 @@ const optionalUrl = z
 const baseSchema = z.object({
   name: z.string().trim().min(1).max(120),
   kind: z.enum(["static", "exoclick"]),
-  position: z.enum(["header", "content"]),
+  position: z.enum(["header", "content", "reader_top", "reader_bottom"]),
   surface: z.enum(["both", "web", "pwa"]),
   locale: z.union([z.literal(""), z.enum(locales)]),
   clickUrl: optionalUrl,

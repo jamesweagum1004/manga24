@@ -31,6 +31,12 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><h2 className="mb-4 text-xl font-black">Create advertisement</h2><AdForm action={createAdAction} submitLabel="Create advertisement" /></section>
 
+      <section className="grid gap-3 sm:grid-cols-2">
+        <SlotSummary title="Reader top" count={ads.filter((ad) => ad.position === "reader_top").length} description="Shown before the first manga page." />
+        <SlotSummary title="Reader bottom" count={ads.filter((ad) => ad.position === "reader_bottom").length} description="Shown after the final manga page." />
+        <p className="text-xs font-bold text-[var(--muted)] sm:col-span-2">You can add any number of advertisements to either reader slot. Every active matching advertisement is shown in Sort order; Web/PWA and language rules still apply.</p>
+      </section>
+
       <section className="grid gap-4">
         <h2 className="text-xl font-black">Current advertisements</h2>
         {ads.length === 0 ? <p className="rounded-xl border bg-[var(--surface)] p-5 text-sm font-bold text-[var(--muted)]">No advertisements yet.</p> : null}
@@ -57,7 +63,7 @@ function AdForm({ action, submitLabel, ad }: { action: (data: FormData) => void 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="Internal name"><input name="name" required maxLength={120} defaultValue={ad?.name} className={inputClass} /></Field>
         <Field label="Type"><select name="kind" defaultValue={ad?.kind ?? "static"} className={inputClass}><option value="static">Static banner</option><option value="exoclick">ExoClick code</option></select></Field>
-        <Field label="Placement"><select name="position" defaultValue={ad?.position ?? "header"} className={inputClass}><option value="header">Top, below header</option><option value="content">Between home sections</option></select></Field>
+        <Field label="Placement"><select name="position" defaultValue={ad?.position ?? "header"} className={inputClass}><option value="header">Top, below header</option><option value="content">Between home sections</option><option value="reader_top">Reader — before first page</option><option value="reader_bottom">Reader — after last page</option></select></Field>
         <Field label="Web / PWA target"><select name="surface" defaultValue={ad?.surface ?? "both"} className={inputClass}><option value="both">Web + PWA</option><option value="web">Web only</option><option value="pwa">PWA only</option></select></Field>
         <Field label="Language advertising set"><select name="locale" defaultValue={ad?.locale ?? ""} className={inputClass}><option value="">Main / default ads</option>{locales.map((locale) => <option key={locale} value={locale}>{localeFlags[locale]} {localeLabels[locale]}</option>)}</select></Field>
         <Field label="Enabled"><label className="flex h-11 items-center gap-2 rounded-lg border p-3 font-bold"><input name="isActive" type="checkbox" defaultChecked={ad?.isActive ?? true} /> Active</label></Field>
@@ -83,4 +89,5 @@ function AdForm({ action, submitLabel, ad }: { action: (data: FormData) => void 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="grid gap-1 text-sm font-black"><span>{label}</span>{children}</label>; }
 function NumberField({ label, name, value, min, max }: { label: string; name: string; value: number; min: number; max: number }) { return <Field label={label}><input name={name} type="number" required min={min} max={max} defaultValue={value} className={inputClass} /></Field>; }
 function Notice({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) { return <p className={`rounded-lg border p-4 text-sm font-bold ${tone === "success" ? "border-green-300 bg-green-50 text-green-800" : "border-red-300 bg-red-50 text-red-800"}`}>{children}</p>; }
+function SlotSummary({ title, count, description }: { title: string; count: number; description: string }) { return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"><div className="flex items-center justify-between gap-3"><h2 className="font-black">{title}</h2><span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-xs font-black">{count} ads</span></div><p className="mt-1 text-xs font-bold text-[var(--muted)]">{description}</p></div>; }
 const inputClass = "w-full rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 font-medium";

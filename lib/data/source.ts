@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { demoTags, demoTitles, findChapter, findTitle, latestTitles, popularTitles } from "@/lib/demo-data";
 import {
   adminChapterListFromDemoTitles,
@@ -26,12 +27,14 @@ export function getActiveDataSource() {
   return isDatabaseConfigured() ? "database" : "demo";
 }
 
+const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? listDbTitles() : demoTitles);
+
 export async function getCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
-    return filterByLocale(await listDbTitles(), locale);
+    return filterByLocale(await getAllCatalogTitles(), locale);
   }
 
-  return filterByLocale(demoTitles, locale);
+  return filterByLocale(await getAllCatalogTitles(), locale);
 }
 
 export async function getAdminTitleList() {
@@ -44,7 +47,7 @@ export async function getAdminTitleList() {
 
 export async function getLatestCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
-    const titles = await listDbTitles();
+    const titles = await getAllCatalogTitles();
     return filterByLocale([...titles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)), locale);
   }
 
@@ -53,7 +56,7 @@ export async function getLatestCatalogTitles(locale?: Locale) {
 
 export async function getPopularCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
-    const titles = await listDbTitles();
+    const titles = await getAllCatalogTitles();
     return filterByLocale([...titles].sort((a, b) => b.viewCount - a.viewCount), locale);
   }
 
@@ -70,7 +73,7 @@ export async function getCatalogTitleBySlug(slug: string, locale?: Locale) {
   return title && isVisibleInLocale(title, locale) ? title : null;
 }
 
-export async function getCatalogChapterBySlug(titleSlug: string, chapterSlug: string, locale?: Locale) {
+export const getCatalogChapterBySlug = cache(async (titleSlug: string, chapterSlug: string, locale?: Locale) => {
   if (isDatabaseConfigured()) {
     const result = await getDbChapterBySlug(titleSlug, chapterSlug);
     return result && isVisibleInLocale(result.title, locale) ? result : null;
@@ -78,7 +81,7 @@ export async function getCatalogChapterBySlug(titleSlug: string, chapterSlug: st
 
   const result = findChapter(titleSlug, chapterSlug);
   return result && isVisibleInLocale(result.title, locale) ? result : null;
-}
+});
 
 function filterByLocale<T extends { displayLocales?: Locale[] }>(titles: T[], locale?: Locale) {
   return locale ? titles.filter((title) => isVisibleInLocale(title, locale)) : titles;

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { auditLogs, siteSettings } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
@@ -10,7 +11,7 @@ export type BrandingImage = { publicUrl: string; objectKey: string; format: "man
 export const deepseekModels = ["deepseek-v4-flash", "deepseek-v4-pro"] as const;
 export type DeepSeekModel = (typeof deepseekModels)[number];
 
-export async function getSiteSettings() {
+export const getSiteSettings = cache(async () => {
   const db = getDbOrNull();
   const [settings] = db ? await db.select().from(siteSettings).limit(1) : [];
   return {
@@ -34,7 +35,7 @@ export async function getSiteSettings() {
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
   } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
-}
+});
 
 export async function updateMaintenanceSettings(input: { maintenanceEnabled: boolean }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({

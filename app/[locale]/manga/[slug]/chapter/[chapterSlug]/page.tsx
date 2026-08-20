@@ -7,6 +7,7 @@ import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
+import { listReaderAds } from "@/lib/db/queries/ads";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string; chapterSlug: string }>;
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ChapterReaderPage({ params }: PageProps) {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const result = await getCatalogChapterBySlug(slug, chapterSlug, locale);
+  const [result, readerAds] = await Promise.all([getCatalogChapterBySlug(slug, chapterSlug, locale), listReaderAds(locale)]);
   if (!result) {
     notFound();
   }
@@ -49,9 +50,14 @@ export default async function ChapterReaderPage({ params }: PageProps) {
   const previousChapter = result.title.chapters[chapterIndex - 1];
   const nextChapter = result.title.chapters[chapterIndex + 1];
   const chapterUrl = siteUrl(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`);
+  const firstPage = result.chapter.pages[0];
+  const imageOrigin = getOrigin(firstPage?.src);
 
   return (
     <>
+      {imageOrigin ? <link rel="preconnect" href={imageOrigin} crossOrigin="anonymous" /> : null}
+      {imageOrigin ? <link rel="dns-prefetch" href={imageOrigin} /> : null}
+      {firstPage ? <link rel="preload" as="image" href={firstPage.src} fetchPriority="high" /> : null}
       <StructuredData
         data={{
           "@context": "https://schema.org",
@@ -110,7 +116,15 @@ export default async function ChapterReaderPage({ params }: PageProps) {
         nextHref={nextChapter ? localizedPath(locale, `/manga/${result.title.slug}/chapter/${nextChapter.slug}`) : undefined}
         storageKey={`manga24:${locale}:${result.title.slug}:${result.chapter.slug}`}
         reportHref={`/${locale}/report?type=chapter&key=${encodeURIComponent(`${result.title.slug}:${result.chapter.slug}`)}&url=${encodeURIComponent(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`)}`}
+        topAds={readerAds.top}
+        bottomAds={readerAds.bottom}
+        pwaAdsEnabled={readerAds.pwaAdsEnabled}
       />
     </>
   );
+}
+
+function getOrigin(value: string | undefined) {
+  if (!value) return null;
+  try { return new URL(value).origin; } catch { return null; }
 }

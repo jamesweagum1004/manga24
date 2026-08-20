@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { asc, eq } from "drizzle-orm";
 import { ads } from "@/db/schema";
 import { getDb, getDbOrNull } from "@/lib/db/client";
@@ -6,7 +7,7 @@ import { getSiteSettings } from "./settings";
 import type { Locale } from "@/lib/i18n";
 
 export type AdKind = "static" | "exoclick";
-export type AdPosition = "header" | "content";
+export type AdPosition = "header" | "content" | "reader_top" | "reader_bottom";
 export type AdSurface = "both" | "web" | "pwa";
 
 export type AdValues = {
@@ -26,16 +27,27 @@ export type AdValues = {
   isActive: boolean;
 };
 
-export async function listAds() {
+export const listAds = cache(async () => {
   const db = getDbOrNull();
   if (!db) return [];
   return db.select().from(ads).orderBy(asc(ads.position), asc(ads.insertAfter), asc(ads.sortOrder));
-}
+});
 
 export async function listActiveAds(position: AdPosition, locale: Locale) {
   const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
   const selectedLocale = settings.adLocaleModes[locale] === "separate" ? locale : null;
   return rows.filter((ad) => ad.isActive && ad.position === position && ad.locale === selectedLocale);
+}
+
+export async function listReaderAds(locale: Locale) {
+  const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
+  const selectedLocale = settings.adLocaleModes[locale] === "separate" ? locale : null;
+  const eligible = rows.filter((ad) => ad.isActive && ad.locale === selectedLocale);
+  return {
+    top: eligible.filter((ad) => ad.position === "reader_top"),
+    bottom: eligible.filter((ad) => ad.position === "reader_bottom"),
+    pwaAdsEnabled: settings.pwaAdsEnabled
+  };
 }
 
 export async function getAd(id: string) {

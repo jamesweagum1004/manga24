@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import type { DemoAsset } from "@/lib/demo-data";
@@ -10,6 +10,10 @@ import { ReaderHeader } from "./reader-header";
 import { ReaderControls } from "./reader-controls";
 import { EndOfChapter } from "./end-of-chapter";
 import { RECENT_READING_KEY, type RecentReading } from "@/lib/reading-progress";
+import { AdStrip } from "./ad-unit";
+import type { AdKind, AdPosition, AdSurface } from "@/lib/db/queries/ads";
+
+type ReaderAd = { id: string; name: string; kind: AdKind; position: AdPosition; surface: AdSurface; imageUrl: string | null; clickUrl: string | null; altText: string | null; embedCode: string | null; width: number; height: number };
 
 type VerticalReaderProps = {
   locale: Locale;
@@ -24,6 +28,9 @@ type VerticalReaderProps = {
   nextHref?: string;
   storageKey: string;
   reportHref: string;
+  topAds: ReaderAd[];
+  bottomAds: ReaderAd[];
+  pwaAdsEnabled: boolean;
 };
 
 export function VerticalReader({
@@ -38,7 +45,10 @@ export function VerticalReader({
   previousHref,
   nextHref,
   storageKey,
-  reportHref
+  reportHref,
+  topAds,
+  bottomAds,
+  pwaAdsEnabled
 }: VerticalReaderProps) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -48,16 +58,6 @@ export function VerticalReader({
   const [canTrackProgress, setCanTrackProgress] = useState(false);
   const restored = useRef(false);
   const countedChapter = useRef(false);
-
-  const preloadUrls = useMemo(() => pages.slice(1, 4).map((page) => page.src), [pages]);
-
-  useEffect(() => {
-    if (dataSaver) return;
-    for (const url of preloadUrls) {
-      const image = new Image();
-      image.src = url;
-    }
-  }, [dataSaver, preloadUrls]);
 
   useEffect(() => {
     if (restored.current) {
@@ -155,11 +155,12 @@ export function VerticalReader({
         </div>
       ) : null}
       <div className="mx-auto max-w-[840px] pt-14">
+        <div onClick={(event) => event.stopPropagation()}><AdStrip ads={topAds} label="Advertisements before chapter" pwaAdsEnabled={pwaAdsEnabled} /></div>
         {pages.length === 0 ? (
           <div className="px-4 py-20 text-center text-white/65">No pages are available for this chapter.</div>
         ) : (
           pages.map((page, index) => (
-            <figure key={page.id} className="m-0 w-full bg-black">
+            <figure key={page.id} className="m-0 w-full bg-black" style={index > 1 ? { contentVisibility: "auto", containIntrinsicSize: `${page.height}px` } : undefined}>
               {failedImages.has(page.id) ? (
                 <div className="flex min-h-[60vh] items-center justify-center border border-white/10 px-6 text-center text-sm text-white/65">
                   This page could not be loaded.
@@ -181,6 +182,7 @@ export function VerticalReader({
           ))
         )}
       </div>
+      <div onClick={(event) => event.stopPropagation()}><AdStrip ads={bottomAds} label="Advertisements after chapter" pwaAdsEnabled={pwaAdsEnabled} /></div>
       <div className="mx-auto max-w-[840px] px-4 py-5 text-center"><Link href={reportHref} onClick={(event) => event.stopPropagation()} className="text-xs font-bold text-white/60 underline decoration-dotted underline-offset-4">Report this chapter</Link></div>
       <EndOfChapter locale={locale} nextHref={nextHref} />
       <ReaderControls visible={controlsVisible} dataSaver={dataSaver} onToggleDataSaver={() => setDataSaver((value) => !value)} onTop={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
