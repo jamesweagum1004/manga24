@@ -11,20 +11,22 @@ import { bulkTitleAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-type Folder = "all" | "manga" | "manhwa";
+type Folder = "all" | "manga" | "manhwa" | "ai-pending" | "ai-complete";
 
 type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; deleted?: string; bulk?: string; bulkError?: string; changed?: string; skipped?: string };
 
 export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<Query> }) {
   const titles = await getAdminTitleList();
   const query = await searchParams;
-  const activeFolder: Folder = query.folder === "manga" || query.folder === "manhwa" ? query.folder : "all";
+  const activeFolder: Folder = ["manga", "manhwa", "ai-pending", "ai-complete"].includes(query.folder ?? "") ? query.folder as Folder : "all";
   const selectedLocale = locales.includes(query.locale as Locale) ? query.locale as Locale : "";
   const q = query.q?.trim().toLocaleLowerCase() ?? "";
   const ageDays = query.updated === "1" ? 1 : query.updated === "7" ? 7 : query.updated === "30" ? 30 : 0;
   const cutoff = ageDays ? Date.now() - ageDays * 86400000 : 0;
   const visibleTitles = titles.filter((title) => {
-    if (activeFolder !== "all" && title.format !== activeFolder) return false;
+    if ((activeFolder === "manga" || activeFolder === "manhwa") && title.format !== activeFolder) return false;
+    if (activeFolder === "ai-pending" && title.aiContentGeneratedAt) return false;
+    if (activeFolder === "ai-complete" && !title.aiContentGeneratedAt) return false;
     if (selectedLocale && !title.displayLocales.includes(selectedLocale)) return false;
     if (query.visibility === "live" && !title.isPublished) return false;
     if (query.visibility === "draft" && title.isPublished) return false;
@@ -55,12 +57,14 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
       {query.deleted === "title" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Title and all connected chapters were deleted.</p> : null}
       {query.bulk ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Bulk action complete: {query.changed ?? "0"} title(s) updated{Number(query.skipped) > 0 ? `, ${query.skipped} skipped or failed` : ""}.</p> : null}
       {query.bulkError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{query.bulkError === "ai-limit" ? "DeepSeek bulk generation accepts up to 10 titles at a time." : "Select at least one title and choose an action."}</p> : null}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
         <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />
         <FolderLink href="/manga1004/titles?folder=manhwa" label="Manhwa" count={titles.filter((title) => title.format === "manhwa").length} active={activeFolder === "manhwa"} />
+        <FolderLink href="/manga1004/titles?folder=ai-pending" label="DeepSeek needed" count={titles.filter((title) => !title.aiContentGeneratedAt).length} active={activeFolder === "ai-pending"} />
+        <FolderLink href="/manga1004/titles?folder=ai-complete" label="DeepSeek complete" count={titles.filter((title) => Boolean(title.aiContentGeneratedAt)).length} active={activeFolder === "ai-complete"} />
       </div>
-      <h2 className="mt-7 text-xl font-black">{activeFolder === "all" ? "All Titles" : activeFolder === "manga" ? "Manga" : "Manhwa"}</h2>
+      <h2 className="mt-7 text-xl font-black">{{ all: "All Titles", manga: "Manga", manhwa: "Manhwa", "ai-pending": "DeepSeek needed", "ai-complete": "DeepSeek complete" }[activeFolder]}</h2>
       <form className="mt-4 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-3 lg:grid-cols-6">
         {activeFolder !== "all" ? <input type="hidden" name="folder" value={activeFolder} /> : null}
         <input name="q" defaultValue={query.q} placeholder="Title, slug or translation" className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm font-bold md:col-span-2" />
@@ -108,6 +112,7 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
                   {title.format === "manga" ? "Manga" : "Manhwa"} · {title.isPublished ? "Live" : "Unpublished"} · {title.publicationStatus} · {title.contentRating} · Updated {title.updatedAt}
                 </span>
                 <span>{title.displayLocales.map((locale) => localeFlags[locale]).join(" ")} · Original: {title.originalLanguage.toUpperCase()}</span>
+                <span className={title.aiContentGeneratedAt ? "text-green-700" : "text-amber-700"}>{title.aiContentGeneratedAt ? "DeepSeek description complete" : "DeepSeek description needed"}</span>
                 <span className="truncate">EN: {title.enTitle}</span>
                 <span className="truncate">ES: {title.esTitle}</span>
               </span>

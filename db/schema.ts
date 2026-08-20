@@ -135,6 +135,7 @@ export const titles = pgTable(
     coverAssetId: uuid("cover_asset_id").references(() => assets.id, { onDelete: "set null" }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     viewCount: integer("view_count").default(0).notNull(),
+    aiContentGeneratedAt: timestamp("ai_content_generated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },

@@ -134,6 +134,13 @@
       "when": 1787222007158,
       "tag": "0018_worried_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787230601540,
+      "tag": "0019_odd_thunderbolt",
+      "breakpoints": true
     }
   ]
 }

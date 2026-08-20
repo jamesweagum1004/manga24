@@ -2,13 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, getSiteSettings, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateHomeSections, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { filesToImages } from "@/lib/media/zip-images";
-import { homeSectionSources } from "@/lib/home-sections";
 
 export async function updateAiSettingsAction(formData: FormData) {
   const parsed = z.enum(deepseekModels).safeParse(formData.get("deepseekModel"));
@@ -93,55 +92,6 @@ export async function updatePublicMetadataSettingsAction(formData: FormData) {
     showChapters: formData.get("showChapters") === "on"
   });
   redirect("/manga1004/settings?saved=public-metadata#public-metadata");
-}
-
-const homeSectionSchema = z.object({
-  title: z.string().trim().min(1).max(80),
-  subtitle: z.string().trim().max(80),
-  source: z.enum(homeSectionSources),
-  tag: z.string().trim().toLowerCase().max(80).refine((value) => !value || /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value)),
-  itemCount: z.coerce.number().int().min(1).max(30),
-  enabled: z.boolean()
-});
-
-export async function createHomeSectionAction(formData: FormData) {
-  const parsed = parseHomeSection(formData);
-  if (!parsed.success) redirect("/manga1004/settings?error=home-section#home-sections");
-  const settings = await getSiteSettings();
-  const id = `${slugify(parsed.data.title) || "section"}-${Date.now().toString(36)}`;
-  await updateHomeSections([...settings.homeSections, { id, ...parsed.data }]);
-  redirect("/manga1004/settings?saved=home-section-created#home-sections");
-}
-
-export async function updateHomeSectionAction(id: string, formData: FormData) {
-  const parsed = parseHomeSection(formData);
-  if (!parsed.success) redirect("/manga1004/settings?error=home-section#home-sections");
-  const settings = await getSiteSettings();
-  await updateHomeSections(settings.homeSections.map((section) => section.id === id ? { id, ...parsed.data } : section));
-  redirect("/manga1004/settings?saved=home-section-updated#home-sections");
-}
-
-export async function deleteHomeSectionAction(id: string) {
-  const settings = await getSiteSettings();
-  const remaining = settings.homeSections.filter((section) => section.id !== id);
-  if (remaining.length === 0) redirect("/manga1004/settings?error=last-home-section#home-sections");
-  await updateHomeSections(remaining);
-  redirect("/manga1004/settings?saved=home-section-deleted#home-sections");
-}
-
-function parseHomeSection(formData: FormData) {
-  return homeSectionSchema.safeParse({
-    title: formData.get("title"),
-    subtitle: formData.get("subtitle"),
-    source: formData.get("source"),
-    tag: formData.get("tag"),
-    itemCount: formData.get("itemCount"),
-    enabled: formData.get("enabled") === "on"
-  });
-}
-
-function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "").slice(0, 50);
 }
 
 export async function updateViewCountSettingsAction(formData: FormData) {

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
-import { createDbTag, type TagFormValues } from "@/lib/db/queries/tags";
+import { createDbTag, replaceDbTags, type TagFormValues } from "@/lib/db/queries/tags";
 
 const tagFormSchema = z.object({
   slug: z
@@ -62,6 +62,24 @@ export async function createTagAction(_state: TagFormState, formData: FormData):
   }
 
   redirect("/manga1004/tags");
+}
+
+export async function replaceTagsAction(formData: FormData) {
+  const sourceSlugs = String(formData.get("sourceSlugs") ?? "").split(",").map((slug) => slug.trim().toLowerCase()).filter(Boolean);
+  const parsed = z.object({
+    sourceSlugs: z.array(tagFormSchema.shape.slug).min(1).max(50),
+    replacementSlug: tagFormSchema.shape.slug,
+    replacementName: tagFormSchema.shape.name,
+    replacementCategory: tagFormSchema.shape.category
+  }).safeParse({ sourceSlugs, replacementSlug: formData.get("replacementSlug"), replacementName: formData.get("replacementName"), replacementCategory: formData.get("replacementCategory") });
+  if (!parsed.success || !isDatabaseConfigured()) redirect("/manga1004/tags?error=replace");
+  let result: Awaited<ReturnType<typeof replaceDbTags>>;
+  try {
+    result = await replaceDbTags(parsed.data.sourceSlugs, { slug: parsed.data.replacementSlug, name: parsed.data.replacementName, category: parsed.data.replacementCategory });
+  } catch {
+    redirect("/manga1004/tags?error=replace");
+  }
+  redirect(`/manga1004/tags?replaced=${result.tagsReplaced}&titles=${result.titlesUpdated}`);
 }
 
 function getFormValue(formData: FormData, key: keyof TagFormValues) {

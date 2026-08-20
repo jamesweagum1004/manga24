@@ -1,11 +1,12 @@
 import { databaseNotConfiguredMessage, getActiveDataSource, getAdminTagList, isDatabaseConfigured } from "@/lib/data/source";
 import { emptyTagFormValues } from "@/lib/db/queries/tags";
-import { createTagAction } from "./actions";
+import { createTagAction, replaceTagsAction } from "./actions";
 import { TagForm } from "./tag-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTagsPage() {
+export default async function AdminTagsPage({ searchParams }: { searchParams: Promise<{ replaced?: string; titles?: string; error?: string }> }) {
+  const query = await searchParams;
   const tags = await getAdminTagList();
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
@@ -22,6 +23,21 @@ export default async function AdminTagsPage() {
           {databaseNotConfiguredMessage}
         </div>
       ) : null}
+
+      {query.replaced ? <p className="rounded-xl border border-green-300 bg-green-50 p-4 text-sm font-bold text-green-800">Replaced {query.replaced} source tags across {query.titles ?? "0"} titles.</p> : null}
+      {query.error ? <p className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-800">Unable to replace tags. Check that every slug uses lowercase letters, numbers, and hyphens.</p> : null}
+
+      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+        <h2 className="text-xl font-black text-amber-950">Replace and merge tags</h2>
+        <p className="mt-1 text-sm font-bold text-amber-900">Move every title from unwanted source tags into one preferred tag. Duplicate links are removed and the old source tags are deleted.</p>
+        <form action={replaceTagsAction} className="mt-5 grid gap-4 md:grid-cols-3">
+          <label className="grid gap-1.5 text-sm font-black md:col-span-3"><span>Source tag slugs (comma-separated)</span><input name="sourceSlugs" required placeholder="loli, lolicon" className={inputClass} /></label>
+          <label className="grid gap-1.5 text-sm font-black"><span>Replacement slug</span><input name="replacementSlug" required defaultValue="teen" className={inputClass} /></label>
+          <label className="grid gap-1.5 text-sm font-black"><span>Replacement name</span><input name="replacementName" required defaultValue="Teen" className={inputClass} /></label>
+          <label className="grid gap-1.5 text-sm font-black"><span>Category</span><input name="replacementCategory" required defaultValue="content" className={inputClass} /></label>
+          <button disabled={!writesEnabled} className="w-fit rounded-xl bg-amber-800 px-5 py-3 text-sm font-black text-white disabled:opacity-40 md:col-span-3">Replace tags</button>
+        </form>
+      </section>
 
       <TagForm action={createTagAction} initialState={{ values: emptyTagFormValues }} writesEnabled={writesEnabled} />
 
@@ -44,3 +60,5 @@ export default async function AdminTagsPage() {
     </main>
   );
 }
+
+const inputClass = "min-h-11 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 font-medium";

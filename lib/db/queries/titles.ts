@@ -78,6 +78,7 @@ export type AdminTitleListItem = {
   frTitle: string;
   deTitle: string;
   ptTitle: string;
+  aiContentGeneratedAt: string | null;
 };
 
 type DbTitleStatus = (typeof titleStatusEnum.enumValues)[number];
@@ -95,6 +96,7 @@ type BaseTitleRow = {
   contentRating: DbContentRating;
   publishedAt: Date | null;
   viewCount: number;
+  aiContentGeneratedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   coverId: string | null;
@@ -188,7 +190,8 @@ export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
       esTitle: localizations.es.title,
       frTitle: localizations.fr.title,
       deTitle: localizations.de.title,
-      ptTitle: localizations.pt.title
+      ptTitle: localizations.pt.title,
+      aiContentGeneratedAt: row.aiContentGeneratedAt?.toISOString() ?? null
     };
   });
 }
@@ -372,7 +375,7 @@ export async function updateDbTitleGeneratedContent(
         updatedAt: now
       }).where(and(eq(titleLocalizations.titleId, id), eq(titleLocalizations.locale, locale)));
     }
-    await tx.update(titles).set({ updatedAt: now }).where(eq(titles.id, id));
+    await tx.update(titles).set({ aiContentGeneratedAt: now, updatedAt: now }).where(eq(titles.id, id));
   });
 }
 
@@ -423,7 +426,8 @@ export function adminTitleListFromDemoTitles(titles: DemoTitle[]): AdminTitleLis
     esTitle: title.titles.es,
     frTitle: title.titles.fr,
     deTitle: title.titles.de,
-    ptTitle: title.titles.pt
+    ptTitle: title.titles.pt,
+    aiContentGeneratedAt: null
   }));
 }
 
@@ -441,6 +445,7 @@ function selectBaseTitle() {
       contentRating: titles.contentRating,
       publishedAt: titles.publishedAt,
       viewCount: titles.viewCount,
+      aiContentGeneratedAt: titles.aiContentGeneratedAt,
       createdAt: titles.createdAt,
       updatedAt: titles.updatedAt,
       coverId: assets.id,
