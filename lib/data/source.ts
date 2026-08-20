@@ -83,6 +83,17 @@ export const getCatalogChapterBySlug = cache(async (titleSlug: string, chapterSl
   return result && isVisibleInLocale(result.title, locale) ? result : null;
 });
 
+export async function getCatalogRecommendations(current: { slug: string; tags: string[]; format?: "manga" | "manhwa" }, locale: Locale, count: number) {
+  if (count <= 0) return [];
+  const tagSet = new Set(current.tags);
+  return (await getCatalogTitles(locale))
+    .filter((title) => title.slug !== current.slug && (title.format ?? "manga") === (current.format ?? "manga"))
+    .map((title) => ({ title, score: title.tags.reduce((total, tag) => total + (tagSet.has(tag) ? 1 : 0), 0) }))
+    .sort((left, right) => right.score - left.score || right.title.viewCount - left.title.viewCount)
+    .slice(0, count)
+    .map(({ title }) => title);
+}
+
 function filterByLocale<T extends { displayLocales?: Locale[] }>(titles: T[], locale?: Locale) {
   return locale ? titles.filter((title) => isVisibleInLocale(title, locale)) : titles;
 }

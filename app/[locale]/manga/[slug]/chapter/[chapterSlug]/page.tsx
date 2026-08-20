@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VerticalReader } from "@/components/vertical-reader";
 import { StructuredData } from "@/components/structured-data";
-import { getCatalogChapterBySlug } from "@/lib/data/source";
+import { getCatalogChapterBySlug, getCatalogRecommendations } from "@/lib/data/source";
 import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
@@ -52,6 +52,7 @@ export default async function ChapterReaderPage({ params }: PageProps) {
   const chapterUrl = siteUrl(`/${locale}/manga/${result.title.slug}/chapter/${result.chapter.slug}`);
   const firstPage = result.chapter.pages[0];
   const imageOrigin = getOrigin(firstPage?.src);
+  const recommendations = await getCatalogRecommendations(result.title, locale, readerAds.recommendationCount);
 
   return (
     <>
@@ -119,6 +120,7 @@ export default async function ChapterReaderPage({ params }: PageProps) {
         topAds={readerAds.top}
         bottomAds={readerAds.bottom}
         pwaAdsEnabled={readerAds.pwaAdsEnabled}
+        recommendations={recommendations}
       />
     </>
   );

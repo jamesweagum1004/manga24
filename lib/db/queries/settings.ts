@@ -28,13 +28,14 @@ export const getSiteSettings = cache(async () => {
     showPublishedDate: settings?.showPublishedDate ?? true,
     showAuthor: settings?.showAuthor ?? true,
     showChapters: settings?.showChapters ?? true,
+    readerRecommendationCount: normalizeRecommendationCount(settings?.readerRecommendationCount),
     homeSections: normalizeHomeSections(settings?.homeSections),
     adLocaleModes: normalizeAdLocaleModes(settings?.adLocaleModes),
     googleAnalyticsEnabled: settings?.googleAnalyticsEnabled ?? false,
     googleAnalyticsMeasurementId: settings?.googleAnalyticsMeasurementId ?? "",
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
 });
 
 export async function updateMaintenanceSettings(input: { maintenanceEnabled: boolean }) {
@@ -56,6 +57,11 @@ export async function updatePublicMetadataSettings(input: { showPublishedDate: b
     target: siteSettings.id,
     set: { ...input, updatedAt: new Date() }
   });
+}
+
+export async function updateReaderRecommendationSettings(readerRecommendationCount: number) {
+  const normalized = normalizeRecommendationCount(readerRecommendationCount);
+  await getDb().insert(siteSettings).values({ id: 1, readerRecommendationCount: normalized, updatedAt: new Date() }).onConflictDoUpdate({ target: siteSettings.id, set: { readerRecommendationCount: normalized, updatedAt: new Date() } });
 }
 
 export async function updateHomeSections(homeSections: HomeSection[]) {
@@ -135,6 +141,8 @@ function isDeepSeekModel(value: string | undefined): value is DeepSeekModel {
 function normalizePwaThreshold(value: number | undefined): 3 | 4 | 5 {
   return value === 4 || value === 5 ? value : 3;
 }
+
+function normalizeRecommendationCount(value: number | undefined) { return Math.min(24, Math.max(0, Number.isInteger(value) ? value ?? 8 : 8)); }
 
 function normalizeAdLocaleModes(value: unknown): Record<Locale, "inherit" | "separate"> {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};

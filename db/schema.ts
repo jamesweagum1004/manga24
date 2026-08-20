@@ -54,6 +54,7 @@ export const siteSettings = pgTable("site_settings", {
   showPublishedDate: boolean("show_published_date").default(true).notNull(),
   showAuthor: boolean("show_author").default(true).notNull(),
   showChapters: boolean("show_chapters").default(true).notNull(),
+  readerRecommendationCount: integer("reader_recommendation_count").default(8).notNull(),
   homeSections: jsonb("home_sections").$type<Array<{ id: string; title: string; subtitle: string; source: "popular" | "latest" | "adult" | "tag" | "manhwa"; tag: string; itemCount: number; enabled: boolean }>>(),
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateReaderRecommendationSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -92,6 +92,13 @@ export async function updatePublicMetadataSettingsAction(formData: FormData) {
     showChapters: formData.get("showChapters") === "on"
   });
   redirect("/manga1004/settings?saved=public-metadata#public-metadata");
+}
+
+export async function updateReaderRecommendationSettingsAction(formData: FormData) {
+  const parsed = z.coerce.number().int().min(0).max(24).safeParse(formData.get("readerRecommendationCount"));
+  if (!parsed.success) redirect("/manga1004/settings?error=reader-recommendations#reader-recommendations");
+  await updateReaderRecommendationSettings(parsed.data);
+  redirect("/manga1004/settings?saved=reader-recommendations#reader-recommendations");
 }
 
 export async function updateViewCountSettingsAction(formData: FormData) {

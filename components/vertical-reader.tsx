@@ -5,13 +5,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
-import type { DemoAsset } from "@/lib/demo-data";
+import type { DemoAsset, DemoTitle } from "@/lib/demo-data";
 import { ReaderHeader } from "./reader-header";
 import { ReaderControls } from "./reader-controls";
 import { EndOfChapter } from "./end-of-chapter";
 import { RECENT_READING_KEY, type RecentReading } from "@/lib/reading-progress";
 import { AdStrip } from "./ad-unit";
 import type { AdKind, AdPosition, AdSurface } from "@/lib/db/queries/ads";
+import { ReaderRecommendations } from "./reader-recommendations";
 
 type ReaderAd = { id: string; name: string; kind: AdKind; position: AdPosition; surface: AdSurface; imageUrl: string | null; clickUrl: string | null; altText: string | null; embedCode: string | null; width: number; height: number };
 
@@ -31,6 +32,7 @@ type VerticalReaderProps = {
   topAds: ReaderAd[];
   bottomAds: ReaderAd[];
   pwaAdsEnabled: boolean;
+  recommendations: DemoTitle[];
 };
 
 export function VerticalReader({
@@ -48,7 +50,8 @@ export function VerticalReader({
   reportHref,
   topAds,
   bottomAds,
-  pwaAdsEnabled
+  pwaAdsEnabled,
+  recommendations
 }: VerticalReaderProps) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -183,8 +186,9 @@ export function VerticalReader({
         )}
       </div>
       <div onClick={(event) => event.stopPropagation()}><AdStrip ads={bottomAds} label="Advertisements after chapter" pwaAdsEnabled={pwaAdsEnabled} /></div>
-      <div className="mx-auto max-w-[840px] px-4 py-5 text-center"><Link href={reportHref} onClick={(event) => event.stopPropagation()} className="text-xs font-bold text-white/60 underline decoration-dotted underline-offset-4">Report this chapter</Link></div>
       <EndOfChapter locale={locale} nextHref={nextHref} />
+      <ReaderRecommendations titles={recommendations} locale={locale} />
+      <div className="mx-auto max-w-[840px] px-4 pb-24 pt-2 text-center"><Link href={reportHref} onClick={(event) => event.stopPropagation()} className="text-xs font-bold text-white/60 underline decoration-dotted underline-offset-4">Report this chapter</Link></div>
       <ReaderControls visible={controlsVisible} dataSaver={dataSaver} onToggleDataSaver={() => setDataSaver((value) => !value)} onTop={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
     </main>
   );

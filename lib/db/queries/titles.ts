@@ -159,7 +159,7 @@ export const emptyTitleFormValues: TitleFormValues = {
 
 export async function listDbTitles() {
   const rows = await selectPublishedTitleRows();
-  return hydrateTitleRows(rows);
+  return hydrateTitleRows(rows, false);
 }
 
 export async function listDbAdminTitles(): Promise<AdminTitleListItem[]> {
@@ -479,7 +479,7 @@ async function selectTitleRowsById(id: string) {
   return selectBaseTitle().where(eq(titles.id, id)).limit(1);
 }
 
-async function hydrateTitleRows(rows: BaseTitleRow[]): Promise<Array<DemoTitle & { id: string }>> {
+async function hydrateTitleRows(rows: BaseTitleRow[], includeChapterPages = true): Promise<Array<DemoTitle & { id: string }>> {
   if (rows.length === 0) {
     return [];
   }
@@ -492,7 +492,7 @@ async function hydrateTitleRows(rows: BaseTitleRow[]): Promise<Array<DemoTitle &
     getStoragePublicUrls()
   ]);
   const publicUrlByTitle = new Map(rows.map((row) => [row.id, storagePublicUrls[row.format] || settings.imageCdnUrl]));
-  const chaptersByTitle = await getChaptersByTitle(titleIds, publicUrlByTitle);
+  const chaptersByTitle = await getChaptersByTitle(titleIds, publicUrlByTitle, includeChapterPages);
 
   return rows.map((row) =>
     mapTitleRow(row, publicUrlByTitle.get(row.id) ?? settings.imageCdnUrl, {
@@ -525,7 +525,7 @@ async function getTagSlugsByTitle(titleIds: string[]) {
   return groupBy(rows, (row) => row.titleId);
 }
 
-async function getChaptersByTitle(titleIds: string[], publicUrlByTitle: Map<string, string>) {
+async function getChaptersByTitle(titleIds: string[], publicUrlByTitle: Map<string, string>, includePages: boolean) {
   const chapterRows = await getDb()
     .select()
     .from(chapters)
@@ -538,7 +538,7 @@ async function getChaptersByTitle(titleIds: string[], publicUrlByTitle: Map<stri
   const chapterIds = chapterRows.map((chapter) => chapter.id);
   const [chapterLocalizationsByChapter, pagesByChapter] = await Promise.all([
     getChapterLocalizationsByChapter(chapterIds),
-    getChapterPagesByChapter(chapterIds)
+    includePages ? getChapterPagesByChapter(chapterIds) : Promise.resolve(new Map<string, ChapterPageRow[]>())
   ]);
 
   const mappedChapters = chapterRows.map((chapter) =>

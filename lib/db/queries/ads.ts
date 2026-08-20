@@ -46,7 +46,8 @@ export async function listReaderAds(locale: Locale) {
   return {
     top: eligible.filter((ad) => ad.position === "reader_top"),
     bottom: eligible.filter((ad) => ad.position === "reader_bottom"),
-    pwaAdsEnabled: settings.pwaAdsEnabled
+    pwaAdsEnabled: settings.pwaAdsEnabled,
+    recommendationCount: settings.readerRecommendationCount
   };
 }
 
