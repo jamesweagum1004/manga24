@@ -11,14 +11,17 @@ type BulkOption = {
 export function BulkActionToolbar({
   formId,
   checkboxName,
-  options
+  options,
+  localeOptions
 }: {
   formId: string;
   checkboxName: string;
   options: BulkOption[];
+  localeOptions?: { value: string; label: string }[];
 }) {
   const [selectedCount, setSelectedCount] = useState(0);
   const [action, setAction] = useState("");
+  const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
 
   useEffect(() => {
     const selector = `input[name="${checkboxName}"][form="${formId}"]`;
@@ -39,6 +42,8 @@ export function BulkActionToolbar({
   };
 
   const selectedOption = options.find((option) => option.value === action);
+  const localeSelectionRequired = action === "set-locales";
+  const submitDisabled = selectedCount === 0 || !action || (localeSelectionRequired && selectedLocales.length === 0);
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
@@ -64,12 +69,32 @@ export function BulkActionToolbar({
         <option value="">Choose a bulk action</option>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
+      {localeSelectionRequired && localeOptions ? (
+        <fieldset className="order-last flex w-full flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3">
+          <legend className="px-1 text-xs font-black">Replace display languages with</legend>
+          {localeOptions.map((locale) => (
+            <label key={locale.value} className="flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--surface)] px-3 py-2 text-sm font-black">
+              <input
+                type="checkbox"
+                name="displayLocales"
+                value={locale.value}
+                form={formId}
+                checked={selectedLocales.includes(locale.value)}
+                onChange={(event) => setSelectedLocales((current) => event.target.checked ? [...current, locale.value] : current.filter((value) => value !== locale.value))}
+                className="h-5 w-5 accent-[var(--accent)]"
+              />
+              {locale.label}
+            </label>
+          ))}
+          {selectedLocales.length === 0 ? <p className="w-full text-xs font-bold text-amber-700">Choose at least one language.</p> : null}
+        </fieldset>
+      ) : null}
       <button
         type="submit"
         form={formId}
-        disabled={selectedCount === 0 || !action}
+        disabled={submitDisabled}
         onClick={(event) => {
-          if (selectedCount === 0 || !selectedOption) {
+          if (submitDisabled || !selectedOption) {
             event.preventDefault();
             return;
           }

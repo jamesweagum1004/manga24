@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { assets, chapterLocalizations, chapterPages, chapters, titles } from "@/db/schema";
 import type { DemoTitle } from "@/lib/demo-data";
 import { getDb } from "../client";
@@ -171,6 +171,23 @@ export async function setDbChapterPublicationStatus(id: string, publicationStatu
     publishedAt: publicationStatus === "published" ? now : null,
     updatedAt: now
   }).where(eq(chapters.id, id));
+}
+
+export async function publishDbChaptersWithPagesForTitles(titleIds: string[]) {
+  if (titleIds.length === 0) return [];
+  const now = new Date();
+  return getDb()
+    .update(chapters)
+    .set({
+      publicationStatus: "published",
+      publishedAt: sql`coalesce(${chapters.publishedAt}, ${now})`,
+      updatedAt: now
+    })
+    .where(and(
+      inArray(chapters.titleId, titleIds),
+      sql`exists (select 1 from ${chapterPages} where ${chapterPages.chapterId} = ${chapters.id})`
+    ))
+    .returning({ id: chapters.id, titleId: chapters.titleId });
 }
 
 export async function deleteDbChapter(id: string) {

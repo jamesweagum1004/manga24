@@ -349,6 +349,11 @@ export async function updateDbTitlesPublicationStatus(ids: string[], publication
   await getDb().update(titles).set({ publicationStatus, updatedAt: new Date() }).where(inArray(titles.id, ids));
 }
 
+export async function updateDbTitlesDisplayLocales(ids: string[], displayLocales: Locale[]) {
+  if (ids.length === 0 || displayLocales.length === 0) return;
+  await getDb().update(titles).set({ displayLocales, updatedAt: new Date() }).where(inArray(titles.id, ids));
+}
+
 export async function deleteDbTitle(id: string) {
   await getDb().transaction(async (tx) => {
     const [title] = await tx.select({ coverAssetId: titles.coverAssetId }).from(titles).where(eq(titles.id, id)).limit(1);

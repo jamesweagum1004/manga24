@@ -2,12 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
+import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesDisplayLocales, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
 import { locales } from "@/lib/i18n";
 import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
 import { generateTitleContent } from "@/lib/deepseek/seo";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { publishDbChaptersWithPagesForTitles } from "@/lib/db/queries/chapters";
 
 const slugSchema = z
   .string()
@@ -133,13 +134,15 @@ export async function deleteTitleAction(id: string) {
 
 const bulkTitleSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(200),
-  action: z.enum(["publish", "unpublish", "ongoing", "completed", "hiatus", "cancelled", "deepseek-content", "delete"])
+  action: z.enum(["publish", "publish-with-chapters", "set-locales", "unpublish", "ongoing", "completed", "hiatus", "cancelled", "deepseek-content", "delete"]),
+  displayLocales: z.array(z.enum(locales)).max(locales.length)
 });
 
 export async function bulkTitleAction(formData: FormData) {
   const parsed = bulkTitleSchema.safeParse({
     ids: [...new Set(formData.getAll("titleIds").filter((value): value is string => typeof value === "string"))],
-    action: formData.get("bulkAction")
+    action: formData.get("bulkAction"),
+    displayLocales: [...new Set(formData.getAll("displayLocales").filter((value): value is typeof locales[number] => typeof value === "string" && locales.includes(value as typeof locales[number])))]
   });
   if (!parsed.success || !isDatabaseConfigured()) redirect("/manga1004/titles?bulkError=selection");
 
@@ -147,7 +150,8 @@ export async function bulkTitleAction(formData: FormData) {
   let updated = 0;
   let skipped = 0;
 
-  if (action === "publish") {
+  if (action === "publish" || action === "publish-with-chapters") {
+    if (action === "publish-with-chapters") await publishDbChaptersWithPagesForTitles(ids);
     for (const id of ids) {
       const state = await getTitlePublishingState(id);
       if (!state?.ready) {
@@ -157,6 +161,10 @@ export async function bulkTitleAction(formData: FormData) {
       await publishTitle(id);
       updated += 1;
     }
+  } else if (action === "set-locales") {
+    if (parsed.data.displayLocales.length === 0) redirect("/manga1004/titles?bulkError=locales");
+    await updateDbTitlesDisplayLocales(ids, parsed.data.displayLocales);
+    updated = ids.length;
   } else if (action === "unpublish") {
     await Promise.all(ids.map((id) => unpublishTitle(id)));
     updated = ids.length;
