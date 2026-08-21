@@ -180,7 +180,7 @@ export async function publishDbChaptersWithPagesForTitles(titleIds: string[]) {
     .update(chapters)
     .set({
       publicationStatus: "published",
-      publishedAt: sql`coalesce(${chapters.publishedAt}, ${now})`,
+      publishedAt: sql`coalesce(${chapters.publishedAt}, now())`,
       updatedAt: now
     })
     .where(and(
