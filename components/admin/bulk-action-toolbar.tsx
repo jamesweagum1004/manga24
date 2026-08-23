@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type BulkOption = {
   value: string;
@@ -20,17 +20,57 @@ export function BulkActionToolbar({
   localeOptions?: { value: string; label: string }[];
 }) {
   const [selectedCount, setSelectedCount] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [action, setAction] = useState("");
   const [selectedLocales, setSelectedLocales] = useState<string[]>([]);
+  const selectedIdsRef = useRef<Set<string>>(new Set());
+  const storageKey = `manga24:${formId}:${checkboxName}:selection`;
 
   useEffect(() => {
     const selector = `input[name="${checkboxName}"][form="${formId}"]`;
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>(selector));
-    const update = () => setSelectedCount(inputs.filter((input) => input.checked).length);
-    inputs.forEach((input) => input.addEventListener("change", update));
-    update();
-    return () => inputs.forEach((input) => input.removeEventListener("change", update));
-  }, [checkboxName, formId]);
+    let restored = new Set<string>();
+
+    try {
+      const stored = window.sessionStorage.getItem(storageKey);
+      if (stored) restored = new Set(JSON.parse(stored) as string[]);
+    } catch {
+      window.sessionStorage.removeItem(storageKey);
+    }
+
+    selectedIdsRef.current = restored;
+    setSelectedIds([...restored]);
+    setSelectedCount(restored.size);
+
+    const syncVisibleInputs = () => {
+      document.querySelectorAll<HTMLInputElement>(selector).forEach((input) => {
+        input.checked = selectedIdsRef.current.has(input.value);
+      });
+    };
+
+    const handleChange = (event: Event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement) || !input.matches(selector)) return;
+
+      const next = new Set(selectedIdsRef.current);
+      if (input.checked) next.add(input.value);
+      else next.delete(input.value);
+      selectedIdsRef.current = next;
+      const values = [...next];
+      setSelectedIds(values);
+      setSelectedCount(values.length);
+      window.sessionStorage.setItem(storageKey, JSON.stringify(values));
+    };
+
+    syncVisibleInputs();
+    document.addEventListener("change", handleChange);
+    const observer = new MutationObserver(syncVisibleInputs);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      document.removeEventListener("change", handleChange);
+      observer.disconnect();
+    };
+  }, [checkboxName, formId, storageKey]);
 
   const toggleAll = (checked: boolean) => {
     document
@@ -47,10 +87,13 @@ export function BulkActionToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+      {selectedIds.map((id) => (
+        <input key={id} type="hidden" name={checkboxName} value={id} form={formId} />
+      ))}
       <label className="flex cursor-pointer items-center gap-2 text-sm font-black">
         <input
           type="checkbox"
-          checked={selectedCount > 0 && selectedCount === documentSelectionCount(formId, checkboxName)}
+          checked={visibleSelectionState(formId, checkboxName).allSelected}
           onChange={(event) => toggleAll(event.target.checked)}
           className="h-5 w-5 accent-[var(--accent)]"
         />
@@ -101,7 +144,11 @@ export function BulkActionToolbar({
           const message = selectedOption.destructive
             ? `Permanently delete ${selectedCount} selected item(s)? This cannot be undone.`
             : `Apply “${selectedOption.label}” to ${selectedCount} selected item(s)?`;
-          if (!window.confirm(message)) event.preventDefault();
+          if (!window.confirm(message)) {
+            event.preventDefault();
+            return;
+          }
+          window.sessionStorage.removeItem(storageKey);
         }}
         className={`rounded-xl px-5 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40 ${selectedOption?.destructive ? "bg-red-700" : "bg-[var(--foreground)]"}`}
       >
@@ -111,7 +158,10 @@ export function BulkActionToolbar({
   );
 }
 
-function documentSelectionCount(formId: string, checkboxName: string) {
-  if (typeof document === "undefined") return 0;
-  return document.querySelectorAll(`input[name="${checkboxName}"][form="${formId}"]`).length;
+function visibleSelectionState(formId: string, checkboxName: string) {
+  if (typeof document === "undefined") return { allSelected: false };
+  const inputs = Array.from(
+    document.querySelectorAll<HTMLInputElement>(`input[type="checkbox"][name="${checkboxName}"][form="${formId}"]`)
+  );
+  return { allSelected: inputs.length > 0 && inputs.every((input) => input.checked) };
 }
