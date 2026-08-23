@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 
@@ -13,33 +13,35 @@ declare global {
 
 export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
   const pathname = usePathname();
+  const initialPageViewSent = useRef(false);
 
   useEffect(() => {
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args); };
-    window.gtag("js", new Date());
+    if (!initialPageViewSent.current) {
+      initialPageViewSent.current = true;
+      return;
+    }
+    if (!window.gtag) return;
     window.gtag("config", measurementId, {
-      cookie_domain: "auto",
-      send_page_view: false
-    });
-  }, [measurementId]);
-
-  useEffect(() => {
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args); };
-    window.gtag("event", "page_view", {
       page_path: pathname,
       page_location: window.location.href,
-      page_title: document.title,
-      send_to: measurementId
+      page_title: document.title
     });
   }, [measurementId, pathname]);
 
   return (
-    <Script
-      id="manga24-google-analytics"
-      src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`}
-      strategy="afterInteractive"
-    />
+    <>
+      <Script
+        id="manga24-google-analytics"
+        src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`}
+        strategy="afterInteractive"
+      />
+      <Script id="manga24-google-analytics-init" strategy="afterInteractive">
+        {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = window.gtag || gtag;
+gtag('js', new Date());
+gtag('config', ${JSON.stringify(measurementId)});`}
+      </Script>
+    </>
   );
 }
