@@ -99,7 +99,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <h2 className="text-xl font-black">Google Analytics 4</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">Track public language pages and the installed PWA. Administrator pages and internal APIs are never tracked.</p>
         <form action={updateGoogleAnalyticsSettingsAction} className="mt-5 grid max-w-2xl gap-4">
-          <Toggle name="googleAnalyticsEnabled" defaultChecked={settings.googleAnalyticsEnabled} title="Enable Google Analytics" description="Loads GA4 only on public /en, /es, /fr, /de and /pt routes." />
+          <Toggle name="googleAnalyticsEnabled" defaultChecked={settings.googleAnalyticsEnabled} title="Enable Google Analytics" description="Tracks visitors from every country on all enabled public language routes. Language settings do not restrict visitor countries." />
           <label className="grid gap-1.5 text-sm font-black"><span>GA4 Measurement ID</span><input name="googleAnalyticsMeasurementId" defaultValue={settings.googleAnalyticsMeasurementId} placeholder="G-XXXXXXXXXX" autoComplete="off" className={inputClass} /><span className="text-xs font-medium text-[var(--muted)]">Google Analytics → Admin → Data streams → Web stream → Measurement ID</span></label>
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save analytics settings</button>
         </form>

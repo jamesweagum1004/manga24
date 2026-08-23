@@ -18,12 +18,28 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args); };
     window.gtag("js", new Date());
+    window.gtag("config", measurementId, {
+      cookie_domain: "auto",
+      send_page_view: false
+    });
   }, [measurementId]);
 
   useEffect(() => {
-    if (!window.gtag) return;
-    window.gtag("config", measurementId, { page_path: pathname });
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args); };
+    window.gtag("event", "page_view", {
+      page_path: pathname,
+      page_location: window.location.href,
+      page_title: document.title,
+      send_to: measurementId
+    });
   }, [measurementId, pathname]);
 
-  return <Script id="manga24-google-analytics" src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`} strategy="afterInteractive" />;
+  return (
+    <Script
+      id="manga24-google-analytics"
+      src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`}
+      strategy="afterInteractive"
+    />
+  );
 }
