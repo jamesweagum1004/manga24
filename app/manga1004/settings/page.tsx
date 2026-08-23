@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePublicMetadataSettingsAction, updatePwaSettingsAction, updateReaderRecommendationSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePublicMetadataSettingsAction, updatePwaSettingsAction, updateReaderRecommendationSettingsAction, updateSeoSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,45 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <form action={updateLanguageSettingsAction} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {locales.map((locale) => <label key={locale} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 font-black"><input type="checkbox" name={`locale_${locale}`} defaultChecked={settings.enabledLocales.includes(locale)} disabled={locale === "en"} className="h-5 w-5 accent-[var(--accent)]" /><span aria-hidden="true" className={locale === "pt" ? "text-sm tracking-[-0.35em] pr-1" : "text-lg"}>{localeFlags[locale]}</span><span>{localeLabels[locale]}</span>{locale === "en" ? <input type="hidden" name="locale_en" value="on" /> : null}</label>)}
           <button className="rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white sm:col-span-2 lg:col-span-5 lg:w-fit">Save languages</button>
+        </form>
+      </section>
+
+      <section id="seo" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="text-xl font-black">Site SEO &amp; sitemap</h2><p className="mt-1 text-sm text-[var(--muted)]">Control homepage search snippets, social sharing metadata, and which public URLs appear in sitemap.xml.</p></div>
+          <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-black">Open sitemap.xml ↗</a>
+        </div>
+        <form action={updateSeoSettingsAction} className="mt-5 grid gap-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Site name"><input name="siteName" required minLength={2} maxLength={120} defaultValue={settings.siteName} className={inputClass} /></Field>
+            <Field label="Default social / OG image URL"><input name="seoDefaultImageUrl" type="url" defaultValue={settings.seoDefaultImageUrl} placeholder="https://images.example.com/branding/og.webp" className={inputClass} /></Field>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {locales.map((locale) => {
+              const seo = settings.seoLocales[locale];
+              return <div key={locale} className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
+                <h3 className="flex items-center gap-2 font-black"><span aria-hidden="true">{localeFlags[locale]}</span>{localeLabels[locale]} homepage</h3>
+                <div className="mt-4 grid gap-4">
+                  <Field label="SEO title (recommended 35–60 characters)"><input name={`seoTitle_${locale}`} required minLength={2} maxLength={70} defaultValue={seo.title} className={inputClass} /></Field>
+                  <Field label="Meta description (recommended 120–160 characters)"><textarea name={`seoDescription_${locale}`} required minLength={20} maxLength={170} defaultValue={seo.description} rows={3} className={inputClass} /></Field>
+                  <Field label="Keywords (comma-separated)"><input name={`seoKeywords_${locale}`} maxLength={500} defaultValue={seo.keywords} className={inputClass} /></Field>
+                </div>
+              </div>;
+            })}
+          </div>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
+            <h3 className="font-black">Sitemap controls</h3>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Only enabled languages and published catalog content are included. Disabling the sitemap also removes its URL from robots.txt.</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <Toggle name="sitemapEnabled" defaultChecked={settings.sitemapEnabled} title="Enable sitemap.xml" description="Publish the XML sitemap for search engines." />
+              <Toggle name="sitemapIncludeStatic" defaultChecked={settings.sitemapIncludeStatic} title="Include homepage and lists" description="Includes each language homepage, Latest, and Popular pages." />
+              <Toggle name="sitemapIncludeTitles" defaultChecked={settings.sitemapIncludeTitles} title="Include title pages" description="Includes published manga and manhwa detail pages." />
+              <Toggle name="sitemapIncludeChapters" defaultChecked={settings.sitemapIncludeChapters} title="Include chapter pages" description="Includes published reader chapter URLs. This can create the most entries." />
+              <Toggle name="sitemapIncludeTags" defaultChecked={settings.sitemapIncludeTags} title="Include tag pages" description="Includes tag archive pages used by published titles." />
+            </div>
+          </div>
+          <p className="text-xs leading-5 text-[var(--muted)]">Changes appear in the page source immediately. Google search results update only after Google recrawls the page; use Search Console URL Inspection to request indexing.</p>
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save SEO &amp; sitemap</button>
         </form>
       </section>
 

@@ -1,8 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateReaderRecommendationSettings, updateViewCountSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateReaderRecommendationSettings, updateSeoSettings, updateViewCountSettings, type SeoLocaleSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -78,6 +79,41 @@ export async function updateLanguageSettingsAction(formData: FormData) {
   const selected = locales.filter((locale) => locale === "en" || formData.get(`locale_${locale}`) === "on");
   await updateEnabledLocales(selected.filter(isLocale));
   redirect("/manga1004/settings?saved=languages#languages");
+}
+
+const seoTextSchema = z.object({
+  title: z.string().trim().min(2).max(70),
+  description: z.string().trim().min(20).max(170),
+  keywords: z.string().trim().max(500)
+});
+
+export async function updateSeoSettingsAction(formData: FormData) {
+  const siteName = z.string().trim().min(2).max(120).safeParse(formData.get("siteName"));
+  const seoLocales = Object.fromEntries(locales.map((locale) => [locale, {
+    title: formData.get(`seoTitle_${locale}`),
+    description: formData.get(`seoDescription_${locale}`),
+    keywords: formData.get(`seoKeywords_${locale}`)
+  }])) as Record<(typeof locales)[number], unknown>;
+  const parsedLocales = Object.fromEntries(locales.map((locale) => [locale, seoTextSchema.safeParse(seoLocales[locale])])) as Record<(typeof locales)[number], ReturnType<typeof seoTextSchema.safeParse>>;
+  const rawImageUrl = String(formData.get("seoDefaultImageUrl") ?? "").trim();
+  const imageUrl = rawImageUrl ? z.string().url().refine((value) => value.startsWith("https://"), "HTTPS required").safeParse(rawImageUrl) : null;
+  if (!siteName.success || Object.values(parsedLocales).some((result) => !result.success) || (imageUrl && !imageUrl.success)) {
+    redirect("/manga1004/settings?error=seo#seo");
+  }
+  await updateSeoSettings({
+    siteName: siteName.data,
+    seoLocales: Object.fromEntries(locales.map((locale) => [locale, parsedLocales[locale].data])) as Record<(typeof locales)[number], SeoLocaleSettings>,
+    seoDefaultImageUrl: imageUrl?.data ?? null,
+    sitemapEnabled: formData.get("sitemapEnabled") === "on",
+    sitemapIncludeStatic: formData.get("sitemapIncludeStatic") === "on",
+    sitemapIncludeTitles: formData.get("sitemapIncludeTitles") === "on",
+    sitemapIncludeChapters: formData.get("sitemapIncludeChapters") === "on",
+    sitemapIncludeTags: formData.get("sitemapIncludeTags") === "on"
+  });
+  revalidatePath("/", "layout");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/robots.txt");
+  redirect("/manga1004/settings?saved=seo#seo");
 }
 
 export async function updateHomeContentSettingsAction(formData: FormData) {

@@ -35,15 +35,16 @@ export function localizedAlternates(locale: Locale, pathWithoutLocale: string, e
 
 export async function buildMetadata(input: MetadataInput): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const image = metadataImageUrl(input.image, settings.imageCdnUrl);
+  const image = metadataImageUrl(input.image || settings.seoDefaultImageUrl || undefined, settings.imageCdnUrl);
+  const fullTitle = composeTitle(input.title, settings.siteName);
 
   return {
-    title: `${input.title} | Manga24`,
+    title: fullTitle,
     description: input.description,
     keywords: input.keywords,
     alternates: localizedAlternates(input.locale, input.path, input.availableLocales ? settings.enabledLocales.filter((locale) => input.availableLocales?.includes(locale)) : settings.enabledLocales),
     openGraph: {
-      title: `${input.title} | Manga24`,
+      title: fullTitle,
       description: input.description,
       type: "website",
       url: siteUrl(`/${input.locale}${input.path}`),
@@ -52,12 +53,16 @@ export async function buildMetadata(input: MetadataInput): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: `${input.title} | Manga24`,
+      title: fullTitle,
       description: input.description,
       images: [image]
     },
     robots: input.noIndex ? { index: false, follow: false } : undefined
   };
+}
+
+function composeTitle(title: string, siteName: string) {
+  return title.trim().toLocaleLowerCase() === siteName.trim().toLocaleLowerCase() ? siteName : `${title} | ${siteName}`;
 }
 
 function metadataImageUrl(image: string | undefined, imageCdnBaseUrl: string) {

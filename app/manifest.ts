@@ -7,9 +7,9 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const settings = await getSiteSettings();
   const icon = settings.favicon?.publicUrl ?? "/pwa-icon.svg";
   return {
-    name: "Manga24",
-    short_name: "Manga24",
-    description: "A multilingual vertical-scroll manga reader.",
+    name: settings.siteName,
+    short_name: settings.siteName,
+    description: settings.seoLocales.en.description,
     start_url: "/en",
     scope: "/",
     display: "standalone",

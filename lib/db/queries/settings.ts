@@ -7,6 +7,15 @@ import { normalizeEnabledLocales, type Locale } from "@/lib/i18n";
 import { normalizeHomeSections, type HomeSection } from "@/lib/home-sections";
 
 export type BrandingImage = { publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number };
+export type SeoLocaleSettings = { title: string; description: string; keywords: string };
+
+const defaultSeoLocales: Record<Locale, SeoLocaleSettings> = {
+  en: { title: "Read Manga Online", description: "Discover manga, new releases, popular series, and the latest chapters on Manga24.", keywords: "manga, read manga online, manga chapters" },
+  es: { title: "Leer manga online", description: "Descubre manga, nuevos lanzamientos, series populares y los últimos capítulos en Manga24.", keywords: "manga, leer manga online, capítulos de manga" },
+  fr: { title: "Lire des mangas en ligne", description: "Découvrez des mangas, les nouveautés, les séries populaires et les derniers chapitres sur Manga24.", keywords: "manga, lire manga en ligne, chapitres manga" },
+  de: { title: "Manga online lesen", description: "Entdecke Manga, Neuerscheinungen, beliebte Serien und die neuesten Kapitel auf Manga24.", keywords: "manga, manga online lesen, manga kapitel" },
+  pt: { title: "Ler mangá online", description: "Descubra mangás, novos lançamentos, séries populares e os capítulos mais recentes no Manga24.", keywords: "manga, ler manga online, capítulos de manga" }
+};
 
 export const deepseekModels = ["deepseek-v4-flash", "deepseek-v4-pro"] as const;
 export type DeepSeekModel = (typeof deepseekModels)[number];
@@ -33,10 +42,25 @@ export const getSiteSettings = cache(async () => {
     adLocaleModes: normalizeAdLocaleModes(settings?.adLocaleModes),
     googleAnalyticsEnabled: settings?.googleAnalyticsEnabled ?? false,
     googleAnalyticsMeasurementId: settings?.googleAnalyticsMeasurementId ?? "",
+    siteName: settings?.siteName?.trim() || "Manga24",
+    seoLocales: normalizeSeoLocales(settings?.seoLocales),
+    seoDefaultImageUrl: settings?.seoDefaultImageUrl ?? "",
+    sitemapEnabled: settings?.sitemapEnabled ?? true,
+    sitemapIncludeStatic: settings?.sitemapIncludeStatic ?? true,
+    sitemapIncludeTitles: settings?.sitemapIncludeTitles ?? true,
+    sitemapIncludeChapters: settings?.sitemapIncludeChapters ?? true,
+    sitemapIncludeTags: settings?.sitemapIncludeTags ?? true,
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; logo: BrandingImage | null; favicon: BrandingImage | null };
 });
+
+export async function updateSeoSettings(input: { siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string | null; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
+}
 
 export async function updateMaintenanceSettings(input: { maintenanceEnabled: boolean }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
@@ -147,4 +171,16 @@ function normalizeRecommendationCount(value: number | undefined) { return Math.m
 function normalizeAdLocaleModes(value: unknown): Record<Locale, "inherit" | "separate"> {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
   return Object.fromEntries(["en", "es", "fr", "de", "pt"].map((locale) => [locale, input[locale] === "separate" ? "separate" : "inherit"])) as Record<Locale, "inherit" | "separate">;
+}
+
+function normalizeSeoLocales(value: unknown): Record<Locale, SeoLocaleSettings> {
+  const input = value && typeof value === "object" ? value as Record<string, Partial<SeoLocaleSettings>> : {};
+  return Object.fromEntries((["en", "es", "fr", "de", "pt"] as Locale[]).map((locale) => {
+    const current = input[locale] ?? {};
+    return [locale, {
+      title: typeof current.title === "string" && current.title.trim() ? current.title.trim() : defaultSeoLocales[locale].title,
+      description: typeof current.description === "string" && current.description.trim() ? current.description.trim() : defaultSeoLocales[locale].description,
+      keywords: typeof current.keywords === "string" ? current.keywords.trim() : defaultSeoLocales[locale].keywords
+    }];
+  })) as Record<Locale, SeoLocaleSettings>;
 }

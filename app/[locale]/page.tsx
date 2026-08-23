@@ -23,11 +23,14 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
+  const settings = await getSiteSettings();
+  const seo = settings.seoLocales[locale];
   return buildMetadata({
     locale,
     path: "",
-    title: "Manga24",
-    description: "Synthetic demo catalog for a multilingual vertical-scroll manga reader."
+    title: seo.title,
+    description: seo.description,
+    keywords: seo.keywords.split(",").map((keyword) => keyword.trim()).filter(Boolean)
   });
 }
 

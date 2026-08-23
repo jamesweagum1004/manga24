@@ -59,6 +59,20 @@ export const siteSettings = pgTable("site_settings", {
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),
   googleAnalyticsMeasurementId: varchar("google_analytics_measurement_id", { length: 32 }),
+  siteName: varchar("site_name", { length: 120 }).default("Manga24").notNull(),
+  seoLocales: jsonb("seo_locales").$type<Record<string, { title: string; description: string; keywords: string }>>().default({
+    en: { title: "Read Manga Online", description: "Discover manga, new releases, popular series, and the latest chapters on Manga24.", keywords: "manga, read manga online, manga chapters" },
+    es: { title: "Leer manga online", description: "Descubre manga, nuevos lanzamientos, series populares y los ultimos capitulos en Manga24.", keywords: "manga, leer manga online, capitulos de manga" },
+    fr: { title: "Lire des mangas en ligne", description: "Decouvrez des mangas, les nouveautes, les series populaires et les derniers chapitres sur Manga24.", keywords: "manga, lire manga en ligne, chapitres manga" },
+    de: { title: "Manga online lesen", description: "Entdecke Manga, Neuerscheinungen, beliebte Serien und die neuesten Kapitel auf Manga24.", keywords: "manga, manga online lesen, manga kapitel" },
+    pt: { title: "Ler manga online", description: "Descubra mangas, novos lancamentos, series populares e os capitulos mais recentes no Manga24.", keywords: "manga, ler manga online, capitulos de manga" }
+  }).notNull(),
+  seoDefaultImageUrl: text("seo_default_image_url"),
+  sitemapEnabled: boolean("sitemap_enabled").default(true).notNull(),
+  sitemapIncludeStatic: boolean("sitemap_include_static").default(true).notNull(),
+  sitemapIncludeTitles: boolean("sitemap_include_titles").default(true).notNull(),
+  sitemapIncludeChapters: boolean("sitemap_include_chapters").default(true).notNull(),
+  sitemapIncludeTags: boolean("sitemap_include_tags").default(true).notNull(),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

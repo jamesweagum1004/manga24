@@ -9,8 +9,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   return {
     metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
-    title: "Manga24",
-    description: "A multilingual vertical-scroll manga reader platform.",
+    title: settings.siteName,
+    description: settings.seoLocales.en.description,
     manifest: settings.pwaEnabled ? "/manifest.webmanifest" : undefined,
     icons: settings.favicon ? { icon: settings.favicon.publicUrl, shortcut: settings.favicon.publicUrl } : undefined,
     verification: env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : undefined,
