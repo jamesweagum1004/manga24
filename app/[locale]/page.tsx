@@ -45,6 +45,8 @@ export default async function HomePage({ params }: PageProps) {
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
   const featured = mangaPopular[0] ?? promo;
+  const promoImageOrigin = imageOrigin(promo?.cover.src);
+  const featuredImageOrigin = imageOrigin(featured?.cover.src);
   const popularityHours = [...new Set(settings.homeSections.flatMap((section) => {
     if (section.source === "live") return [0.25];
     if (section.source !== "popular_period") return [];
@@ -57,30 +59,46 @@ export default async function HomePage({ params }: PageProps) {
     .filter((section) => section.items.length > 0);
 
   return (
-    <SiteShell locale={locale}>
-      <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
-        <ContinueReading locale={locale} />
-        {promo ? <div className="lg:hidden"><CompactPromoBanner title={promo} locale={locale} /></div> : null}
-        {featured ? <DesktopEditorialHero featured={featured} ranking={mangaPopular} locale={locale} showViewCounts={settings.viewCountsEnabled} /> : null}
-        {railSections.map((section, index) => (
-          <div key={section.title} className="contents">
-            <MangaRail
-              title={section.title}
-              subtitle={section.subtitle}
-              href={section.href}
-              items={section.items}
-              ranked={section.ranked}
-              cardVariant={section.cardVariant}
-              locale={locale}
-              priorityCount={index === 0 ? 2 : 0}
-            />
-            <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
-          </div>
-        ))}
-        <PopularTagList locale={locale} />
-      </main>
-    </SiteShell>
+    <>
+      {promoImageOrigin ? <link rel="preconnect" href={promoImageOrigin} crossOrigin="anonymous" /> : null}
+      {promoImageOrigin ? <link rel="dns-prefetch" href={promoImageOrigin} /> : null}
+      {featuredImageOrigin && featuredImageOrigin !== promoImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
+      {promo ? <link rel="preload" as="image" href={promo.cover.src} fetchPriority="high" media="(max-width: 1023px)" /> : null}
+      {featured ? <link rel="preload" as="image" href={featured.cover.src} fetchPriority="high" media="(min-width: 1024px)" /> : null}
+      <SiteShell locale={locale}>
+        <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
+          <ContinueReading locale={locale} />
+          {promo ? <div className="lg:hidden"><CompactPromoBanner title={promo} locale={locale} /></div> : null}
+          {featured ? <DesktopEditorialHero featured={featured} ranking={mangaPopular} locale={locale} showViewCounts={settings.viewCountsEnabled} /> : null}
+          {railSections.map((section, index) => (
+            <div key={section.title} className="contents">
+              <MangaRail
+                title={section.title}
+                subtitle={section.subtitle}
+                href={section.href}
+                items={section.items}
+                ranked={section.ranked}
+                cardVariant={section.cardVariant}
+                locale={locale}
+                priorityCount={0}
+              />
+              <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
+            </div>
+          ))}
+          <PopularTagList locale={locale} />
+        </main>
+      </SiteShell>
+    </>
   );
+}
+
+function imageOrigin(value: string | undefined) {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
 }
 
 function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[]; timeRankings: Map<number, DemoTitle[]> }, locale: Parameters<typeof homeSectionHref>[0]) {
