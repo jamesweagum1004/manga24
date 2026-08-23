@@ -16,6 +16,12 @@ export type TagFormValues = {
   category: string;
 };
 
+export type PublicTagListItem = {
+  slug: string;
+  nameEn: string;
+  nameEs: string;
+};
+
 export const emptyTagFormValues: TagFormValues = {
   slug: "",
   name: "",
@@ -34,6 +40,13 @@ export async function listDbAdminTags(): Promise<AdminTagListItem[]> {
     .orderBy(asc(tags.category), asc(tags.slug));
 
   return rows;
+}
+
+export async function listDbPublicTags(): Promise<PublicTagListItem[]> {
+  return getDb()
+    .select({ slug: tags.slug, nameEn: tags.nameEn, nameEs: tags.nameEs })
+    .from(tags)
+    .orderBy(asc(tags.nameEn));
 }
 
 export async function createDbTag(values: TagFormValues) {

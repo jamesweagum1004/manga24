@@ -5,7 +5,7 @@ import {
   getDbChapterBySlug,
   listDbAdminChapters
 } from "@/lib/db/queries/chapters";
-import { adminTagListFromDemoTags, listDbAdminTags } from "@/lib/db/queries/tags";
+import { adminTagListFromDemoTags, listDbAdminTags, listDbPublicTags } from "@/lib/db/queries/tags";
 import {
   adminTitleListFromDemoTitles,
   getDbTitleForAdmin,
@@ -138,4 +138,16 @@ export async function getAdminTagList() {
   }
 
   return adminTagListFromDemoTags(demoTags);
+}
+
+export async function getCatalogTags(locale: Locale) {
+  if (isDatabaseConfigured()) {
+    const rows = await listDbPublicTags();
+    return rows.map((tag) => ({
+      slug: tag.slug,
+      label: locale === "es" ? tag.nameEs : tag.nameEn
+    }));
+  }
+
+  return demoTags.map((tag) => ({ slug: tag.slug, label: tag.names[locale] }));
 }

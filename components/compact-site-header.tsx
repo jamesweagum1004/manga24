@@ -11,13 +11,15 @@ import { ThemeToggle } from "./theme-toggle";
 
 export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale: Locale; enabledLocales: Locale[]; logoUrl: string | null }) {
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const pathname = usePathname();
   const router = useRouter();
   const t = dictionary[locale];
   const links = [
     { href: localizedPath(locale, "/latest"), label: t.latest },
     { href: localizedPath(locale, "/popular"), label: t.popular },
-    { href: localizedPath(locale, "/tags/romance"), label: t.tags }
+    { href: localizedPath(locale, "/tags"), label: t.tags }
   ];
 
   return (
@@ -40,6 +42,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
             type="button"
             aria-label={t.search}
             title={t.search}
+            onClick={() => setSearchOpen((value) => !value)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
           >
             <SearchIcon />
@@ -68,6 +71,34 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
           </button>
         </div>
       </div>
+
+      {searchOpen ? (
+        <form
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const query = searchTerm.trim();
+            if (!query) return;
+            setSearchOpen(false);
+            router.push(`${localizedPath(locale, "/search")}?q=${encodeURIComponent(query)}`);
+          }}
+          className="border-t border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+        >
+          <div className="mx-auto flex max-w-3xl gap-2">
+            <input
+              autoFocus
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={`${t.search}…`}
+              aria-label={t.search}
+              className="min-w-0 flex-1 rounded-full border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm font-bold"
+            />
+            <button type="submit" className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-black text-white">
+              {t.search}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       {open ? (
         <div className="border-t border-[var(--border)] bg-[var(--surface)] px-3 py-2 md:hidden">

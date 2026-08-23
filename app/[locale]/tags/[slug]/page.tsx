@@ -5,7 +5,8 @@ import { SiteShell } from "@/components/site-shell";
 import { TagChip } from "@/components/tag-chip";
 import { getCatalogTitles } from "@/lib/data/source";
 import { buildMetadata } from "@/lib/metadata";
-import { demoTags, dictionary, findTag } from "@/lib/demo-data";
+import { dictionary } from "@/lib/demo-data";
+import { getCatalogTags } from "@/lib/data/source";
 import { getLocaleOrDefault } from "@/lib/i18n";
 
 type PageProps = {
@@ -17,22 +18,23 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const tag = findTag(slug);
+  const tag = (await getCatalogTags(locale)).find((item) => item.slug === slug);
   if (!tag) {
     return buildMetadata({ locale, path: `/tags/${slug}`, title: "Tag", description: "Tag page" });
   }
   return buildMetadata({
     locale,
     path: `/tags/${slug}`,
-    title: tag.names[locale],
-    description: `Synthetic manga tagged ${tag.names[locale]}.`
+    title: tag.label,
+    description: `Read manga tagged ${tag.label} on Manga24.`
   });
 }
 
 export default async function TagPage({ params }: PageProps) {
   const { locale: rawLocale, slug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const tag = findTag(slug);
+  const tags = await getCatalogTags(locale);
+  const tag = tags.find((item) => item.slug === slug);
   if (!tag) {
     notFound();
   }
@@ -43,11 +45,11 @@ export default async function TagPage({ params }: PageProps) {
     <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 pb-24 sm:px-6 md:pb-10">
       <div>
         <p className="text-sm font-black uppercase text-[var(--accent)]">{dictionary[locale].tags}</p>
-        <h1 className="mt-2 text-3xl font-black">{tag.names[locale]}</h1>
+        <h1 className="mt-2 text-3xl font-black">{tag.label}</h1>
       </div>
       <div className="flex flex-wrap gap-2">
-        {demoTags.map((item) => (
-          <TagChip key={item.slug} slug={item.slug} locale={locale} />
+        {tags.map((item) => (
+          <TagChip key={item.slug} slug={item.slug} label={item.label} locale={locale} />
         ))}
       </div>
       {titles.length === 0 ? (
