@@ -141,13 +141,26 @@ export async function getAdminTagList() {
 }
 
 export async function getCatalogTags(locale: Locale) {
+  const catalog = await getCatalogTitles(locale);
+  const usage = new Map<string, number>();
+  for (const title of catalog) {
+    for (const slug of title.tags) usage.set(slug, (usage.get(slug) ?? 0) + 1);
+  }
+
   if (isDatabaseConfigured()) {
     const rows = await listDbPublicTags();
     return rows.map((tag) => ({
       slug: tag.slug,
-      label: locale === "es" ? tag.nameEs : tag.nameEn
-    }));
+      label: locale === "es" ? tag.nameEs : tag.nameEn,
+      category: tag.category,
+      titleCount: usage.get(tag.slug) ?? 0
+    })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
   }
 
-  return demoTags.map((tag) => ({ slug: tag.slug, label: tag.names[locale] }));
+  return demoTags.map((tag) => ({
+    slug: tag.slug,
+    label: tag.names[locale],
+    category: "genre",
+    titleCount: usage.get(tag.slug) ?? 0
+  })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
 }

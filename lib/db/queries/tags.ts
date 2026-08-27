@@ -20,6 +20,7 @@ export type PublicTagListItem = {
   slug: string;
   nameEn: string;
   nameEs: string;
+  category: string;
 };
 
 export const emptyTagFormValues: TagFormValues = {
@@ -44,7 +45,7 @@ export async function listDbAdminTags(): Promise<AdminTagListItem[]> {
 
 export async function listDbPublicTags(): Promise<PublicTagListItem[]> {
   return getDb()
-    .select({ slug: tags.slug, nameEn: tags.nameEn, nameEs: tags.nameEs })
+    .select({ slug: tags.slug, nameEn: tags.nameEn, nameEs: tags.nameEs, category: tags.category })
     .from(tags)
     .orderBy(asc(tags.nameEn));
 }

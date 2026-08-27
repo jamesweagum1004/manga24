@@ -138,6 +138,8 @@ const bulkTitleSchema = z.object({
   displayLocales: z.array(z.enum(locales)).max(locales.length)
 });
 
+const deepSeekBulkBatchSize = 10;
+
 export async function bulkTitleAction(formData: FormData) {
   const parsed = bulkTitleSchema.safeParse({
     ids: [...new Set(formData.getAll("titleIds").filter((value): value is string => typeof value === "string"))],
@@ -169,16 +171,18 @@ export async function bulkTitleAction(formData: FormData) {
     await Promise.all(ids.map((id) => unpublishTitle(id)));
     updated = ids.length;
   } else if (action === "deepseek-content") {
-    if (ids.length > 10) redirect("/manga1004/titles?bulkError=ai-limit");
     const settings = await getSiteSettings();
-    const results = await Promise.allSettled(ids.map(async (id) => {
-      const title = await getAdminTitleById(id);
-      if (!title) throw new Error("Title not found");
-      const generated = await generateTitleContent(title.values, settings.deepseekModel);
-      await updateDbTitleGeneratedContent(id, generated);
-    }));
-    updated = results.filter((result) => result.status === "fulfilled").length;
-    skipped = results.length - updated;
+    for (let index = 0; index < ids.length; index += deepSeekBulkBatchSize) {
+      const batch = ids.slice(index, index + deepSeekBulkBatchSize);
+      const results = await Promise.allSettled(batch.map(async (id) => {
+        const title = await getAdminTitleById(id);
+        if (!title) throw new Error("Title not found");
+        const generated = await generateTitleContent(title.values, settings.deepseekModel);
+        await updateDbTitleGeneratedContent(id, generated);
+      }));
+      updated += results.filter((result) => result.status === "fulfilled").length;
+      skipped += results.filter((result) => result.status === "rejected").length;
+    }
   } else if (action === "delete") {
     for (const id of ids) await deleteDbTitle(id);
     updated = ids.length;
