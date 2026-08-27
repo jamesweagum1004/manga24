@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { demoTags, demoTitles, findChapter, findTitle, latestTitles, popularTitles } from "@/lib/demo-data";
 import {
   adminChapterListFromDemoTitles,
@@ -28,7 +29,13 @@ export function getActiveDataSource() {
   return isDatabaseConfigured() ? "database" : "demo";
 }
 
-const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? listDbTitles() : demoTitles);
+const getCachedDbCatalogTitles = unstable_cache(
+  async () => listDbTitles(),
+  ["public-catalog-titles"],
+  { revalidate: 60, tags: ["public-catalog"] }
+);
+
+const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? getCachedDbCatalogTitles() : demoTitles);
 
 export async function getCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {

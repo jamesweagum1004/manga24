@@ -27,7 +27,9 @@ export function DesktopEditorialHero({
           src={featured.cover.src}
           alt=""
           fill
+          priority
           sizes="(min-width: 1280px) 920px, 65vw"
+          responsiveWidths={[640, 920, 1280]}
           className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.025]"
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,11,14,0.96)_0%,rgba(9,11,14,0.78)_42%,rgba(9,11,14,0.12)_78%),linear-gradient(0deg,rgba(9,11,14,0.72),transparent_55%)]" />

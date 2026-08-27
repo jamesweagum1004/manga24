@@ -12,7 +12,15 @@ export function CompactPromoBanner({ title, locale }: { title: DemoTitle; locale
     <section className="relative isolate grid min-h-[164px] grid-cols-[100px_1fr] gap-4 overflow-hidden rounded-b-2xl border-y border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:grid-cols-[116px_1fr] md:rounded-xl md:border">
       <div className="pointer-events-none absolute -right-12 -top-20 -z-10 h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] blur-3xl" aria-hidden="true" />
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-[var(--surface-strong)] shadow-[0_10px_24px_rgba(15,23,42,0.18)]">
-        <Image src={title.cover.src} alt={title.cover.alt} fill sizes="116px" className="object-cover" />
+        <Image
+          src={title.cover.src}
+          alt={title.cover.alt}
+          fill
+          priority
+          sizes="(max-width: 639px) 100px, 116px"
+          responsiveWidths={[100, 116, 200, 232]}
+          className="object-cover"
+        />
       </div>
       <div className="flex min-w-0 flex-col justify-center">
         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--accent)]">Updated today</p>

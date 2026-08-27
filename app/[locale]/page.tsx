@@ -66,8 +66,6 @@ export default async function HomePage({ params }: PageProps) {
       {promoImageOrigin ? <link rel="preconnect" href={promoImageOrigin} crossOrigin="anonymous" /> : null}
       {promoImageOrigin ? <link rel="dns-prefetch" href={promoImageOrigin} /> : null}
       {featuredImageOrigin && featuredImageOrigin !== promoImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
-      {promo ? <link rel="preload" as="image" href={promo.cover.src} fetchPriority="high" media="(max-width: 1023px)" /> : null}
-      {featured ? <link rel="preload" as="image" href={featured.cover.src} fetchPriority="high" media="(min-width: 1024px)" /> : null}
       <SiteShell locale={locale}>
         <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
           <ContinueReading locale={locale} />

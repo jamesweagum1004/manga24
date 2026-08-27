@@ -5,11 +5,22 @@ type Props = {
   fill?: boolean;
   priority?: boolean;
   sizes?: string;
+  responsiveWidths?: number[];
 };
 
-export function ContentImage({ src, alt, className = "", fill = false, priority = false, sizes }: Props) {
+export function ContentImage({
+  src,
+  alt,
+  className = "",
+  fill = false,
+  priority = false,
+  sizes,
+  responsiveWidths = [160, 320, 640]
+}: Props) {
+  const srcSet = responsiveImageSrcSet(src, responsiveWidths);
+
   return (
-    // Bunny serves the original asset directly so the active CDN hostname can change at runtime.
+    // Keep the runtime CDN hostname while letting Bunny Optimizer resize by query string.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
@@ -18,6 +29,28 @@ export function ContentImage({ src, alt, className = "", fill = false, priority 
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
       sizes={sizes}
+      srcSet={srcSet}
+      decoding="async"
     />
   );
+}
+
+export function optimizedImageUrl(src: string, width: number) {
+  if (!/^https:\/\//u.test(src) || !Number.isFinite(width) || width <= 0) return src;
+  try {
+    const url = new URL(src);
+    url.searchParams.set("width", String(Math.round(width)));
+    url.searchParams.set("quality", "82");
+    return url.toString();
+  } catch {
+    return src;
+  }
+}
+
+function responsiveImageSrcSet(src: string, widths: number[]) {
+  if (!/^https:\/\//u.test(src)) return undefined;
+  const normalized = [...new Set(widths.map((width) => Math.round(width)).filter((width) => width > 0))].sort((a, b) => a - b);
+  return normalized.length > 0
+    ? normalized.map((width) => `${optimizedImageUrl(src, width)} ${width}w`).join(", ")
+    : undefined;
 }
