@@ -25,8 +25,21 @@ export function ContinueReading({ locale }: { locale: Locale }) {
     ? { eyebrow: "Your library", heading: "Continue reading", button: "Resume", complete: "Complete" }
     : { eyebrow: "Tu biblioteca", heading: "Seguir leyendo", button: "Continuar", complete: "Completado" };
 
+  function dismiss() {
+    window.localStorage.removeItem(RECENT_READING_KEY);
+    setItem(null);
+  }
+
   return (
-    <section className="mx-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm sm:mx-0 lg:rounded-2xl" aria-labelledby="continue-reading-heading">
+    <section className="relative mx-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm sm:mx-0 lg:rounded-2xl" aria-labelledby="continue-reading-heading">
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Close continue reading"
+        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-lg font-black text-[var(--muted)] shadow-sm sm:hidden"
+      >
+        ×
+      </button>
       <div className="flex items-center gap-3 p-3 lg:gap-5 lg:p-4">
         <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-[var(--surface-strong)] lg:h-24 lg:w-[72px]">
           <Image src={item.coverUrl} alt={item.coverAlt} fill sizes="72px" className="object-cover" />

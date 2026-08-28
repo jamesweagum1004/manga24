@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { CompactPromoBanner } from "@/components/compact-promo-banner";
 import { ContinueReading } from "@/components/continue-reading";
 import { DesktopEditorialHero } from "@/components/desktop-editorial-hero";
 import { AdStrip } from "@/components/ad-unit";
@@ -44,11 +43,9 @@ export default async function HomePage({ params }: PageProps) {
     listActiveAds("content", locale),
     getSiteSettings()
   ]);
-  const promo = catalog[10] ?? catalog[0];
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");
   const mangaLatest = latest.filter((title) => title.format !== "manhwa");
-  const featured = mangaPopular[0] ?? promo;
-  const promoImageOrigin = imageOrigin(promo?.cover.src);
+  const featured = mangaPopular[0] ?? catalog[10] ?? catalog[0];
   const featuredImageOrigin = imageOrigin(featured?.cover.src);
   const popularityHours = [...new Set(settings.homeSections.flatMap((section) => {
     if (section.source === "live") return [0.25];
@@ -63,13 +60,10 @@ export default async function HomePage({ params }: PageProps) {
 
   return (
     <>
-      {promoImageOrigin ? <link rel="preconnect" href={promoImageOrigin} crossOrigin="anonymous" /> : null}
-      {promoImageOrigin ? <link rel="dns-prefetch" href={promoImageOrigin} /> : null}
-      {featuredImageOrigin && featuredImageOrigin !== promoImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
+      {featuredImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
       <SiteShell locale={locale}>
         <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
           <ContinueReading locale={locale} />
-          {promo ? <div className="lg:hidden"><CompactPromoBanner title={promo} locale={locale} /></div> : null}
           {featured ? <DesktopEditorialHero featured={featured} ranking={mangaPopular} locale={locale} showViewCounts={settings.viewCountsEnabled} /> : null}
           {railSections.map((section, index) => (
             <div key={section.title} className="contents">

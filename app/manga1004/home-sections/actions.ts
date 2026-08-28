@@ -32,5 +32,18 @@ export async function deleteHomeSectionAction(id: string) {
   redirect("/manga1004/home-sections?saved=deleted");
 }
 
+export async function moveHomeSectionAction(id: string, direction: "up" | "down") {
+  const settings = await getSiteSettings();
+  const currentIndex = settings.homeSections.findIndex((section) => section.id === id);
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= settings.homeSections.length) {
+    redirect("/manga1004/home-sections?error=order");
+  }
+  const reordered = [...settings.homeSections];
+  [reordered[currentIndex], reordered[targetIndex]] = [reordered[targetIndex], reordered[currentIndex]];
+  await updateHomeSections(reordered);
+  redirect("/manga1004/home-sections?saved=moved");
+}
+
 function parse(formData: FormData) { return schema.safeParse({ title: formData.get("title"), subtitle: formData.get("subtitle"), source: formData.get("source"), tag: formData.get("tag"), itemCount: formData.get("itemCount"), popularityPeriod: formData.get("popularityPeriod"), customHours: formData.get("customHours"), enabled: formData.get("enabled") === "on" }); }
 function slugify(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "").slice(0, 50); }
