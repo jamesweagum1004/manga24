@@ -27,7 +27,6 @@ export function DesktopEditorialHero({
           src={featured.cover.src}
           alt=""
           fill
-          priority
           sizes="(min-width: 1280px) 920px, 65vw"
           responsiveWidths={[640, 920, 1280]}
           className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.025]"
