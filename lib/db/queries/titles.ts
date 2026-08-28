@@ -371,7 +371,7 @@ export async function deleteDbTitle(id: string) {
 
 export async function updateDbTitleSeo(
   id: string,
-  seo: Record<Locale, { title: string; description: string; keywords: string[] }>
+  seo: Partial<Record<Locale, { title: string; description: string; keywords: string[] }>>
 ) {
   const db = getDb();
   const now = new Date();
@@ -379,19 +379,21 @@ export async function updateDbTitleSeo(
     const [base] = await tx.select({ slug: titles.slug, originalTitle: titles.originalTitle }).from(titles).where(eq(titles.id, id)).limit(1);
     if (!base) throw new Error("Title not found.");
     for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
+      const localizedSeo = seo[locale];
+      if (!localizedSeo) continue;
       await tx.insert(titleLocalizations).values({
           titleId: id,
           locale,
-          title: seo[locale].title || base.originalTitle,
+          title: localizedSeo.title || base.originalTitle,
           slug: base.slug,
-          description: seo[locale].description,
-          seoTitle: seo[locale].title,
-          seoDescription: seo[locale].description,
-          seoKeywords: seo[locale].keywords.join(", "),
+          description: localizedSeo.description,
+          seoTitle: localizedSeo.title,
+          seoDescription: localizedSeo.description,
+          seoKeywords: localizedSeo.keywords.join(", "),
           updatedAt: now
         }).onConflictDoUpdate({
           target: [titleLocalizations.titleId, titleLocalizations.locale],
-          set: { seoTitle: seo[locale].title, seoDescription: seo[locale].description, seoKeywords: seo[locale].keywords.join(", "), updatedAt: now }
+          set: { seoTitle: localizedSeo.title, seoDescription: localizedSeo.description, seoKeywords: localizedSeo.keywords.join(", "), updatedAt: now }
         });
     }
   });
@@ -399,17 +401,19 @@ export async function updateDbTitleSeo(
 
 export async function updateDbTitleGeneratedContent(
   id: string,
-  content: Record<Locale, { catalogDescription: string; title: string; description: string; keywords: string[] }>
+  content: Partial<Record<Locale, { catalogDescription: string; title: string; description: string; keywords: string[] }>>
 ) {
   const db = getDb();
   const now = new Date();
   await db.transaction(async (tx) => {
     for (const locale of ["en", "es", "fr", "de", "pt"] as const) {
+      const localizedContent = content[locale];
+      if (!localizedContent) continue;
       await tx.update(titleLocalizations).set({
-        description: content[locale].catalogDescription,
-        seoTitle: content[locale].title,
-        seoDescription: content[locale].description,
-        seoKeywords: content[locale].keywords.join(", "),
+        description: localizedContent.catalogDescription,
+        seoTitle: localizedContent.title,
+        seoDescription: localizedContent.description,
+        seoKeywords: localizedContent.keywords.join(", "),
         updatedAt: now
       }).where(and(eq(titleLocalizations.titleId, id), eq(titleLocalizations.locale, locale)));
     }

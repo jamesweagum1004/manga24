@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { TitleFormValues } from "@/lib/db/queries/titles";
 import type { DeepSeekModel } from "@/lib/db/queries/settings";
+import { localeLabels, locales, type Locale } from "@/lib/i18n";
 
 const localeSeoSchema = z.object({
   title: z.string().trim().min(1).transform((value) => value.slice(0, 70)),
@@ -16,11 +17,11 @@ const localeSeoSchema = z.object({
 });
 
 const generatedSeoSchema = z.object({
-  en: localeSeoSchema,
-  es: localeSeoSchema,
-  fr: localeSeoSchema,
-  de: localeSeoSchema,
-  pt: localeSeoSchema
+  en: localeSeoSchema.optional(),
+  es: localeSeoSchema.optional(),
+  fr: localeSeoSchema.optional(),
+  de: localeSeoSchema.optional(),
+  pt: localeSeoSchema.optional()
 });
 
 const localeContentSchema = localeSeoSchema.extend({
@@ -28,11 +29,11 @@ const localeContentSchema = localeSeoSchema.extend({
 });
 
 const generatedContentSchema = z.object({
-  en: localeContentSchema,
-  es: localeContentSchema,
-  fr: localeContentSchema,
-  de: localeContentSchema,
-  pt: localeContentSchema
+  en: localeContentSchema.optional(),
+  es: localeContentSchema.optional(),
+  fr: localeContentSchema.optional(),
+  de: localeContentSchema.optional(),
+  pt: localeContentSchema.optional()
 });
 
 const completionSchema = z.object({
@@ -43,14 +44,23 @@ export type GeneratedTitleSeo = z.infer<typeof generatedSeoSchema>;
 export type GeneratedTitleContent = z.infer<typeof generatedContentSchema>;
 
 export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
-  return generatedSeoSchema.parse(await requestDeepSeek(values, model, false));
+  const selectedLocales = getSelectedLocales(values);
+  const generated = generatedSeoSchema.parse(await requestDeepSeek(values, model, false, selectedLocales));
+  return requireSelectedLocales(generated, selectedLocales);
 }
 
 export async function generateTitleContent(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleContent> {
-  return generatedContentSchema.parse(await requestDeepSeek(values, model, true));
+  const selectedLocales = getSelectedLocales(values);
+  const generated = generatedContentSchema.parse(await requestDeepSeek(values, model, true, selectedLocales));
+  return requireSelectedLocales(generated, selectedLocales);
 }
 
-async function requestDeepSeek(values: TitleFormValues, model: DeepSeekModel, includeCatalogDescription: boolean) {
+async function requestDeepSeek(
+  values: TitleFormValues,
+  model: DeepSeekModel,
+  includeCatalogDescription: boolean,
+  selectedLocales: Locale[]
+) {
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY is not configured.");
@@ -72,7 +82,7 @@ async function requestDeepSeek(values: TitleFormValues, model: DeepSeekModel, in
         {
           role: "system",
           content:
-            `You create accurate multilingual catalog copy and SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep SEO titles under 60 characters when practical and SEO descriptions between 120 and 160 characters. Output exactly five keys: en, es, fr, de, pt. Each key must contain title, description, keywords${includeCatalogDescription ? ", and catalogDescription (a natural 2-4 sentence catalog summary based only on supplied facts)" : ""}.`
+            `You create accurate multilingual catalog copy and SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep SEO titles under 60 characters when practical and SEO descriptions between 120 and 160 characters. Output exactly these requested locale keys and no others: ${selectedLocales.join(", ")}. Each key must contain title, description, keywords${includeCatalogDescription ? ", and catalogDescription (a natural 2-4 sentence catalog summary based only on supplied facts)" : ""}.`
         },
         {
           role: "user",
@@ -84,11 +94,8 @@ async function requestDeepSeek(values: TitleFormValues, model: DeepSeekModel, in
             status: values.publicationStatus,
             contentRating: values.contentRating,
             tags: values.tags,
-            english: { title: values.enTitle, description: values.enDescription },
-            spanish: { title: values.esTitle, description: values.esDescription },
-            french: { title: values.frTitle, description: values.frDescription },
-            german: { title: values.deTitle, description: values.deDescription },
-            portuguese: { title: values.ptTitle, description: values.ptDescription }
+            targetLocales: selectedLocales.map((locale) => ({ code: locale, language: localeLabels[locale] })),
+            localizations: selectedLocalizationFacts(values, selectedLocales)
           })
         }
       ]
@@ -107,6 +114,33 @@ async function requestDeepSeek(values: TitleFormValues, model: DeepSeekModel, in
   }
 
   return JSON.parse(stripJsonFence(content)) as unknown;
+}
+
+function getSelectedLocales(values: TitleFormValues): Locale[] {
+  const selected = locales.filter((locale) => values.displayLocales.includes(locale));
+  return selected.length > 0 ? selected : ["en"];
+}
+
+function selectedLocalizationFacts(values: TitleFormValues, selectedLocales: Locale[]) {
+  const facts: Record<Locale, { title: string; description: string }> = {
+    en: { title: values.enTitle, description: values.enDescription },
+    es: { title: values.esTitle, description: values.esDescription },
+    fr: { title: values.frTitle, description: values.frDescription },
+    de: { title: values.deTitle, description: values.deDescription },
+    pt: { title: values.ptTitle, description: values.ptDescription }
+  };
+
+  return Object.fromEntries(selectedLocales.map((locale) => [locale, facts[locale]]));
+}
+
+function requireSelectedLocales<T>(generated: Partial<Record<Locale, T>>, selectedLocales: Locale[]) {
+  const selected: Partial<Record<Locale, T>> = {};
+  for (const locale of selectedLocales) {
+    const value = generated[locale];
+    if (!value) throw new Error(`DeepSeek did not return requested locale: ${locale}.`);
+    selected[locale] = value;
+  }
+  return selected;
 }
 
 function stripJsonFence(content: string) {

@@ -5,7 +5,7 @@ import { createDbChapter, updateDbChapter } from "@/lib/db/queries/chapters";
 import { attachCover, getChapterIdForImport, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
 import { createDbTitle, getDbTitleForAdmin, updateDbTitle, type TitleFormValues } from "@/lib/db/queries/titles";
 import { getSiteSettings } from "@/lib/db/queries/settings";
-import { generateTitleSeo } from "@/lib/deepseek/seo";
+import { generateTitleSeo, type GeneratedTitleSeo } from "@/lib/deepseek/seo";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
 import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (!manifest.title.seo && manifest.title.generateSeo) {
       const settings = await getSiteSettings();
       const generated = await generateTitleSeo(values, settings.deepseekModel);
-      values = { ...values, enSeoTitle: generated.en.title, enSeoDescription: generated.en.description, enSeoKeywords: generated.en.keywords.join(", "), esSeoTitle: generated.es.title, esSeoDescription: generated.es.description, esSeoKeywords: generated.es.keywords.join(", "), frSeoTitle: generated.fr.title, frSeoDescription: generated.fr.description, frSeoKeywords: generated.fr.keywords.join(", "), deSeoTitle: generated.de.title, deSeoDescription: generated.de.description, deSeoKeywords: generated.de.keywords.join(", "), ptSeoTitle: generated.pt.title, ptSeoDescription: generated.pt.description, ptSeoKeywords: generated.pt.keywords.join(", ") };
+      values = applyGeneratedSeo(values, generated);
     }
     const existing = await getDbTitleForAdmin(manifest.title.canonicalSlug);
     const titleId = existing ? (await updateDbTitle(existing.id, values), existing.id) : await createDbTitle(values);
@@ -124,6 +124,36 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Import failed" }, { status: 500 });
   }
+}
+
+function applyGeneratedSeo(values: TitleFormValues, generated: GeneratedTitleSeo): TitleFormValues {
+  const next = { ...values };
+  if (generated.en) {
+    next.enSeoTitle = generated.en.title;
+    next.enSeoDescription = generated.en.description;
+    next.enSeoKeywords = generated.en.keywords.join(", ");
+  }
+  if (generated.es) {
+    next.esSeoTitle = generated.es.title;
+    next.esSeoDescription = generated.es.description;
+    next.esSeoKeywords = generated.es.keywords.join(", ");
+  }
+  if (generated.fr) {
+    next.frSeoTitle = generated.fr.title;
+    next.frSeoDescription = generated.fr.description;
+    next.frSeoKeywords = generated.fr.keywords.join(", ");
+  }
+  if (generated.de) {
+    next.deSeoTitle = generated.de.title;
+    next.deSeoDescription = generated.de.description;
+    next.deSeoKeywords = generated.de.keywords.join(", ");
+  }
+  if (generated.pt) {
+    next.ptSeoTitle = generated.pt.title;
+    next.ptSeoDescription = generated.pt.description;
+    next.ptSeoKeywords = generated.pt.keywords.join(", ");
+  }
+  return next;
 }
 
 function parseContentLength(value: string | null) {
