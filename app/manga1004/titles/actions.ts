@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesDisplayLocales, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
@@ -116,6 +117,7 @@ export async function updateTitleAction(
 
   try {
     await updateDbTitle(id, parsed.values);
+    revalidateTag("public-catalog");
   } catch (error) {
     return {
       values: parsed.values,
@@ -129,6 +131,7 @@ export async function updateTitleAction(
 export async function deleteTitleAction(id: string) {
   if (!isDatabaseConfigured()) redirect("/manga1004/titles");
   await deleteDbTitle(id);
+  revalidateTag("public-catalog");
   redirect("/manga1004/titles?deleted=title");
 }
 
@@ -191,6 +194,7 @@ export async function bulkTitleAction(formData: FormData) {
     updated = ids.length;
   }
 
+  revalidateTag("public-catalog");
   redirect(`/manga1004/titles?bulk=${action}&changed=${updated}&skipped=${skipped}`);
 }
 

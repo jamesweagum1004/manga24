@@ -56,7 +56,10 @@ export async function getAdminTitleList() {
 export async function getLatestCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
     const titles = await getAllCatalogTitles();
-    return filterByLocale([...titles].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)), locale);
+    // listDbTitles already sorts by the full published_at timestamp. The mapped
+    // catalog value only keeps YYYY-MM-DD, so sorting it again would scramble
+    // titles published on the same day.
+    return filterByLocale(titles, locale);
   }
 
   return filterByLocale(latestTitles(), locale);
