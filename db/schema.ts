@@ -75,6 +75,7 @@ export const siteSettings = pgTable("site_settings", {
   sitemapIncludeTags: boolean("sitemap_include_tags").default(true).notNull(),
   indexnowEnabled: boolean("indexnow_enabled").default(false).notNull(),
   indexnowKey: varchar("indexnow_key", { length: 128 }),
+  autoPublishSchedules: jsonb("auto_publish_schedules").$type<Record<string, { enabled: boolean; intervalMinutes: number; batchSize: number; lastRunAt: string | null }>>(),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

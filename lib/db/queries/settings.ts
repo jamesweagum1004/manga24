@@ -8,6 +8,7 @@ import { normalizeHomeSections, type HomeSection } from "@/lib/home-sections";
 
 export type BrandingImage = { publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number };
 export type SeoLocaleSettings = { title: string; description: string; keywords: string };
+export type AutoPublishSchedule = { enabled: boolean; intervalMinutes: number; batchSize: number; lastRunAt: string | null };
 
 const defaultSeoLocales: Record<Locale, SeoLocaleSettings> = {
   en: { title: "Read Manga Online", description: "Discover manga, new releases, popular series, and the latest chapters on Manga24.", keywords: "manga, read manga online, manga chapters" },
@@ -52,10 +53,33 @@ export const getSiteSettings = cache(async () => {
     sitemapIncludeTags: settings?.sitemapIncludeTags ?? true,
     indexnowEnabled: settings?.indexnowEnabled ?? false,
     indexnowKey: settings?.indexnowKey ?? "",
+    autoPublishSchedules: normalizeAutoPublishSchedules(settings?.autoPublishSchedules),
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string; autoPublishSchedules: Record<Locale, AutoPublishSchedule>; logo: BrandingImage | null; favicon: BrandingImage | null };
 });
+
+export async function updateAutoPublishSchedules(input: Record<Locale, Omit<AutoPublishSchedule, "lastRunAt">>) {
+  const current = await getSiteSettings();
+  const autoPublishSchedules = Object.fromEntries((Object.keys(input) as Locale[]).map((locale) => [locale, {
+    ...input[locale],
+    lastRunAt: current.autoPublishSchedules[locale].lastRunAt
+  }])) as Record<Locale, AutoPublishSchedule>;
+  await getDb().insert(siteSettings).values({ id: 1, autoPublishSchedules, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { autoPublishSchedules, updatedAt: new Date() }
+  });
+}
+
+export async function markAutoPublishScheduleRun(locale: Locale, lastRunAt: string) {
+  const [row] = await getDb().select({ autoPublishSchedules: siteSettings.autoPublishSchedules }).from(siteSettings).limit(1);
+  const current = normalizeAutoPublishSchedules(row?.autoPublishSchedules);
+  const autoPublishSchedules = { ...current, [locale]: { ...current[locale], lastRunAt } };
+  await getDb().insert(siteSettings).values({ id: 1, autoPublishSchedules, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { autoPublishSchedules, updatedAt: new Date() }
+  });
+}
 
 export async function updateSeoSettings(input: { siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string | null; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string | null }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
@@ -186,3 +210,15 @@ function normalizeSeoLocales(value: unknown): Record<Locale, SeoLocaleSettings> 
     }];
   })) as Record<Locale, SeoLocaleSettings>;
 }
+
+function normalizeAutoPublishSchedules(value: unknown): Record<Locale, AutoPublishSchedule> {
+  const input = value && typeof value === "object" ? value as Record<string, Partial<AutoPublishSchedule>> : {};
+  return Object.fromEntries((localesForSettings()).map((locale) => {
+    const current = input[locale] ?? {};
+    const intervalMinutes = Number.isInteger(current.intervalMinutes) ? Math.min(10_080, Math.max(1, current.intervalMinutes ?? 60)) : 60;
+    const batchSize = Number.isInteger(current.batchSize) ? Math.min(100, Math.max(1, current.batchSize ?? 1)) : 1;
+    return [locale, { enabled: current.enabled === true, intervalMinutes, batchSize, lastRunAt: typeof current.lastRunAt === "string" ? current.lastRunAt : null }];
+  })) as Record<Locale, AutoPublishSchedule>;
+}
+
+function localesForSettings(): Locale[] { return ["en", "es", "fr", "de", "pt"]; }

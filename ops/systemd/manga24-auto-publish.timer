@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Manga24 automatic publish schedules every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=true
+Unit=manga24-auto-publish.service
+
+[Install]
+WantedBy=timers.target

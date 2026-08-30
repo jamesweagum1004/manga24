@@ -1,0 +1,10 @@
+[Unit]
+Description=Manga24 automatic title publisher
+After=manga24.service
+Requires=manga24.service
+
+[Service]
+Type=oneshot
+User=manga24
+Group=manga24
+ExecStart=/bin/bash /srv/manga24/app/ops/run-auto-publish.sh

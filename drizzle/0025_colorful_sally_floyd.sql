@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "auto_publish_schedules" jsonb;

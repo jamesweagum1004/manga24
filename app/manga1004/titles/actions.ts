@@ -8,7 +8,7 @@ import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured }
 import { locales } from "@/lib/i18n";
 import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
 import { generateTitleContent } from "@/lib/deepseek/seo";
-import { getSiteSettings } from "@/lib/db/queries/settings";
+import { getSiteSettings, updateAutoPublishSchedules } from "@/lib/db/queries/settings";
 import { publishDbChaptersWithPagesForTitles } from "@/lib/db/queries/chapters";
 import { getPublishedTitleUrls, submitIndexNow } from "@/lib/search-indexing";
 
@@ -146,6 +146,35 @@ const bulkTitleSchema = z.object({
 });
 
 const deepSeekBulkBatchSize = 10;
+
+const autoPublishScheduleSchema = z.object({
+  enabled: z.boolean(),
+  intervalValue: z.number().int().min(1).max(10_080),
+  intervalUnit: z.enum(["minutes", "hours"]),
+  batchSize: z.number().int().min(1).max(100)
+});
+
+export async function updateAutoPublishSchedulesAction(formData: FormData) {
+  const entries = locales.map((locale) => {
+    const parsed = autoPublishScheduleSchema.safeParse({
+      enabled: formData.get(`autoPublishEnabled_${locale}`) === "on",
+      intervalValue: Number(formData.get(`autoPublishInterval_${locale}`)),
+      intervalUnit: formData.get(`autoPublishUnit_${locale}`),
+      batchSize: Number(formData.get(`autoPublishBatch_${locale}`))
+    });
+    return [locale, parsed] as const;
+  });
+  if (entries.some(([, result]) => !result.success || (result.data.intervalUnit === "hours" && result.data.intervalValue > 168))) redirect("/manga1004/titles?folder=publish-ready&scheduleError=1#auto-publish");
+  await updateAutoPublishSchedules(Object.fromEntries(entries.map(([locale, result]) => {
+    const value = result.data!;
+    return [locale, {
+      enabled: value.enabled,
+      intervalMinutes: value.intervalUnit === "hours" ? value.intervalValue * 60 : value.intervalValue,
+      batchSize: value.batchSize
+    }];
+  })) as Parameters<typeof updateAutoPublishSchedules>[0]);
+  redirect("/manga1004/titles?folder=publish-ready&scheduleSaved=1#auto-publish");
+}
 
 export async function bulkTitleAction(formData: FormData) {
   const parsed = bulkTitleSchema.safeParse({

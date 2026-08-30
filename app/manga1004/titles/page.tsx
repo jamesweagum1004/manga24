@@ -8,16 +8,17 @@ import {
 } from "@/lib/data/source";
 import { BulkActionToolbar } from "@/components/admin/bulk-action-toolbar";
 import { bulkTitleAction } from "./actions";
+import { updateAutoPublishSchedulesAction } from "./actions";
+import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export const dynamic = "force-dynamic";
 
 type Folder = "all" | "manga" | "manhwa" | "unpublished-manga" | "unpublished-manhwa" | "ai-pending" | "ai-complete" | "publish-ready";
 
-type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; page?: string; pageSize?: string; deleted?: string; bulk?: string; bulkError?: string; changed?: string; skipped?: string };
+type Query = { folder?: string; q?: string; locale?: string; visibility?: string; status?: string; updated?: string; sort?: string; page?: string; pageSize?: string; deleted?: string; bulk?: string; bulkError?: string; changed?: string; skipped?: string; scheduleSaved?: string; scheduleError?: string };
 
 export default async function AdminTitlesPage({ searchParams }: { searchParams: Promise<Query> }) {
-  const titles = await getAdminTitleList();
-  const query = await searchParams;
+  const [titles, settings, query] = await Promise.all([getAdminTitleList(), getSiteSettings(), searchParams]);
   const activeFolder: Folder = ["manga", "manhwa", "unpublished-manga", "unpublished-manhwa", "ai-pending", "ai-complete", "publish-ready"].includes(query.folder ?? "") ? query.folder as Folder : "all";
   const selectedLocale = locales.includes(query.locale as Locale) ? query.locale as Locale : "";
   const q = query.q?.trim().toLocaleLowerCase() ?? "";
@@ -65,6 +66,8 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
       {query.deleted === "title" ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Title and all connected chapters were deleted.</p> : null}
       {query.bulk ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Bulk action complete: {query.changed ?? "0"} title(s) updated{Number(query.skipped) > 0 ? `, ${query.skipped} skipped or failed` : ""}.</p> : null}
       {query.bulkError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{query.bulkError === "locales" ? "Choose at least one display language." : "Select at least one title and choose an action."}</p> : null}
+      {query.scheduleSaved ? <p className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-800">Automatic publish schedules saved.</p> : null}
+      {query.scheduleError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">Check every automatic publish interval and batch size.</p> : null}
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <FolderLink href="/manga1004/titles" label="All Titles" count={titles.length} active={activeFolder === "all"} />
         <FolderLink href="/manga1004/titles?folder=manga" label="Manga" count={titles.filter((title) => title.format === "manga").length} active={activeFolder === "manga"} />
@@ -73,9 +76,10 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         <FolderLink href="/manga1004/titles?folder=unpublished-manhwa" label="Unpublished Manhwa" count={titles.filter((title) => title.format === "manhwa" && !title.isPublished).length} active={activeFolder === "unpublished-manhwa"} />
         <FolderLink href="/manga1004/titles?folder=ai-pending" label="DeepSeek needed" count={titles.filter((title) => !title.aiContentGeneratedAt).length} active={activeFolder === "ai-pending"} />
         <FolderLink href="/manga1004/titles?folder=ai-complete" label="DeepSeek complete" count={titles.filter((title) => Boolean(title.aiContentGeneratedAt)).length} active={activeFolder === "ai-complete"} />
-        <FolderLink href="/manga1004/titles?folder=publish-ready" label="Ready to publish" count={titles.filter((title) => Boolean(title.aiContentGeneratedAt) && !title.isPublished).length} active={activeFolder === "publish-ready"} />
+        {locales.map((locale) => <FolderLink key={locale} href={`/manga1004/titles?folder=publish-ready&locale=${locale}`} label={`${localeFlags[locale]} Need to publish · ${localeLabels[locale]}`} count={titles.filter((title) => Boolean(title.aiContentGeneratedAt) && !title.isPublished && title.displayLocales.includes(locale)).length} active={activeFolder === "publish-ready" && selectedLocale === locale} />)}
       </div>
-      <h2 className="mt-7 text-xl font-black">{{ all: "All Titles", manga: "Manga", manhwa: "Manhwa", "unpublished-manga": "Unpublished Manga", "unpublished-manhwa": "Unpublished Manhwa", "ai-pending": "DeepSeek needed", "ai-complete": "DeepSeek complete", "publish-ready": "Ready to publish" }[activeFolder]}</h2>
+      {activeFolder === "publish-ready" ? <AutoPublishSettings schedules={settings.autoPublishSchedules} /> : null}
+      <h2 className="mt-7 text-xl font-black">{{ all: "All Titles", manga: "Manga", manhwa: "Manhwa", "unpublished-manga": "Unpublished Manga", "unpublished-manhwa": "Unpublished Manhwa", "ai-pending": "DeepSeek needed", "ai-complete": "DeepSeek complete", "publish-ready": selectedLocale ? `${localeFlags[selectedLocale]} ${localeLabels[selectedLocale]} · Need to publish` : "Need to publish" }[activeFolder]}</h2>
       <form className="mt-4 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-3 lg:grid-cols-6">
         {activeFolder !== "all" ? <input type="hidden" name="folder" value={activeFolder} /> : null}
         <input name="q" defaultValue={query.q} placeholder="Title, slug or translation" className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm font-bold md:col-span-2" />
@@ -183,4 +187,29 @@ function FolderLink({ href, label, count, active }: { href: string; label: strin
       <span className="mt-1 block text-sm font-bold text-[var(--muted)]">{count} titles</span>
     </Link>
   );
+}
+
+function AutoPublishSettings({ schedules }: { schedules: Awaited<ReturnType<typeof getSiteSettings>>["autoPublishSchedules"] }) {
+  return <section id="auto-publish" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+    <h2 className="text-xl font-black">Automatic publishing</h2>
+    <p className="mt-1 text-sm text-[var(--muted)]">Publish the oldest DeepSeek-complete, ready titles for each display language. Titles without a cover, published chapter, or reader pages are skipped.</p>
+    <form action={updateAutoPublishSchedulesAction} className="mt-5 grid gap-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {locales.map((locale) => {
+          const schedule = schedules[locale];
+          const useHours = schedule.intervalMinutes % 60 === 0;
+          return <div key={locale} className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
+            <label className="flex items-center gap-3 font-black"><input type="checkbox" name={`autoPublishEnabled_${locale}`} defaultChecked={schedule.enabled} className="h-5 w-5 accent-[var(--accent)]" /><span>{localeFlags[locale]} {localeLabels[locale]}</span></label>
+            <div className="mt-4 grid grid-cols-[1fr_auto_1fr] gap-2">
+              <label className="grid gap-1 text-xs font-bold"><span>Every</span><input type="number" name={`autoPublishInterval_${locale}`} min={1} max={useHours ? 168 : 10080} defaultValue={useHours ? schedule.intervalMinutes / 60 : schedule.intervalMinutes} className="rounded-lg border border-[var(--border)] px-3 py-2" /></label>
+              <label className="grid gap-1 text-xs font-bold"><span>Unit</span><select name={`autoPublishUnit_${locale}`} defaultValue={useHours ? "hours" : "minutes"} className="rounded-lg border border-[var(--border)] px-3 py-2"><option value="minutes">minutes</option><option value="hours">hours</option></select></label>
+              <label className="grid gap-1 text-xs font-bold"><span>Titles per run</span><input type="number" name={`autoPublishBatch_${locale}`} min={1} max={100} defaultValue={schedule.batchSize} className="rounded-lg border border-[var(--border)] px-3 py-2" /></label>
+            </div>
+            <p className="mt-3 text-xs text-[var(--muted)]">Last check: {schedule.lastRunAt ? new Date(schedule.lastRunAt).toLocaleString("en-US", { timeZone: "Asia/Seoul" }) : "Not run yet"}</p>
+          </div>;
+        })}
+      </div>
+      <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save automatic publishing</button>
+    </form>
+  </section>;
 }
