@@ -97,7 +97,10 @@ export async function updateSeoSettingsAction(formData: FormData) {
   const parsedLocales = Object.fromEntries(locales.map((locale) => [locale, seoTextSchema.safeParse(seoLocales[locale])])) as Record<(typeof locales)[number], ReturnType<typeof seoTextSchema.safeParse>>;
   const rawImageUrl = String(formData.get("seoDefaultImageUrl") ?? "").trim();
   const imageUrl = rawImageUrl ? z.string().url().refine((value) => value.startsWith("https://"), "HTTPS required").safeParse(rawImageUrl) : null;
-  if (!siteName.success || Object.values(parsedLocales).some((result) => !result.success) || (imageUrl && !imageUrl.success)) {
+  const indexnowEnabled = formData.get("indexnowEnabled") === "on";
+  const rawIndexnowKey = String(formData.get("indexnowKey") ?? "").trim();
+  const indexnowKey = rawIndexnowKey ? z.string().regex(/^[A-Za-z0-9-]{8,128}$/u).safeParse(rawIndexnowKey) : null;
+  if (!siteName.success || Object.values(parsedLocales).some((result) => !result.success) || (imageUrl && !imageUrl.success) || (indexnowKey && !indexnowKey.success) || (indexnowEnabled && !indexnowKey)) {
     redirect("/manga1004/settings?error=seo#seo");
   }
   await updateSeoSettings({
@@ -108,7 +111,9 @@ export async function updateSeoSettingsAction(formData: FormData) {
     sitemapIncludeStatic: formData.get("sitemapIncludeStatic") === "on",
     sitemapIncludeTitles: formData.get("sitemapIncludeTitles") === "on",
     sitemapIncludeChapters: formData.get("sitemapIncludeChapters") === "on",
-    sitemapIncludeTags: formData.get("sitemapIncludeTags") === "on"
+    sitemapIncludeTags: formData.get("sitemapIncludeTags") === "on",
+    indexnowEnabled,
+    indexnowKey: indexnowKey?.data ?? null
   });
   revalidatePath("/", "layout");
   revalidatePath("/sitemap.xml");

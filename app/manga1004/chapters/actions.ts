@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createDbChapter, deleteDbChapter, setDbChapterPublicationStatus, updateDbChapter, type ChapterFormValues } from "@/lib/db/queries/chapters";
 import { getAdminChapterList } from "@/lib/data/source";
+import { getPublishedChapterUrls, submitIndexNow, uniqueUrls } from "@/lib/search-indexing";
 
 const schema = z.object({
   titleId: z.string().uuid("Choose a title."),
@@ -33,6 +35,7 @@ export async function createChapterAction(_state: ChapterFormState, formData: Fo
   } catch (error) {
     return { values: parsed.data, formError: databaseError(error) };
   }
+  await updateChapterSearchDiscovery([], [id]);
   redirect(`/manga1004/chapters/${id}?saved=created${setup ? "&setup=pages" : ""}`);
 }
 
@@ -40,21 +43,27 @@ export async function updateChapterAction(id: string, _state: ChapterFormState, 
   const setup = formData.get("setup") === "1";
   const parsed = parse(formData);
   if (!parsed.success) return parsed.state;
+  const previousUrls = await getPublishedChapterUrls([id]);
   try {
     await updateDbChapter(id, parsed.data);
   } catch (error) {
     return { values: parsed.data, formError: databaseError(error) };
   }
+  await updateChapterSearchDiscovery(previousUrls, [id]);
   redirect(`/manga1004/chapters/${id}?saved=updated${setup ? "&setup=pages" : ""}`);
 }
 
 export async function setChapterPublicationAction(titleId: string, chapterId: string, status: "draft" | "published") {
+  const previousUrls = await getPublishedChapterUrls([chapterId]);
   await setDbChapterPublicationStatus(chapterId, status);
+  await updateChapterSearchDiscovery(previousUrls, [chapterId]);
   redirect(`/manga1004/titles/${titleId}?chapterSaved=${status}`);
 }
 
 export async function deleteChapterAction(titleId: string, chapterId: string) {
+  const removedUrls = await getPublishedChapterUrls([chapterId]);
   await deleteDbChapter(chapterId);
+  await updateChapterSearchDiscovery(removedUrls, []);
   redirect(`/manga1004/titles/${titleId}?deleted=chapter`);
 }
 
@@ -74,6 +83,8 @@ export async function bulkChapterAction(titleId: string, formData: FormData) {
   const selected = chapters.filter((chapter) => parsed.data.ids.includes(chapter.id));
   let updated = 0;
   let skipped = parsed.data.ids.length - selected.length;
+  const changedIds = selected.map((chapter) => chapter.id);
+  const previousUrls = await getPublishedChapterUrls(changedIds);
 
   for (const chapter of selected) {
     if (parsed.data.action === "published" && chapter.pageCount === 0) {
@@ -85,7 +96,16 @@ export async function bulkChapterAction(titleId: string, formData: FormData) {
     updated += 1;
   }
 
+  await updateChapterSearchDiscovery(previousUrls, parsed.data.action === "delete" ? [] : changedIds);
+
   redirect(`/manga1004/titles/${titleId}?bulk=${parsed.data.action}&changed=${updated}&skipped=${skipped}`);
+}
+
+async function updateChapterSearchDiscovery(previousUrls: string[], currentChapterIds: string[]) {
+  const currentUrls = await getPublishedChapterUrls(currentChapterIds);
+  revalidatePath("/sitemap.xml");
+  revalidateTag("public-catalog");
+  await submitIndexNow(uniqueUrls([...previousUrls, ...currentUrls]));
 }
 
 function parse(formData: FormData) {

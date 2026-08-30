@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createDbChapter, updateDbChapter } from "@/lib/db/queries/chapters";
 import { attachCover, getChapterIdForImport, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages } from "@/lib/db/queries/media";
@@ -9,6 +10,7 @@ import { generateTitleSeo, type GeneratedTitleSeo } from "@/lib/deepseek/seo";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
 import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
+import { getPublishedTitleUrls, submitIndexNow, uniqueUrls } from "@/lib/search-indexing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
       values = applyGeneratedSeo(values, generated);
     }
     const existing = await getDbTitleForAdmin(manifest.title.canonicalSlug);
+    const previousUrls = existing ? await getPublishedTitleUrls([existing.id]) : [];
     const titleId = existing ? (await updateDbTitle(existing.id, values), existing.id) : await createDbTitle(values);
     const titleTarget = await getTitleMediaTarget(titleId);
     if (!titleTarget) throw new Error("Unable to load the imported title.");
@@ -120,6 +123,10 @@ export async function POST(request: Request) {
       await publishTitle(titleId);
       published = true;
     }
+    revalidatePath("/sitemap.xml");
+    revalidateTag("public-catalog");
+    const currentUrls = await getPublishedTitleUrls([titleId]);
+    await submitIndexNow(uniqueUrls([...previousUrls, ...currentUrls]));
     return NextResponse.json({ ok: true, titleId, chapterId, published });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Import failed" }, { status: 500 });

@@ -50,12 +50,14 @@ export const getSiteSettings = cache(async () => {
     sitemapIncludeTitles: settings?.sitemapIncludeTitles ?? true,
     sitemapIncludeChapters: settings?.sitemapIncludeChapters ?? true,
     sitemapIncludeTags: settings?.sitemapIncludeTags ?? true,
+    indexnowEnabled: settings?.indexnowEnabled ?? false,
+    indexnowKey: settings?.indexnowKey ?? "",
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string; logo: BrandingImage | null; favicon: BrandingImage | null };
 });
 
-export async function updateSeoSettings(input: { siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string | null; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean }) {
+export async function updateSeoSettings(input: { siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string | null; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string | null }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
     target: siteSettings.id,
     set: { ...input, updatedAt: new Date() }

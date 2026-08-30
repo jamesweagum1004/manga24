@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesDisplayLocales, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
@@ -10,6 +10,7 @@ import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/
 import { generateTitleContent } from "@/lib/deepseek/seo";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { publishDbChaptersWithPagesForTitles } from "@/lib/db/queries/chapters";
+import { getPublishedTitleUrls, submitIndexNow } from "@/lib/search-indexing";
 
 const slugSchema = z
   .string()
@@ -130,8 +131,11 @@ export async function updateTitleAction(
 
 export async function deleteTitleAction(id: string) {
   if (!isDatabaseConfigured()) redirect("/manga1004/titles");
+  const removedUrls = await getPublishedTitleUrls([id]);
   await deleteDbTitle(id);
+  revalidatePath("/sitemap.xml");
   revalidateTag("public-catalog");
+  await submitIndexNow(removedUrls);
   redirect("/manga1004/titles?deleted=title");
 }
 
@@ -154,6 +158,7 @@ export async function bulkTitleAction(formData: FormData) {
   const { ids, action } = parsed.data;
   let updated = 0;
   let skipped = 0;
+  let indexNowUrls: string[] = [];
 
   if (action === "publish" || action === "publish-with-chapters") {
     if (action === "publish-with-chapters") await publishDbChaptersWithPagesForTitles(ids);
@@ -166,11 +171,13 @@ export async function bulkTitleAction(formData: FormData) {
       await publishTitle(id);
       updated += 1;
     }
+    indexNowUrls = await getPublishedTitleUrls(ids);
   } else if (action === "set-locales") {
     if (parsed.data.displayLocales.length === 0) redirect("/manga1004/titles?bulkError=locales");
     await updateDbTitlesDisplayLocales(ids, parsed.data.displayLocales);
     updated = ids.length;
   } else if (action === "unpublish") {
+    indexNowUrls = await getPublishedTitleUrls(ids);
     await Promise.all(ids.map((id) => unpublishTitle(id)));
     updated = ids.length;
   } else if (action === "deepseek-content") {
@@ -187,6 +194,7 @@ export async function bulkTitleAction(formData: FormData) {
       skipped += results.filter((result) => result.status === "rejected").length;
     }
   } else if (action === "delete") {
+    indexNowUrls = await getPublishedTitleUrls(ids);
     for (const id of ids) await deleteDbTitle(id);
     updated = ids.length;
   } else {
@@ -195,6 +203,10 @@ export async function bulkTitleAction(formData: FormData) {
   }
 
   revalidateTag("public-catalog");
+  if (["publish", "publish-with-chapters", "unpublish", "delete"].includes(action)) {
+    revalidatePath("/sitemap.xml");
+    await submitIndexNow(indexNowUrls);
+  }
   redirect(`/manga1004/titles?bulk=${action}&changed=${updated}&skipped=${skipped}`);
 }
 

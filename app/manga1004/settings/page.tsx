@@ -88,6 +88,15 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
               <Toggle name="sitemapIncludeTags" defaultChecked={settings.sitemapIncludeTags} title="Include tag pages" description="Includes tag archive pages used by published titles." />
             </div>
           </div>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
+            <h3 className="font-black">IndexNow</h3>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Notify participating search engines when published title and chapter URLs are added or removed.</p>
+            <div className="mt-4 grid gap-4">
+              <Toggle name="indexnowEnabled" defaultChecked={settings.indexnowEnabled} title="Enable IndexNow" description="Send best-effort notifications after publish, unpublish, and delete operations." />
+              <Field label="IndexNow API key (8–128 letters, numbers, or hyphens)"><input name="indexnowKey" minLength={8} maxLength={128} pattern="[A-Za-z0-9-]+" defaultValue={settings.indexnowKey} autoComplete="off" className={inputClass} /></Field>
+              {settings.indexnowKey ? <a href="/indexnow-key.txt" target="_blank" rel="noreferrer" className="w-fit text-sm font-black text-[var(--accent)]">Open key verification file ↗</a> : null}
+            </div>
+          </div>
           <p className="text-xs leading-5 text-[var(--muted)]">Changes appear in the page source immediately. Google search results update only after Google recrawls the page; use Search Console URL Inspection to request indexing.</p>
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save SEO &amp; sitemap</button>
         </form>

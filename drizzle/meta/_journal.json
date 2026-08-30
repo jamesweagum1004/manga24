@@ -169,6 +169,13 @@
       "when": 1787466645943,
       "tag": "0023_busy_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788095356952,
+      "tag": "0024_spooky_cammi",
+      "breakpoints": true
     }
   ]
 }

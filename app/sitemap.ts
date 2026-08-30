@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/metadata";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [titles, settings] = await Promise.all([getCatalogTitles(), getSiteSettings()]);

@@ -73,6 +73,8 @@ export const siteSettings = pgTable("site_settings", {
   sitemapIncludeTitles: boolean("sitemap_include_titles").default(true).notNull(),
   sitemapIncludeChapters: boolean("sitemap_include_chapters").default(true).notNull(),
   sitemapIncludeTags: boolean("sitemap_include_tags").default(true).notNull(),
+  indexnowEnabled: boolean("indexnow_enabled").default(false).notNull(),
+  indexnowKey: varchar("indexnow_key", { length: 128 }),
   logo: jsonb("logo").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   favicon: jsonb("favicon").$type<{ publicUrl: string; objectKey: string; format: "manga" | "manhwa"; width: number; height: number } | null>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

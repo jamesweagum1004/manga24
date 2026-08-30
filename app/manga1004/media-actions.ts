@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { attachCover, getChapterMediaTarget, getTitleMediaTarget, getTitlePublishingState, publishTitle, replaceChapterPages, unpublishTitle } from "@/lib/db/queries/media";
 import { uploadImages } from "@/lib/media/b2-upload";
 import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
 import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
+import { getPublishedTitleUrls, submitIndexNow } from "@/lib/search-indexing";
 
 export async function uploadCoverAction(titleId: string, formData: FormData) {
   const setup = formData.get("setup") === "1";
@@ -48,13 +49,18 @@ export async function publishTitleAction(titleId: string, formData?: FormData) {
   if (!state) redirect("/manga1004/titles");
   if (!state.ready) redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent(state.reason ?? "Title is not ready.")}${setup ? "&setup=seo" : ""}`);
   await publishTitle(titleId);
+  revalidatePath("/sitemap.xml");
   revalidateTag("public-catalog");
+  await submitIndexNow(await getPublishedTitleUrls([titleId]));
   redirect(`/manga1004/titles/${titleId}?mediaSaved=published${setup ? "&setup=complete" : ""}`);
 }
 
 export async function unpublishTitleAction(titleId: string) {
+  const removedUrls = await getPublishedTitleUrls([titleId]);
   await unpublishTitle(titleId);
+  revalidatePath("/sitemap.xml");
   revalidateTag("public-catalog");
+  await submitIndexNow(removedUrls);
   redirect(`/manga1004/titles/${titleId}?mediaSaved=unpublished`);
 }
 
