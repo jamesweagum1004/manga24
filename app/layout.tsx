@@ -12,7 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: settings.siteName,
     description: settings.seoLocales.en.description,
     manifest: settings.pwaEnabled ? "/manifest.webmanifest" : undefined,
-    icons: settings.favicon ? { icon: settings.favicon.publicUrl, shortcut: settings.favicon.publicUrl } : undefined,
+    icons: {
+      icon: [{ url: "/favicon.ico", sizes: "any" }],
+      shortcut: "/favicon.ico",
+      apple: "/favicon.ico"
+    },
     verification: env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : undefined,
     robots: settings.maintenanceEnabled ? { index: false, follow: false, nocache: true } : undefined
   };
