@@ -52,7 +52,7 @@ export function PanicButton({ enabled }: { enabled: boolean }) {
         onClick={() => setHidden((value) => !value)}
         aria-label={hidden ? "Return to reading" : "Open private screen"}
         title={hidden ? "Return" : "Quick hide"}
-        className={`fixed bottom-5 right-5 z-[2147483647] flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${hidden ? "border-slate-300 bg-white text-slate-600 focus-visible:outline-blue-500" : "border-white/20 bg-slate-800 text-white focus-visible:outline-white"}`}
+        className={`fixed right-5 flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${hidden ? "bottom-5 z-[2147483647] border-slate-300 bg-white text-slate-600 focus-visible:outline-blue-500" : "bottom-24 z-30 border-white/20 bg-slate-800 text-white focus-visible:outline-white md:bottom-5"}`}
       >
         {hidden ? (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2"><path d="m15 18-6-6 6-6" /><path d="M9 12h11" /></svg>
