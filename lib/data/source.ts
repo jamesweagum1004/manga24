@@ -28,11 +28,31 @@ export function getActiveDataSource() {
   return isDatabaseConfigured() ? "database" : "demo";
 }
 
-// React cache deduplicates catalog reads within one server render. Do not put
-// the complete catalog in Next's persistent data cache: larger libraries can
-// exceed its 2 MB item limit, making every request serialize a multi-megabyte
-// value only to discard it after the cache write fails.
-const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? listDbTitles() : demoTitles);
+type CatalogTitles = Awaited<ReturnType<typeof listDbTitles>>;
+type CatalogMemoryCache = { value: Promise<CatalogTitles>; expiresAt: number };
+const catalogCacheKey = Symbol.for("manga24.publicCatalogCache");
+const catalogGlobal = globalThis as typeof globalThis & { [catalogCacheKey]?: CatalogMemoryCache };
+
+// React cache deduplicates reads within one render. A short process-memory
+// cache also shares the catalog across consecutive locale/list requests
+// without serializing it into Next's persistent cache, whose item limit is
+// 2 MB. Catalog writes already refresh public pages, and this matches the
+// previous 60-second freshness window.
+const getAllCatalogTitles = cache(async () => {
+  if (!isDatabaseConfigured()) return demoTitles;
+  const now = Date.now();
+  const existing = catalogGlobal[catalogCacheKey];
+  if (existing && existing.expiresAt > now) return existing.value;
+
+  const value = listDbTitles();
+  catalogGlobal[catalogCacheKey] = { value, expiresAt: now + 60_000 };
+  try {
+    return await value;
+  } catch (error) {
+    if (catalogGlobal[catalogCacheKey]?.value === value) delete catalogGlobal[catalogCacheKey];
+    throw error;
+  }
+});
 
 export async function getCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
