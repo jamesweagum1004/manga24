@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createDbTitle } from "@/lib/db/queries/titles";
+import { displayLocalesForOriginalLanguage, locales } from "@/lib/i18n";
 
 const schema = z.object({ originalTitle: z.string().trim().min(1).max(240), authorName: z.string().trim().min(1).max(160), originalLanguage: z.string().trim().min(2).max(16), format: z.enum(["manga", "manhwa"]), contentRating: z.enum(["safe", "mature_18"]), publicationStatus: z.enum(["ongoing", "completed", "hiatus", "cancelled"]), description: z.string().trim().min(10).max(4000), tags: z.string().trim().max(1000) });
 export type QuickTitleState = { error?: string };
@@ -14,7 +15,7 @@ export async function createTitleWizardAction(_state: QuickTitleState, formData:
   const value = parsed.data;
   const canonicalSlug = slugify(value.originalTitle) || `title-${randomBytes(4).toString("hex")}`;
   try {
-    const id = await createDbTitle({ canonicalSlug, originalTitle: value.originalTitle, authorName: value.authorName, originalLanguage: value.originalLanguage, displayLocales: ["en", "es", "fr", "de", "pt"], format: value.format, contentRating: value.contentRating, publicationStatus: value.publicationStatus, enTitle: value.originalTitle, enSlug: canonicalSlug, enDescription: value.description, esTitle: value.originalTitle, esSlug: canonicalSlug, esDescription: value.description, frTitle: value.originalTitle, frSlug: canonicalSlug, frDescription: value.description, deTitle: value.originalTitle, deSlug: canonicalSlug, deDescription: value.description, ptTitle: value.originalTitle, ptSlug: canonicalSlug, ptDescription: value.description, enSeoTitle: "", enSeoDescription: "", enSeoKeywords: "", esSeoTitle: "", esSeoDescription: "", esSeoKeywords: "", frSeoTitle: "", frSeoDescription: "", frSeoKeywords: "", deSeoTitle: "", deSeoDescription: "", deSeoKeywords: "", ptSeoTitle: "", ptSeoDescription: "", ptSeoKeywords: "", tags: value.tags });
+    const id = await createDbTitle({ canonicalSlug, originalTitle: value.originalTitle, authorName: value.authorName, originalLanguage: value.originalLanguage, displayLocales: displayLocalesForOriginalLanguage(value.originalLanguage, [...locales]), format: value.format, contentRating: value.contentRating, publicationStatus: value.publicationStatus, enTitle: value.originalTitle, enSlug: canonicalSlug, enDescription: value.description, esTitle: value.originalTitle, esSlug: canonicalSlug, esDescription: value.description, frTitle: value.originalTitle, frSlug: canonicalSlug, frDescription: value.description, deTitle: value.originalTitle, deSlug: canonicalSlug, deDescription: value.description, ptTitle: value.originalTitle, ptSlug: canonicalSlug, ptDescription: value.description, enSeoTitle: "", enSeoDescription: "", enSeoKeywords: "", esSeoTitle: "", esSeoDescription: "", esSeoKeywords: "", frSeoTitle: "", frSeoDescription: "", frSeoKeywords: "", deSeoTitle: "", deSeoDescription: "", deSeoKeywords: "", ptSeoTitle: "", ptSeoDescription: "", ptSeoKeywords: "", tags: value.tags });
     redirect(`/manga1004/titles/${id}?setup=cover`);
   } catch (error) {
     if (isRedirect(error)) throw error;

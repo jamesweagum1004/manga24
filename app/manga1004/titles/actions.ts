@@ -5,7 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesDisplayLocales, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
-import { locales } from "@/lib/i18n";
+import { displayLocalesForOriginalLanguage, locales } from "@/lib/i18n";
 import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
 import { generateTitleContent } from "@/lib/deepseek/seo";
 import { getSiteSettings, updateAutoPublishSchedules } from "@/lib/db/queries/settings";
@@ -240,12 +240,13 @@ export async function bulkTitleAction(formData: FormData) {
 }
 
 function parseTitleForm(formData: FormData) {
+  const originalLanguage = getFormValue(formData, "originalLanguage");
   const values = {
     canonicalSlug: getFormValue(formData, "canonicalSlug"),
     originalTitle: getFormValue(formData, "originalTitle"),
     authorName: getFormValue(formData, "authorName"),
-    originalLanguage: getFormValue(formData, "originalLanguage"),
-    displayLocales: locales.filter((locale) => formData.get(`displayLocale_${locale}`) === "on"),
+    originalLanguage,
+    displayLocales: displayLocalesForOriginalLanguage(originalLanguage, locales.filter((locale) => formData.get(`displayLocale_${locale}`) === "on")),
     contentRating: getFormValue(formData, "contentRating"),
     publicationStatus: getFormValue(formData, "publicationStatus"),
     format: getFormValue(formData, "format"),

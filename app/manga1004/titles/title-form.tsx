@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { TitleFormState } from "./actions";
-import { localeFlags, localeLabels, locales } from "@/lib/i18n";
+import { displayLocalesForOriginalLanguage, getDisplayLocaleForOriginalLanguage, localeFlags, localeLabels, locales } from "@/lib/i18n";
 
 type TitleFormProps = {
   action: (state: TitleFormState, formData: FormData) => Promise<TitleFormState>;
@@ -31,6 +31,15 @@ const formatOptions = [
 export function TitleForm({ action, initialState, submitLabel, writesEnabled }: TitleFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const disabled = pending || !writesEnabled;
+  const displayLocales = displayLocalesForOriginalLanguage(state.values.originalLanguage, state.values.displayLocales);
+  const handleOriginalLanguageChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const selected = getDisplayLocaleForOriginalLanguage(event.currentTarget.value);
+    if (!selected) return;
+    for (const locale of locales) {
+      const checkbox = event.currentTarget.form?.elements.namedItem(`displayLocale_${locale}`);
+      if (checkbox instanceof HTMLInputElement) checkbox.checked = locale === selected;
+    }
+  };
 
   return (
     <form action={formAction} className="mt-6 space-y-6">
@@ -46,7 +55,7 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
           <TextField label="Canonical slug" name="canonicalSlug" value={state.values.canonicalSlug} errors={state.errors?.canonicalSlug} disabled={disabled} />
           <TextField label="Original title" name="originalTitle" value={state.values.originalTitle} errors={state.errors?.originalTitle} disabled={disabled} />
           <TextField label="Author name" name="authorName" value={state.values.authorName} errors={state.errors?.authorName} disabled={disabled} />
-          <TextField label="Original language" name="originalLanguage" value={state.values.originalLanguage} errors={state.errors?.originalLanguage} disabled={disabled} />
+          <TextField label="Original language" name="originalLanguage" value={state.values.originalLanguage} errors={state.errors?.originalLanguage} disabled={disabled} onChange={handleOriginalLanguageChange} />
           <SelectField
             label="Content folder"
             name="format"
@@ -78,7 +87,7 @@ export function TitleForm({ action, initialState, submitLabel, writesEnabled }: 
           <div className="flex flex-wrap gap-3">
             {locales.map((locale) => (
               <label key={locale} className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm font-bold">
-                <input type="checkbox" name={`displayLocale_${locale}`} defaultChecked={state.values.displayLocales.includes(locale)} disabled={disabled} />
+                <input type="checkbox" name={`displayLocale_${locale}`} defaultChecked={displayLocales.includes(locale)} disabled={disabled} />
                 <span>{localeFlags[locale]} {localeLabels[locale]}</span>
               </label>
             ))}
@@ -164,7 +173,8 @@ function TextField({
   value,
   errors,
   disabled,
-  hint
+  hint,
+  onChange
 }: {
   label: string;
   name: string;
@@ -172,6 +182,7 @@ function TextField({
   errors?: string[];
   disabled: boolean;
   hint?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }) {
   return (
     <label className="grid gap-2">
@@ -179,6 +190,7 @@ function TextField({
       <input
         name={name}
         defaultValue={value}
+        onChange={onChange}
         disabled={disabled}
         className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-bold outline-none focus:border-[var(--accent)] disabled:opacity-70"
       />
