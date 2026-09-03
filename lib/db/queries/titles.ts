@@ -577,13 +577,19 @@ async function getChaptersByTitle(titleIds: string[], publicUrlByTitle: Map<stri
     return new Map<string, DemoChapter[]>();
   }
 
-  const chapterIds = chapterRows.map((chapter) => chapter.id);
+  // Catalog cards only display the newest chapter. Keep full chapter history
+  // (and page assets) for title/reader routes, but avoid loading every chapter
+  // localization into each catalog response.
+  const hydratedChapterRows = includePages
+    ? chapterRows
+    : [...new Map(chapterRows.map((chapter) => [chapter.titleId, chapter])).values()];
+  const chapterIds = hydratedChapterRows.map((chapter) => chapter.id);
   const [chapterLocalizationsByChapter, pagesByChapter] = await Promise.all([
     getChapterLocalizationsByChapter(chapterIds),
     includePages ? getChapterPagesByChapter(chapterIds) : Promise.resolve(new Map<string, ChapterPageRow[]>())
   ]);
 
-  const mappedChapters = chapterRows.map((chapter) =>
+  const mappedChapters = hydratedChapterRows.map((chapter) =>
     mapChapterRow(chapter, chapterLocalizationsByChapter.get(chapter.id) ?? [], pagesByChapter.get(chapter.id) ?? [], publicUrlByTitle.get(chapter.titleId) ?? "")
   );
   const grouped = groupBy(mappedChapters, (item) => item.titleId);
