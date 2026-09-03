@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/site-shell";
 import { StructuredData } from "@/components/structured-data";
 import { TagChip } from "@/components/tag-chip";
 import { TitleViewTracker } from "@/components/title-view-tracker";
-import { getCatalogTitleBySlug } from "@/lib/data/source";
+import { getCatalogTagLabels, getCatalogTitleBySlug } from "@/lib/data/source";
 import { buildMetadata, siteUrl } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
@@ -46,6 +46,8 @@ export default async function TitleDetailPage({ params }: PageProps) {
   if (!title) {
     notFound();
   }
+  const tagLabels = await getCatalogTagLabels(title.tags, locale);
+  const translatedTags = title.tags.map((tag) => tagLabels[tag] ?? tag);
   const t = dictionary[locale];
   const firstChapter = title.chapters[0];
   const latestChapter = title.chapters.at(-1);
@@ -69,7 +71,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
               image: coverUrl,
               ...(settings.showAuthor ? { creator: title.author } : {}),
               inLanguage: locale,
-              genre: title.tags,
+              genre: translatedTags,
               contentRating: title.contentRating,
               ...(settings.showPublishedDate ? { datePublished: title.publishedAt } : {})
             },
@@ -128,7 +130,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
 
             <div className="flex flex-wrap gap-2">
               {title.tags.map((tag) => (
-                <TagChip key={tag} slug={tag} locale={locale} />
+                <TagChip key={tag} slug={tag} label={tagLabels[tag]} locale={locale} />
               ))}
             </div>
 

@@ -63,6 +63,14 @@ export async function listDbPublicTags(): Promise<PublicTagListItem[]> {
     .orderBy(asc(tags.nameEn));
 }
 
+export async function listDbPublicTagsBySlugs(slugs: string[]): Promise<PublicTagListItem[]> {
+  if (slugs.length === 0) return [];
+  return getDb()
+    .select({ slug: tags.slug, nameEn: tags.nameEn, nameEs: tags.nameEs, nameFr: tags.nameFr, nameDe: tags.nameDe, namePt: tags.namePt, category: tags.category })
+    .from(tags)
+    .where(inArray(tags.slug, slugs));
+}
+
 export async function createDbTag(values: TagFormValues) {
   const [tag] = await getDb()
     .insert(tags)

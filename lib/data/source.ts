@@ -5,7 +5,7 @@ import {
   getDbChapterBySlug,
   listDbAdminChapters
 } from "@/lib/db/queries/chapters";
-import { adminTagListFromDemoTags, listDbAdminTags, listDbPublicTags } from "@/lib/db/queries/tags";
+import { adminTagListFromDemoTags, listDbAdminTags, listDbPublicTags, listDbPublicTagsBySlugs } from "@/lib/db/queries/tags";
 import {
   adminTitleListFromDemoTitles,
   getDbTitleForAdmin,
@@ -190,4 +190,19 @@ export async function getCatalogTags(locale: Locale) {
     category: "genre",
     titleCount: usage.get(tag.slug) ?? 0
   })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
+}
+
+export async function getCatalogTagLabels(slugs: string[], locale: Locale) {
+  if (!isDatabaseConfigured()) {
+    return Object.fromEntries(slugs.map((slug) => {
+      const tag = demoTags.find((item) => item.slug === slug);
+      return [slug, tag?.names[locale] ?? slug];
+    }));
+  }
+
+  const rows = await listDbPublicTagsBySlugs(slugs);
+  return Object.fromEntries(rows.map((tag) => [
+    tag.slug,
+    ({ en: tag.nameEn, es: tag.nameEs, fr: tag.nameFr, de: tag.nameDe, pt: tag.namePt }[locale] || tag.nameEn)
+  ]));
 }
