@@ -4,6 +4,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import { getAdminSession } from "@/lib/admin/auth";
 import { MaintenancePage } from "@/components/maintenance-page";
+import { PanicButton } from "@/components/panic-button";
 
 export const dynamic = "force-dynamic";
 
@@ -26,5 +27,5 @@ export default async function LocaleLayout({
     return <MaintenancePage locale={rawLocale} />;
   }
 
-  return <>{children}{settings.googleAnalyticsEnabled && settings.googleAnalyticsMeasurementId ? <GoogleAnalytics measurementId={settings.googleAnalyticsMeasurementId} /> : null}</>;
+  return <>{children}{settings.panicButtonEnabled ? <PanicButton /> : null}{settings.googleAnalyticsEnabled && settings.googleAnalyticsMeasurementId ? <GoogleAnalytics measurementId={settings.googleAnalyticsMeasurementId} /> : null}</>;
 }

@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 
-export function PanicButton({ enabled }: { enabled: boolean }) {
-  const pathname = usePathname();
+export function PanicButton() {
   const [hidden, setHidden] = useState(false);
   const previousTitle = useRef("");
-  const available = enabled && !pathname.startsWith("/manga1004") && !pathname.startsWith("/api/");
 
   useEffect(() => {
     if (!hidden) return;
@@ -19,12 +16,6 @@ export function PanicButton({ enabled }: { enabled: boolean }) {
       document.documentElement.style.overflow = "";
     };
   }, [hidden]);
-
-  useEffect(() => {
-    if (!available) setHidden(false);
-  }, [available]);
-
-  if (!available) return null;
 
   return (
     <>
