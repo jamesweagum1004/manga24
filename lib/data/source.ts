@@ -1,5 +1,4 @@
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import { demoTags, demoTitles, findChapter, findTitle, latestTitles, popularTitles } from "@/lib/demo-data";
 import {
   adminChapterListFromDemoTitles,
@@ -29,13 +28,11 @@ export function getActiveDataSource() {
   return isDatabaseConfigured() ? "database" : "demo";
 }
 
-const getCachedDbCatalogTitles = unstable_cache(
-  async () => listDbTitles(),
-  ["public-catalog-titles"],
-  { revalidate: 60, tags: ["public-catalog"] }
-);
-
-const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? getCachedDbCatalogTitles() : demoTitles);
+// React cache deduplicates catalog reads within one server render. Do not put
+// the complete catalog in Next's persistent data cache: larger libraries can
+// exceed its 2 MB item limit, making every request serialize a multi-megabyte
+// value only to discard it after the cache write fails.
+const getAllCatalogTitles = cache(async () => isDatabaseConfigured() ? listDbTitles() : demoTitles);
 
 export async function getCatalogTitles(locale?: Locale) {
   if (isDatabaseConfigured()) {
