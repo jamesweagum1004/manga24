@@ -43,6 +43,51 @@ const completionSchema = z.object({
 export type GeneratedTitleSeo = z.infer<typeof generatedSeoSchema>;
 export type GeneratedTitleContent = z.infer<typeof generatedContentSchema>;
 
+const generatedTagTranslationsSchema = z.object({
+  translations: z.array(z.object({
+    slug: z.string().min(1).max(120),
+    es: z.string().trim().min(1).max(120),
+    fr: z.string().trim().min(1).max(120),
+    de: z.string().trim().min(1).max(120),
+    pt: z.string().trim().min(1).max(120)
+  })).max(50)
+});
+
+export type GeneratedTagTranslation = z.infer<typeof generatedTagTranslationsSchema>["translations"][number];
+
+export async function generateTagTranslations(input: Array<{ slug: string; name: string }>, model: DeepSeekModel) {
+  if (input.length === 0 || input.length > 50) throw new Error("Translate between 1 and 50 tags at a time.");
+  const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
+  if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured.");
+  const response = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      thinking: { type: "disabled" },
+      temperature: 0.1,
+      max_tokens: 4000,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "Translate manga catalog taxonomy labels accurately and concisely. Preserve the exact slug. Return JSON only as {\"translations\":[{\"slug\":\"...\",\"es\":\"...\",\"fr\":\"...\",\"de\":\"...\",\"pt\":\"...\"}]}. Do not omit, add, explain, soften, or embellish terms." },
+        { role: "user", content: JSON.stringify({ sourceLanguage: "English", targetLanguages: { es: "Spanish", fr: "French", de: "German", pt: "Portuguese" }, tags: input }) }
+      ]
+    }),
+    signal: AbortSignal.timeout(30_000)
+  });
+  if (!response.ok) throw new Error(`DeepSeek request failed (${response.status}).`);
+  const completion = completionSchema.parse(await response.json());
+  const content = completion.choices[0]?.message.content;
+  if (!content) throw new Error("DeepSeek returned an empty response.");
+  const generated = generatedTagTranslationsSchema.parse(JSON.parse(stripJsonFence(content)));
+  const requested = new Set(input.map((tag) => tag.slug));
+  const returned = new Set(generated.translations.map((tag) => tag.slug));
+  if (returned.size !== requested.size || [...requested].some((slug) => !returned.has(slug))) {
+    throw new Error("DeepSeek did not return every requested tag.");
+  }
+  return generated.translations;
+}
+
 export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
   const selectedLocales = getSelectedLocales(values);
   const generated = generatedSeoSchema.parse(await requestDeepSeek(values, model, false, selectedLocales));

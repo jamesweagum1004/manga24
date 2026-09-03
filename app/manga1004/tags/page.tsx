@@ -1,15 +1,19 @@
 import { databaseNotConfiguredMessage, getActiveDataSource, getAdminTagList, isDatabaseConfigured } from "@/lib/data/source";
 import { emptyTagFormValues } from "@/lib/db/queries/tags";
-import { createTagAction, replaceTagsAction } from "./actions";
+import { createTagAction, replaceTagsAction, translatePendingTagsAction } from "./actions";
 import { TagForm } from "./tag-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTagsPage({ searchParams }: { searchParams: Promise<{ replaced?: string; titles?: string; error?: string }> }) {
+export default async function AdminTagsPage({ searchParams }: { searchParams: Promise<{ replaced?: string; titles?: string; error?: string; translation?: string; translated?: string; failed?: string }> }) {
   const query = await searchParams;
   const tags = await getAdminTagList();
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
+  const translationFilter = query.translation === "pending" || query.translation === "complete" ? query.translation : "all";
+  const visibleTags = tags.filter((tag) => translationFilter === "all" || (translationFilter === "complete" ? tag.translationsGeneratedAt : !tag.translationsGeneratedAt));
+  const pendingCount = tags.filter((tag) => !tag.translationsGeneratedAt).length;
+  const completeCount = tags.length - pendingCount;
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8">
@@ -26,6 +30,21 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
 
       {query.replaced ? <p className="rounded-xl border border-green-300 bg-green-50 p-4 text-sm font-bold text-green-800">Replaced {query.replaced} source tags across {query.titles ?? "0"} titles.</p> : null}
       {query.error ? <p className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-800">Unable to replace tags. Check that every slug uses lowercase letters, numbers, and hyphens.</p> : null}
+      {query.translated ? <p className="rounded-xl border border-green-300 bg-green-50 p-4 text-sm font-bold text-green-800">Translated {query.translated} tag(s){Number(query.failed) > 0 ? `; ${query.failed} failed and remain in Translation needed` : ""}.</p> : null}
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <TagStatusCard href="/manga1004/tags" label="All tags" count={tags.length} active={translationFilter === "all"} />
+        <TagStatusCard href="/manga1004/tags?translation=pending" label="Translation needed" count={pendingCount} active={translationFilter === "pending"} />
+        <TagStatusCard href="/manga1004/tags?translation=complete" label="Translation complete" count={completeCount} active={translationFilter === "complete"} />
+      </section>
+
+      <section className="rounded-2xl border border-blue-300 bg-blue-50 p-5 shadow-sm">
+        <h2 className="text-xl font-black text-blue-950">DeepSeek tag translation</h2>
+        <p className="mt-1 text-sm font-bold text-blue-900">Translates only unfinished tags into Spanish, French, German, and Portuguese. Completed tags are never sent again.</p>
+        <form action={translatePendingTagsAction} className="mt-4">
+          <button disabled={!writesEnabled || pendingCount === 0} className="rounded-xl bg-blue-800 px-5 py-3 text-sm font-black text-white disabled:opacity-40">Translate next pending tags ({Math.min(pendingCount, 40)})</button>
+        </form>
+      </section>
 
       <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
         <h2 className="text-xl font-black text-amber-950">Replace and merge tags</h2>
@@ -42,17 +61,18 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
       <TagForm action={createTagAction} initialState={{ values: emptyTagFormValues }} writesEnabled={writesEnabled} />
 
       <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-        {tags.length === 0 ? (
+        {visibleTags.length === 0 ? (
           <div className="p-6 text-sm font-bold text-[var(--muted)]">No tags are available yet.</div>
         ) : (
-          tags.map((tag) => (
+          visibleTags.map((tag) => (
             <div
               key={tag.id}
-              className="grid gap-1 border-b border-[var(--border)] px-4 py-3 last:border-b-0 sm:grid-cols-[1fr_1fr_1fr]"
+              className="grid gap-2 border-b border-[var(--border)] px-4 py-3 last:border-b-0 lg:grid-cols-[1fr_1fr_2fr_auto]"
             >
               <span className="text-sm font-black">{tag.slug}</span>
-              <span className="text-sm font-bold">{tag.name}</span>
-              <span className="text-xs font-bold uppercase text-[var(--muted)]">{tag.category}</span>
+              <span className="text-sm font-bold">EN: {tag.name}</span>
+              <span className="grid gap-1 text-xs font-bold text-[var(--muted)]"><span>ES: {tag.nameEs}</span><span>FR: {tag.nameFr ?? "—"}</span><span>DE: {tag.nameDe ?? "—"}</span><span>PT: {tag.namePt ?? "—"}</span></span>
+              <span className="grid content-center gap-1 text-right"><span className={`rounded-full px-3 py-1 text-xs font-black ${tag.translationsGeneratedAt ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>{tag.translationsGeneratedAt ? "Complete" : "Translation needed"}</span><span className="text-xs font-bold uppercase text-[var(--muted)]">{tag.category}</span></span>
             </div>
           ))
         )}
@@ -62,3 +82,7 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
 }
 
 const inputClass = "min-h-11 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 font-medium";
+
+function TagStatusCard({ href, label, count, active }: { href: string; label: string; count: number; active: boolean }) {
+  return <a href={href} className={`rounded-xl border p-5 ${active ? "border-[var(--accent)] bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]"}`}><span className="block font-black">{label}</span><span className="mt-1 block text-sm font-bold text-[var(--muted)]">{count} tags</span></a>;
+}

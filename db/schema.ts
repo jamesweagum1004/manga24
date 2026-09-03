@@ -271,6 +271,10 @@ export const tags = pgTable(
     slug: varchar("slug", { length: 120 }).notNull(),
     nameEn: varchar("name_en", { length: 120 }).notNull(),
     nameEs: varchar("name_es", { length: 120 }).notNull(),
+    nameFr: varchar("name_fr", { length: 120 }),
+    nameDe: varchar("name_de", { length: 120 }),
+    namePt: varchar("name_pt", { length: 120 }),
+    translationsGeneratedAt: timestamp("translations_generated_at", { withTimezone: true }),
     category: varchar("category", { length: 80 }).default("general").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

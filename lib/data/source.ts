@@ -161,7 +161,7 @@ export async function getCatalogTags(locale: Locale) {
     const rows = await listDbPublicTags();
     return rows.map((tag) => ({
       slug: tag.slug,
-      label: locale === "es" ? tag.nameEs : tag.nameEn,
+      label: ({ en: tag.nameEn, es: tag.nameEs, fr: tag.nameFr, de: tag.nameDe, pt: tag.namePt }[locale] || tag.nameEn),
       category: tag.category,
       titleCount: usage.get(tag.slug) ?? 0
     })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));

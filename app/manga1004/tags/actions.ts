@@ -1,9 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { databaseNotConfiguredMessage, isDatabaseConfigured } from "@/lib/data/source";
-import { createDbTag, replaceDbTags, type TagFormValues } from "@/lib/db/queries/tags";
+import { createDbTag, listDbPendingTagTranslations, replaceDbTags, updateDbTagTranslations, type TagFormValues } from "@/lib/db/queries/tags";
+import { getSiteSettings } from "@/lib/db/queries/settings";
+import { generateTagTranslations } from "@/lib/deepseek/seo";
 
 const tagFormSchema = z.object({
   slug: z
@@ -80,6 +83,33 @@ export async function replaceTagsAction(formData: FormData) {
     redirect("/manga1004/tags?error=replace");
   }
   redirect(`/manga1004/tags?replaced=${result.tagsReplaced}&titles=${result.titlesUpdated}`);
+}
+
+export async function translatePendingTagsAction() {
+  if (!isDatabaseConfigured()) redirect("/manga1004/tags?error=translate");
+  const pending = await listDbPendingTagTranslations(40);
+  const settings = await getSiteSettings();
+  let translated = 0;
+  let failed = 0;
+  for (let offset = 0; offset < pending.length; offset += 40) {
+    const batch = pending.slice(offset, offset + 40);
+    try {
+      const generated = await generateTagTranslations(batch.map(({ slug, name }) => ({ slug, name })), settings.deepseekModel);
+      const bySlug = new Map(generated.map((item) => [item.slug, item]));
+      for (const tag of batch) {
+        const item = bySlug.get(tag.slug);
+        if (!item) { failed += 1; continue; }
+        await updateDbTagTranslations(tag.id, item);
+        translated += 1;
+      }
+    } catch (error) {
+      failed += batch.length;
+      console.error("Tag translation batch failed", { slugs: batch.map((tag) => tag.slug), error });
+    }
+  }
+  revalidateTag("public-catalog");
+  revalidatePath("/", "layout");
+  redirect(`/manga1004/tags?translation=pending&translated=${translated}&failed=${failed}`);
 }
 
 function getFormValue(formData: FormData, key: keyof TagFormValues) {
