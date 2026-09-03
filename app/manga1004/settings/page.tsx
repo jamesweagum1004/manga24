@@ -3,7 +3,7 @@ import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listStorageConfigsForAdmin } from "@/lib/db/queries/storage-configs";
 import { isStorageEncryptionConfigured } from "@/lib/storage-crypto";
 import { localeFlags, localeLabels, locales } from "@/lib/i18n";
-import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePublicMetadataSettingsAction, updatePwaSettingsAction, updateReaderRecommendationSettingsAction, updateSeoSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
+import { deleteBrandingAction, updateAiSettingsAction, updateGoogleAnalyticsSettingsAction, updateHomeContentSettingsAction, updateLanguageSettingsAction, updateMaintenanceSettingsAction, updatePanicButtonSettingsAction, updatePublicMetadataSettingsAction, updatePwaSettingsAction, updateReaderRecommendationSettingsAction, updateSeoSettingsAction, updateStorageSettingsAction, updateViewCountSettingsAction, uploadBrandingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,15 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <form action={updateMaintenanceSettingsAction} className="mt-5 grid gap-4">
           <Toggle name="maintenanceEnabled" defaultChecked={settings.maintenanceEnabled} title="Enable maintenance page" description="Public catalog and reader pages are hidden. Admin pages and internal APIs remain available." />
           <button className="w-fit rounded-xl bg-amber-700 px-5 py-3 font-black text-white">Save maintenance mode</button>
+        </form>
+      </section>
+
+      <section id="panic-button" className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+        <h2 className="text-xl font-black">Panic button</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Let visitors instantly cover the current page with a neutral search screen, then return without losing their reading position.</p>
+        <form action={updatePanicButtonSettingsAction} className="mt-5 grid gap-4">
+          <Toggle name="panicButtonEnabled" defaultChecked={settings.panicButtonEnabled} title="Enable panic button" description="Shows a discreet floating button at the bottom-right of public pages. Administrator pages are excluded." />
+          <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save panic button setting</button>
         </form>
       </section>
 

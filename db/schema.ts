@@ -51,6 +51,7 @@ export const siteSettings = pgTable("site_settings", {
   homeManhwaEnabled: boolean("home_manhwa_enabled").default(true).notNull(),
   viewCountsEnabled: boolean("view_counts_enabled").default(true).notNull(),
   maintenanceEnabled: boolean("maintenance_enabled").default(false).notNull(),
+  panicButtonEnabled: boolean("panic_button_enabled").default(false).notNull(),
   showPublishedDate: boolean("show_published_date").default(true).notNull(),
   showAuthor: boolean("show_author").default(true).notNull(),
   showChapters: boolean("show_chapters").default(true).notNull(),

@@ -35,6 +35,7 @@ export const getSiteSettings = cache(async () => {
     homeManhwaEnabled: settings?.homeManhwaEnabled ?? true,
     viewCountsEnabled: settings?.viewCountsEnabled ?? true,
     maintenanceEnabled: settings?.maintenanceEnabled ?? false,
+    panicButtonEnabled: settings?.panicButtonEnabled ?? false,
     showPublishedDate: settings?.showPublishedDate ?? true,
     showAuthor: settings?.showAuthor ?? true,
     showChapters: settings?.showChapters ?? true,
@@ -56,7 +57,7 @@ export const getSiteSettings = cache(async () => {
     autoPublishSchedules: normalizeAutoPublishSchedules(settings?.autoPublishSchedules),
     logo: settings?.logo ?? null,
     favicon: settings?.favicon ?? null
-  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string; autoPublishSchedules: Record<Locale, AutoPublishSchedule>; logo: BrandingImage | null; favicon: BrandingImage | null };
+  } satisfies { deepseekModel: DeepSeekModel; imageCdnUrl: string; enabledLocales: Locale[]; pwaEnabled: boolean; pwaPromptEnabled: boolean; pwaPromptThreshold: 3 | 4 | 5; pwaAdsEnabled: boolean; homeManhwaEnabled: boolean; viewCountsEnabled: boolean; maintenanceEnabled: boolean; panicButtonEnabled: boolean; showPublishedDate: boolean; showAuthor: boolean; showChapters: boolean; readerRecommendationCount: number; homeSections: HomeSection[]; adLocaleModes: Record<Locale, "inherit" | "separate">; googleAnalyticsEnabled: boolean; googleAnalyticsMeasurementId: string; siteName: string; seoLocales: Record<Locale, SeoLocaleSettings>; seoDefaultImageUrl: string; sitemapEnabled: boolean; sitemapIncludeStatic: boolean; sitemapIncludeTitles: boolean; sitemapIncludeChapters: boolean; sitemapIncludeTags: boolean; indexnowEnabled: boolean; indexnowKey: string; autoPublishSchedules: Record<Locale, AutoPublishSchedule>; logo: BrandingImage | null; favicon: BrandingImage | null };
 });
 
 export async function updateAutoPublishSchedules(input: Record<Locale, Omit<AutoPublishSchedule, "lastRunAt">>) {
@@ -89,6 +90,13 @@ export async function updateSeoSettings(input: { siteName: string; seoLocales: R
 }
 
 export async function updateMaintenanceSettings(input: { maintenanceEnabled: boolean }) {
+  await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: { ...input, updatedAt: new Date() }
+  });
+}
+
+export async function updatePanicButtonSettings(input: { panicButtonEnabled: boolean }) {
   await getDb().insert(siteSettings).values({ id: 1, ...input, updatedAt: new Date() }).onConflictDoUpdate({
     target: siteSettings.id,
     set: { ...input, updatedAt: new Date() }

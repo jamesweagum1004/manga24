@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePublicMetadataSettings, updatePwaSettings, updateReaderRecommendationSettings, updateSeoSettings, updateViewCountSettings, type SeoLocaleSettings } from "@/lib/db/queries/settings";
+import { deepseekModels, updateBrandingImage, updateDeepSeekModel, updateEnabledLocales, updateGoogleAnalyticsSettings, updateHomeContentSettings, updateMaintenanceSettings, updatePanicButtonSettings, updatePublicMetadataSettings, updatePwaSettings, updateReaderRecommendationSettings, updateSeoSettings, updateViewCountSettings, type SeoLocaleSettings } from "@/lib/db/queries/settings";
 import { updateStorageConfig, type StorageFormat } from "@/lib/db/queries/storage-configs";
 import { validateImageCdnUrl } from "@/lib/media/public-url";
 import { isLocale, locales } from "@/lib/i18n";
@@ -150,6 +150,12 @@ export async function updateViewCountSettingsAction(formData: FormData) {
 export async function updateMaintenanceSettingsAction(formData: FormData) {
   await updateMaintenanceSettings({ maintenanceEnabled: formData.get("maintenanceEnabled") === "on" });
   redirect("/manga1004/settings?saved=maintenance#maintenance");
+}
+
+export async function updatePanicButtonSettingsAction(formData: FormData) {
+  await updatePanicButtonSettings({ panicButtonEnabled: formData.get("panicButtonEnabled") === "on" });
+  revalidatePath("/", "layout");
+  redirect("/manga1004/settings?saved=panic-button#panic-button");
 }
 
 export async function updatePwaSettingsAction(formData: FormData) {

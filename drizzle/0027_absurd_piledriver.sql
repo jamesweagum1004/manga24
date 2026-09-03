@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "panic_button_enabled" boolean DEFAULT false NOT NULL;
