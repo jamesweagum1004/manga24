@@ -134,8 +134,17 @@ export async function getCatalogRecommendations(current: { slug: string; tags: s
     .map(({ title }) => title);
 }
 
-function filterByLocale<T extends { displayLocales?: Locale[] }>(titles: T[], locale?: Locale) {
-  return locale ? titles.filter((title) => isVisibleInLocale(title, locale)) : titles;
+function filterByLocale<T extends { displayLocales?: Locale[]; author?: string; titles?: Partial<Record<Locale, string>>; format?: "manga" | "manhwa" }>(titles: T[], locale?: Locale) {
+  const visible = locale ? titles.filter((title) => isVisibleInLocale(title, locale)) : titles;
+  if (!locale) return visible;
+  const seen = new Set<string>();
+  return visible.filter((title) => {
+    if (title.format === "manhwa" || !title.author || !title.titles?.[locale]) return true;
+    const key = JSON.stringify([locale, title.author, title.titles[locale]]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function isVisibleInLocale(title: { displayLocales?: Locale[] }, locale?: Locale) {
