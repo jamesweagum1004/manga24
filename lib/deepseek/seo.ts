@@ -91,13 +91,13 @@ export async function generateTagTranslations(input: Array<{ slug: string; name:
 export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
   const selectedLocales = getSelectedLocales(values);
   const generated = generatedSeoSchema.parse(await requestDeepSeek(values, model, false, selectedLocales));
-  return requireSelectedLocales(generated, selectedLocales);
+  return includeRequiredFormatKeyword(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format);
 }
 
 export async function generateTitleContent(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleContent> {
   const selectedLocales = getSelectedLocales(values);
   const generated = generatedContentSchema.parse(await requestDeepSeek(values, model, true, selectedLocales));
-  return requireSelectedLocales(generated, selectedLocales);
+  return includeRequiredFormatKeyword(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format);
 }
 
 async function requestDeepSeek(
@@ -110,6 +110,7 @@ async function requestDeepSeek(
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY is not configured.");
   }
+  const requiredFormatKeyword = values.format === "manhwa" ? "manhwa" : "doujinshi";
 
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
@@ -127,7 +128,7 @@ async function requestDeepSeek(
         {
           role: "system",
           content:
-            `You create accurate multilingual catalog copy and SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep SEO titles under 60 characters when practical and SEO descriptions between 120 and 160 characters. Output exactly these requested locale keys and no others: ${selectedLocales.join(", ")}. Each key must contain title, description, keywords${includeCatalogDescription ? ", and catalogDescription (a natural 2-4 sentence catalog summary based only on supplied facts)" : ""}.`
+            `You create accurate multilingual catalog copy and SEO metadata for a legal, licensed manga catalog. Return JSON only. Do not invent plot facts, awards, availability, creators, or claims. Avoid graphic or explicit wording. Keep SEO titles under 60 characters when practical and SEO descriptions between 120 and 160 characters. Include the exact keyword "${requiredFormatKeyword}" in the keywords array for every requested locale. Output exactly these requested locale keys and no others: ${selectedLocales.join(", ")}. Each key must contain title, description, keywords${includeCatalogDescription ? ", and catalogDescription (a natural 2-4 sentence catalog summary based only on supplied facts)" : ""}.`
         },
         {
           role: "user",
@@ -136,6 +137,8 @@ async function requestDeepSeek(
             originalTitle: values.originalTitle,
             author: values.authorName,
             originalLanguage: values.originalLanguage,
+            format: values.format,
+            requiredSeoKeyword: requiredFormatKeyword,
             status: values.publicationStatus,
             contentRating: values.contentRating,
             tags: values.tags,
@@ -186,6 +189,24 @@ function requireSelectedLocales<T>(generated: Partial<Record<Locale, T>>, select
     selected[locale] = value;
   }
   return selected;
+}
+
+function includeRequiredFormatKeyword<T extends { keywords: string[] }>(
+  generated: Partial<Record<Locale, T>>,
+  selectedLocales: Locale[],
+  format: TitleFormValues["format"]
+) {
+  const required = format === "manhwa" ? "manhwa" : "doujinshi";
+  const result: Partial<Record<Locale, T>> = {};
+  for (const locale of selectedLocales) {
+    const value = generated[locale];
+    if (!value) continue;
+    result[locale] = {
+      ...value,
+      keywords: [required, ...value.keywords.filter((keyword) => keyword.toLowerCase() !== required)].slice(0, 10)
+    };
+  }
+  return result;
 }
 
 function stripJsonFence(content: string) {
