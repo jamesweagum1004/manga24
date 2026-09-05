@@ -109,13 +109,13 @@ export async function generateTagTranslations(input: Array<{ slug: string; name:
 export async function generateTitleSeo(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleSeo> {
   const selectedLocales = getSelectedLocales(values);
   const generated = generatedSeoSchema.parse(await requestDeepSeek(values, model, false, selectedLocales));
-  return includeRequiredFormatKeyword(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format);
+  return includeRequiredKeywords(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format, values.tags);
 }
 
 export async function generateTitleContent(values: TitleFormValues, model: DeepSeekModel): Promise<GeneratedTitleContent> {
   const selectedLocales = getSelectedLocales(values);
   const generated = generatedContentSchema.parse(await requestDeepSeek(values, model, true, selectedLocales));
-  return includeRequiredFormatKeyword(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format);
+  return includeRequiredKeywords(requireSelectedLocales(generated, selectedLocales), selectedLocales, values.format, values.tags);
 }
 
 async function requestDeepSeek(
@@ -209,19 +209,28 @@ function requireSelectedLocales<T>(generated: Partial<Record<Locale, T>>, select
   return selected;
 }
 
-function includeRequiredFormatKeyword<T extends { keywords: string[] }>(
+function includeRequiredKeywords<T extends { keywords: string[] }>(
   generated: Partial<Record<Locale, T>>,
   selectedLocales: Locale[],
-  format: TitleFormValues["format"]
+  format: TitleFormValues["format"],
+  tags: string
 ) {
   const required = format === "manhwa" ? ["manhwa", "adult manhwa"] : ["doujinshi", "hentai manga"];
+  const tagKeywords = tags.split(",").map((tag) => tag.trim()).filter(Boolean);
   const result: Partial<Record<Locale, T>> = {};
   for (const locale of selectedLocales) {
     const value = generated[locale];
     if (!value) continue;
+    const seen = new Set<string>();
+    const keywords = [...required, ...tagKeywords, ...value.keywords].filter((keyword) => {
+      const normalized = keyword.toLocaleLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
     result[locale] = {
       ...value,
-      keywords: [...required, ...value.keywords.filter((keyword) => !required.includes(keyword.toLowerCase()))].slice(0, 10)
+      keywords
     };
   }
   return result;
