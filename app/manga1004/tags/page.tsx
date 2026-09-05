@@ -1,17 +1,18 @@
 import { databaseNotConfiguredMessage, getActiveDataSource, getAdminTagList, isDatabaseConfigured } from "@/lib/data/source";
 import { emptyTagFormValues } from "@/lib/db/queries/tags";
-import { createTagAction, replaceTagsAction, translatePendingTagsAction } from "./actions";
+import { createTagAction, replaceTagsAction, translatePendingTagsAction, updateTagAction } from "./actions";
 import { TagForm } from "./tag-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTagsPage({ searchParams }: { searchParams: Promise<{ replaced?: string; titles?: string; error?: string; translation?: string; translated?: string; failed?: string }> }) {
+export default async function AdminTagsPage({ searchParams }: { searchParams: Promise<{ replaced?: string; titles?: string; error?: string; translation?: string; translated?: string; failed?: string; q?: string; updated?: string }> }) {
   const query = await searchParams;
   const tags = await getAdminTagList();
   const source = getActiveDataSource();
   const writesEnabled = isDatabaseConfigured();
   const translationFilter = query.translation === "pending" || query.translation === "complete" ? query.translation : "all";
-  const visibleTags = tags.filter((tag) => translationFilter === "all" || (translationFilter === "complete" ? tag.translationsGeneratedAt : !tag.translationsGeneratedAt));
+  const search = (query.q ?? "").trim().toLowerCase();
+  const visibleTags = tags.filter((tag) => (translationFilter === "all" || (translationFilter === "complete" ? tag.translationsGeneratedAt : !tag.translationsGeneratedAt)) && (!search || [tag.slug, tag.name, tag.nameEs, tag.nameFr, tag.nameDe, tag.namePt, tag.category].some((value) => value?.toLowerCase().includes(search))));
   const pendingCount = tags.filter((tag) => !tag.translationsGeneratedAt).length;
   const completeCount = tags.length - pendingCount;
 
@@ -37,6 +38,8 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
         <TagStatusCard href="/manga1004/tags?translation=pending" label="Translation needed" count={pendingCount} active={translationFilter === "pending"} />
         <TagStatusCard href="/manga1004/tags?translation=complete" label="Translation complete" count={completeCount} active={translationFilter === "complete"} />
       </section>
+
+      <form method="get" className="flex gap-2"><input type="search" name="q" defaultValue={query.q} placeholder="Search slug, name, translation, or category" className="min-h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4" /><button className="rounded-xl bg-[var(--foreground)] px-5 font-black text-[var(--background)]">Search</button></form>
 
       <section className="rounded-2xl border border-blue-300 bg-blue-50 p-5 shadow-sm">
         <h2 className="text-xl font-black text-blue-950">DeepSeek tag translation</h2>
@@ -70,8 +73,7 @@ export default async function AdminTagsPage({ searchParams }: { searchParams: Pr
               className="grid gap-2 border-b border-[var(--border)] px-4 py-3 last:border-b-0 lg:grid-cols-[1fr_1fr_2fr_auto]"
             >
               <span className="text-sm font-black">{tag.slug}</span>
-              <span className="text-sm font-bold">EN: {tag.name}</span>
-              <span className="grid gap-1 text-xs font-bold text-[var(--muted)]"><span>ES: {tag.nameEs}</span><span>FR: {tag.nameFr ?? "—"}</span><span>DE: {tag.nameDe ?? "—"}</span><span>PT: {tag.namePt ?? "—"}</span></span>
+              <form action={updateTagAction.bind(null, tag.slug)} className="grid gap-2 lg:col-span-2 lg:grid-cols-[1fr_1fr_auto]"><input name="name" required maxLength={120} defaultValue={tag.name} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-bold" /><input name="category" required maxLength={80} defaultValue={tag.category} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-bold" /><button className="rounded-lg bg-[var(--foreground)] px-4 py-2 text-xs font-black text-[var(--background)]">Save &amp; translate</button><span className="text-xs font-bold text-[var(--muted)] lg:col-span-3">ES: {tag.nameEs} · FR: {tag.nameFr ?? "—"} · DE: {tag.nameDe ?? "—"} · PT: {tag.namePt ?? "—"}</span></form>
               <span className="grid content-center gap-1 text-right"><span className={`rounded-full px-3 py-1 text-xs font-black ${tag.translationsGeneratedAt ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>{tag.translationsGeneratedAt ? "Complete" : "Translation needed"}</span><span className="text-xs font-bold uppercase text-[var(--muted)]">{tag.category}</span></span>
             </div>
           ))

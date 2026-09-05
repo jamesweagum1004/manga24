@@ -11,7 +11,7 @@ import type { DemoTitle } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { listActiveAds } from "@/lib/db/queries/ads";
 import { getSiteSettings } from "@/lib/db/queries/settings";
-import { homeSectionHref, type HomeSection } from "@/lib/home-sections";
+import { homeSectionHref, localizedHomeSection, type HomeSection } from "@/lib/home-sections";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -100,6 +100,7 @@ function imageOrigin(value: string | undefined) {
 }
 
 function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[]; timeRankings: Map<number, DemoTitle[]> }, locale: Parameters<typeof homeSectionHref>[0]) {
+  const labels = localizedHomeSection(section, locale);
   let items: DemoTitle[];
   if (section.source === "popular") items = data.mangaPopular;
   else if (section.source === "live") items = data.timeRankings.get(0.25) ?? data.mangaPopular;
@@ -113,8 +114,8 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
   else if (section.source === "manhwa") items = data.catalog.filter((title) => title.format === "manhwa");
   else items = data.mangaLatest;
   return {
-    title: section.title,
-    subtitle: section.subtitle,
+    title: labels.title,
+    subtitle: labels.subtitle,
     href: homeSectionHref(locale, section),
     items: items.slice(0, section.itemCount),
     ranked: section.source === "popular" || section.source === "live" || section.source === "popular_period" || section.source === "adult",

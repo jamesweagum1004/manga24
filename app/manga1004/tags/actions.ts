@@ -56,7 +56,8 @@ export async function createTagAction(_state: TagFormState, formData: FormData):
   }
 
   try {
-    await createDbTag(parsed.data);
+    const id = await createDbTag(parsed.data);
+    await translateTag(id, parsed.data.slug, parsed.data.name);
   } catch (error) {
     return {
       values: parsed.data,
@@ -65,6 +66,28 @@ export async function createTagAction(_state: TagFormState, formData: FormData):
   }
 
   redirect("/manga1004/tags");
+}
+
+export async function updateTagAction(slug: string, formData: FormData) {
+  const parsed = tagFormSchema.safeParse({ slug, name: formData.get("name"), category: formData.get("category") });
+  if (!parsed.success || !isDatabaseConfigured()) redirect("/manga1004/tags?error=edit");
+  try {
+    const id = await createDbTag(parsed.data);
+    await translateTag(id, parsed.data.slug, parsed.data.name);
+  } catch (error) {
+    console.error("Tag update or translation failed", { slug, error });
+    redirect("/manga1004/tags?error=edit");
+  }
+  revalidateTag("public-catalog");
+  revalidatePath("/", "layout");
+  redirect("/manga1004/tags?updated=1");
+}
+
+async function translateTag(id: string, slug: string, name: string) {
+  const settings = await getSiteSettings();
+  const [generated] = await generateTagTranslations([{ slug, name }], settings.deepseekModel);
+  if (!generated) throw new Error("DeepSeek did not return the tag translation.");
+  await updateDbTagTranslations(id, generated);
 }
 
 export async function replaceTagsAction(formData: FormData) {

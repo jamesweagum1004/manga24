@@ -1,5 +1,5 @@
 import { getSiteSettings } from "@/lib/db/queries/settings";
-import { createHomeSectionAction, deleteHomeSectionAction, moveHomeSectionAction, updateHomeSectionAction } from "./actions";
+import { createHomeSectionAction, deleteHomeSectionAction, moveHomeSectionAction, translateHomeSectionsAction, updateHomeSectionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +7,7 @@ export default async function HomeSectionsPage({ searchParams }: { searchParams:
   const [settings, query] = await Promise.all([getSiteSettings(), searchParams]);
   return <main className="mx-auto max-w-6xl px-4 py-8"><p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">Content</p><h1 className="mt-1 text-3xl font-black">Homepage categories</h1><p className="mt-1 text-sm font-bold text-[var(--muted)]">Build homepage rails from live, random, scheduled popularity, tags, or catalog sources. Live uses the last 15 minutes; hourly and daily use rolling time windows.</p>
     {query.saved ? <Notice tone="success">Homepage category saved.</Notice> : null}{query.error === "last-section" ? <Notice tone="error">At least one homepage category must remain.</Notice> : null}{query.error && query.error !== "last-section" ? <Notice tone="error">Check the category fields and try again.</Notice> : null}
+    <form action={translateHomeSectionsAction} className="mt-5"><button className="rounded-xl bg-blue-800 px-5 py-3 text-sm font-black text-white">Translate all existing categories with DeepSeek</button></form>
     <div className="mt-6 grid gap-4">{settings.homeSections.map((section, index) => <Card key={section.id} section={section} canMoveUp={index > 0} canMoveDown={index < settings.homeSections.length - 1} />)}<form action={createHomeSectionAction} className="rounded-2xl border border-dashed border-[var(--accent)] bg-[var(--surface)] p-5 shadow-sm"><h2 className="text-lg font-black">Add homepage category</h2><Fields /><button className="mt-4 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-black text-white">Add category</button></form></div>
   </main>;
 }

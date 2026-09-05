@@ -15,6 +15,7 @@ export type HomeSection = {
   enabled: boolean;
   popularityPeriod: PopularityPeriod;
   customHours: number;
+  localizations?: Partial<Record<Locale, { title: string; subtitle: string }>>;
 };
 
 export const defaultHomeSections: HomeSection[] = [
@@ -46,9 +47,25 @@ export function normalizeHomeSections(value: unknown): HomeSection[] {
       enabled: input.enabled !== false,
       popularityPeriod: popularityPeriods.includes(input.popularityPeriod as PopularityPeriod) ? input.popularityPeriod as PopularityPeriod : "hourly",
       customHours: typeof input.customHours === "number" && Number.isInteger(input.customHours) ? Math.min(168, Math.max(1, input.customHours)) : 6
+      ,localizations: normalizeLocalizations(input.localizations, title, typeof input.subtitle === "string" ? input.subtitle.trim().slice(0, 80) : "")
     } satisfies HomeSection];
   });
   return sections.length > 0 ? sections.slice(0, 30) : defaultHomeSections;
+}
+
+function normalizeLocalizations(value: unknown, title: string, subtitle: string) {
+  const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return Object.fromEntries((["en", "es", "fr", "de", "pt"] as Locale[]).flatMap((locale) => {
+    const item = input[locale];
+    if (!item || typeof item !== "object") return locale === "en" ? [[locale, { title, subtitle }]] : [];
+    const fields = item as Record<string, unknown>;
+    const localizedTitle = typeof fields.title === "string" ? fields.title.trim().slice(0, 80) : "";
+    return localizedTitle ? [[locale, { title: localizedTitle, subtitle: typeof fields.subtitle === "string" ? fields.subtitle.trim().slice(0, 80) : "" }]] : [];
+  }));
+}
+
+export function localizedHomeSection(section: HomeSection, locale: Locale) {
+  return section.localizations?.[locale] ?? { title: section.title, subtitle: section.subtitle };
 }
 
 export function homeSectionHref(locale: Locale, section: HomeSection) {
