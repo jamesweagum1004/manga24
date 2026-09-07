@@ -5,10 +5,12 @@ import { getCatalogTitles } from "@/lib/data/source";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { buildMetadata } from "@/lib/metadata";
+import { getSiteSettings } from "@/lib/db/queries/settings";
+import { CatalogPagination, paginate } from "@/components/catalog-pagination";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function SearchPage({ params, searchParams }: PageProps) {
-  const [{ locale: rawLocale }, query] = await Promise.all([params, searchParams]);
+  const [{ locale: rawLocale }, query, settings] = await Promise.all([params, searchParams, getSiteSettings()]);
   const locale = getLocaleOrDefault(rawLocale);
   const term = query.q?.trim() ?? "";
   const normalized = term.toLocaleLowerCase();
@@ -40,6 +42,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
         ].some((value) => value.toLocaleLowerCase().includes(normalized))
       )
     : [];
+  const page = paginate(titles, query.page, settings.catalogPageSize);
 
   return (
     <SiteShell locale={locale}>
@@ -63,11 +66,12 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {titles.map((title, index) => (
+            {page.items.map((title, index) => (
               <MangaCard key={title.slug} title={title} locale={locale} priority={index < 2} />
             ))}
           </div>
         )}
+        {term ? <CatalogPagination currentPage={page.currentPage} totalPages={page.totalPages} href={(number) => `/${locale}/search?q=${encodeURIComponent(term)}&page=${number}`} /> : null}
       </main>
     </SiteShell>
   );

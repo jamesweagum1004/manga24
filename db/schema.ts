@@ -49,6 +49,7 @@ export const siteSettings = pgTable("site_settings", {
   pwaPromptThreshold: integer("pwa_prompt_threshold").default(3).notNull(),
   pwaAdsEnabled: boolean("pwa_ads_enabled").default(true).notNull(),
   homeManhwaEnabled: boolean("home_manhwa_enabled").default(true).notNull(),
+  catalogPageSize: integer("catalog_page_size").default(60).notNull(),
   viewCountsEnabled: boolean("view_counts_enabled").default(true).notNull(),
   maintenanceEnabled: boolean("maintenance_enabled").default(false).notNull(),
   panicButtonEnabled: boolean("panic_button_enabled").default(false).notNull(),

@@ -7,9 +7,11 @@ import { buildMetadata } from "@/lib/metadata";
 import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { CatalogPagination, paginate } from "@/components/catalog-pagination";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -25,10 +27,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function PopularPage({ params }: PageProps) {
-  const { locale: rawLocale } = await params;
+export default async function PopularPage({ params, searchParams }: PageProps) {
+  const [{ locale: rawLocale }, query] = await Promise.all([params, searchParams]);
   const locale = getLocaleOrDefault(rawLocale);
   const [titles, settings] = await Promise.all([getPopularCatalogTitles(locale), getSiteSettings()]);
+  const page = paginate(titles, query.page, settings.catalogPageSize);
 
   return (
     <SiteShell locale={locale}>
@@ -36,10 +39,11 @@ export default async function PopularPage({ params }: PageProps) {
       <h1 className="text-3xl font-black">{dictionary[locale].popular}</h1>
       <RankingRail titles={titles} locale={locale} showViewCounts={settings.viewCountsEnabled} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {titles.map((title, index) => (
+        {page.items.map((title, index) => (
           <MangaCard key={title.slug} title={title} locale={locale} priority={index < 2} />
         ))}
       </div>
+      <CatalogPagination currentPage={page.currentPage} totalPages={page.totalPages} href={(number) => `/${locale}/popular?page=${number}`} />
     </main>
     </SiteShell>
   );

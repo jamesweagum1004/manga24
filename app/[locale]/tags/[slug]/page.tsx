@@ -9,9 +9,12 @@ import { dictionary } from "@/lib/demo-data";
 import { getCatalogTags } from "@/lib/data/source";
 import { getLocaleOrDefault, type Locale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
+import { getSiteSettings } from "@/lib/db/queries/settings";
+import { CatalogPagination, paginate } from "@/components/catalog-pagination";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -39,8 +42,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function TagPage({ params }: PageProps) {
-  const { locale: rawLocale, slug } = await params;
+export default async function TagPage({ params, searchParams }: PageProps) {
+  const [{ locale: rawLocale, slug }, query, settings] = await Promise.all([params, searchParams, getSiteSettings()]);
   const locale = getLocaleOrDefault(rawLocale);
   const tags = await getCatalogTags(locale);
   const tag = tags.find((item) => item.slug === slug);
@@ -48,6 +51,7 @@ export default async function TagPage({ params }: PageProps) {
     notFound();
   }
   const titles = (await getCatalogTitles(locale)).filter((title) => title.tags.includes(slug));
+  const page = paginate(titles, query.page, settings.catalogPageSize);
   const copy = tagPageCopy[locale];
 
   return (
@@ -78,11 +82,12 @@ export default async function TagPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {titles.map((title) => (
+            {page.items.map((title) => (
               <MangaCard key={title.slug} title={title} locale={locale} />
             ))}
           </div>
         )}
+        <CatalogPagination currentPage={page.currentPage} totalPages={page.totalPages} href={(number) => `/${locale}/tags/${slug}?page=${number}`} />
       </main>
     </SiteShell>
   );

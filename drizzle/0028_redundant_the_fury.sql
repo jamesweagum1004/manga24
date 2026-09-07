@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "catalog_page_size" integer DEFAULT 60 NOT NULL;

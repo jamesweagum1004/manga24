@@ -39,7 +39,8 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
     if (q && ![title.originalTitle, title.canonicalSlug, title.enTitle, title.esTitle, title.frTitle, title.deTitle, title.ptTitle].some((value) => value.toLocaleLowerCase().includes(q))) return false;
     return true;
   }).sort((a, b) => query.sort === "title" ? a.originalTitle.localeCompare(b.originalTitle) : b.updatedAtValue - a.updatedAtValue);
-  const pageSize = [10, 25, 50, 100].includes(Number(query.pageSize)) ? Number(query.pageSize) : 25;
+  const pageSizeOptions = [10, 25, 50, 100, 150, 200, 500, 1000];
+  const pageSize = pageSizeOptions.includes(Number(query.pageSize)) ? Number(query.pageSize) : 25;
   const totalPages = Math.max(1, Math.ceil(visibleTitles.length / pageSize));
   const requestedPage = Math.max(1, Number.parseInt(query.page ?? "1", 10) || 1);
   const currentPage = Math.min(requestedPage, totalPages);
@@ -76,7 +77,10 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         <FolderLink href="/manga1004/titles?folder=unpublished-manhwa" label="Unpublished Manhwa" count={titles.filter((title) => title.format === "manhwa" && !title.isPublished).length} active={activeFolder === "unpublished-manhwa"} />
         <FolderLink href="/manga1004/titles?folder=ai-pending" label="DeepSeek needed" count={titles.filter((title) => !title.aiContentGeneratedAt).length} active={activeFolder === "ai-pending"} />
         <FolderLink href="/manga1004/titles?folder=ai-complete" label="DeepSeek complete" count={titles.filter((title) => Boolean(title.aiContentGeneratedAt)).length} active={activeFolder === "ai-complete"} />
-        {locales.map((locale) => <FolderLink key={locale} href={`/manga1004/titles?folder=publish-ready&locale=${locale}`} label={`${localeFlags[locale]} Need to publish · ${localeLabels[locale]}`} count={titles.filter((title) => Boolean(title.aiContentGeneratedAt) && !title.isPublished && title.displayLocales.includes(locale)).length} active={activeFolder === "publish-ready" && selectedLocale === locale} />)}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:col-span-2 lg:col-span-4">
+          <p className="px-1 text-xs font-black uppercase tracking-wider text-[var(--muted)]">Need to publish by language</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">{locales.map((locale) => <CompactLocaleLink key={locale} href={`/manga1004/titles?folder=publish-ready&locale=${locale}`} label={`${localeFlags[locale]} ${localeLabels[locale]}`} count={titles.filter((title) => Boolean(title.aiContentGeneratedAt) && !title.isPublished && title.displayLocales.includes(locale)).length} active={activeFolder === "publish-ready" && selectedLocale === locale} />)}</div>
+        </div>
       </div>
       {activeFolder === "publish-ready" ? <AutoPublishSettings schedules={settings.autoPublishSchedules} /> : null}
       <h2 className="mt-7 text-xl font-black">{{ all: "All Titles", manga: "Manga", manhwa: "Manhwa", "unpublished-manga": "Unpublished Manga", "unpublished-manhwa": "Unpublished Manhwa", "ai-pending": "DeepSeek needed", "ai-complete": "DeepSeek complete", "publish-ready": selectedLocale ? `${localeFlags[selectedLocale]} ${localeLabels[selectedLocale]} · Need to publish` : "Need to publish" }[activeFolder]}</h2>
@@ -88,7 +92,7 @@ export default async function AdminTitlesPage({ searchParams }: { searchParams: 
         <FilterSelect name="status" value={query.status} options={[["", "All statuses"], ["ongoing", "Ongoing"], ["completed", "Completed"], ["hiatus", "Hiatus"], ["cancelled", "Cancelled"]]} />
         <FilterSelect name="updated" value={query.updated} options={[["", "Any update date"], ["1", "Updated today"], ["7", "Last 7 days"], ["30", "Last 30 days"]]} />
         <FilterSelect name="sort" value={query.sort} options={[["updated", "Newest updated"], ["title", "Title A–Z"]]} />
-        <FilterSelect name="pageSize" value={String(pageSize)} options={[["10", "10 per page"], ["25", "25 per page"], ["50", "50 per page"], ["100", "100 per page"]]} />
+        <FilterSelect name="pageSize" value={String(pageSize)} options={pageSizeOptions.map((value) => [String(value), `${value} per page`])} />
         <button className="rounded-xl bg-[var(--foreground)] px-4 py-2.5 text-sm font-black text-[var(--background)]">Search</button>
         <Link href={activeFolder === "all" ? "/manga1004/titles" : `/manga1004/titles?folder=${activeFolder}`} className="self-center text-center text-sm font-black text-[var(--muted)]">Reset</Link>
       </form>
@@ -187,6 +191,10 @@ function FolderLink({ href, label, count, active }: { href: string; label: strin
       <span className="mt-1 block text-sm font-bold text-[var(--muted)]">{count} titles</span>
     </Link>
   );
+}
+
+function CompactLocaleLink({ href, label, count, active }: { href: string; label: string; count: number; active: boolean }) {
+  return <Link href={href} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-black ${active ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent)]"}`}><span className="truncate">{label}</span><span className={`rounded-full px-2 py-0.5 ${active ? "bg-white/20" : "bg-[var(--surface-strong)]"}`}>{count}</span></Link>;
 }
 
 function AutoPublishSettings({ schedules }: { schedules: Awaited<ReturnType<typeof getSiteSettings>>["autoPublishSchedules"] }) {

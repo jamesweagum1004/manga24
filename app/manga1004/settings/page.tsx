@@ -116,6 +116,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <p className="mt-1 text-sm text-[var(--muted)]">Control optional sections on the main public homepage without unpublishing their titles.</p>
         <form action={updateHomeContentSettingsAction} className="mt-5 grid gap-4">
           <Toggle name="homeManhwaEnabled" defaultChecked={settings.homeManhwaEnabled} title="Show Manhwa on the main homepage" description="When disabled, the Manhwa Spotlight section is hidden from every language homepage. Manhwa title URLs and other catalog pages remain available." />
+          <label className="grid max-w-sm gap-1.5 text-sm font-black"><span>Titles per catalog page</span><select name="catalogPageSize" defaultValue={settings.catalogPageSize} className={inputClass}>{[24, 48, 60, 96, 120].map((value) => <option key={value} value={value}>{value} titles</option>)}</select></label>
           <button className="w-fit rounded-xl bg-[var(--accent)] px-5 py-3 font-black text-white">Save homepage settings</button>
         </form>
       </section>
