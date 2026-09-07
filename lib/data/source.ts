@@ -190,7 +190,7 @@ export async function getCatalogTags(locale: Locale) {
       label: ({ en: tag.nameEn, es: tag.nameEs, fr: tag.nameFr, de: tag.nameDe, pt: tag.namePt }[locale] || tag.nameEn),
       category: tag.category,
       titleCount: usage.get(tag.slug) ?? 0
-    })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
+    })).filter((tag) => tag.titleCount > 0).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
   }
 
   return demoTags.map((tag) => ({
@@ -198,7 +198,7 @@ export async function getCatalogTags(locale: Locale) {
     label: tag.names[locale],
     category: "genre",
     titleCount: usage.get(tag.slug) ?? 0
-  })).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
+  })).filter((tag) => tag.titleCount > 0).sort((left, right) => right.titleCount - left.titleCount || left.label.localeCompare(right.label));
 }
 
 export async function getCatalogTagLabels(slugs: string[], locale: Locale) {
