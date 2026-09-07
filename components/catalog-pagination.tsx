@@ -3,13 +3,23 @@ import Link from "next/link";
 export function CatalogPagination({ currentPage, totalPages, href }: { currentPage: number; totalPages: number; href: (page: number) => string }) {
   if (totalPages <= 1) return null;
   const pages = paginationItems(currentPage, totalPages);
-  return <nav aria-label="Catalog pagination" className="mt-7 flex flex-wrap items-center justify-center gap-2">
-    <PageLink href={href(currentPage - 1)} disabled={currentPage === 1}>← Previous</PageLink>
-    {pages.map((page, index) => page === "ellipsis"
-      ? <span key={`ellipsis-${index}`} className="px-1 text-sm font-black text-[var(--muted)]">…</span>
-      : <NumberLink key={page} href={href(page)} active={page === currentPage}>{page}</NumberLink>)}
-    <PageLink href={href(currentPage + 1)} disabled={currentPage === totalPages}>Next →</PageLink>
-  </nav>;
+  const target = new URL(href(1), "http://manga24.local");
+  target.searchParams.delete("page");
+  return <div className="mt-7 grid justify-items-center gap-3">
+    <nav aria-label="Catalog pagination" className="flex flex-wrap items-center justify-center gap-2">
+      <PageLink href={href(currentPage - 1)} disabled={currentPage === 1}>← Previous</PageLink>
+      {pages.map((page, index) => page === "ellipsis"
+        ? <span key={`ellipsis-${index}`} className="px-1 text-sm font-black text-[var(--muted)]">…</span>
+        : <NumberLink key={page} href={href(page)} active={page === currentPage}>{page}</NumberLink>)}
+      <PageLink href={href(currentPage + 1)} disabled={currentPage === totalPages}>Next →</PageLink>
+    </nav>
+    <form action={target.pathname} className="flex flex-wrap items-center justify-center gap-2 text-sm font-bold">
+      {[...target.searchParams.entries()].map(([name, value]) => <input key={`${name}-${value}`} type="hidden" name={name} value={value} />)}
+      <label htmlFor={`page-jump-${target.pathname.replaceAll("/", "-")}`}>Go to page</label>
+      <input id={`page-jump-${target.pathname.replaceAll("/", "-")}`} name="page" type="number" min={1} max={totalPages} defaultValue={currentPage} className="h-10 w-24 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-center font-black" />
+      <button className="h-10 rounded-xl bg-[var(--foreground)] px-4 font-black text-[var(--background)]">Go</button>
+    </form>
+  </div>;
 }
 
 function PageLink({ href, disabled, children }: { href: string; disabled: boolean; children: React.ReactNode }) {

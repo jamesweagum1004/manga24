@@ -122,7 +122,7 @@ export async function updateSeoSettingsAction(formData: FormData) {
 }
 
 export async function updateHomeContentSettingsAction(formData: FormData) {
-  const pageSize = z.coerce.number().int().refine((value) => [24, 48, 60, 96, 120].includes(value)).safeParse(formData.get("catalogPageSize"));
+  const pageSize = z.coerce.number().int().min(1).max(1000).safeParse(formData.get("catalogPageSize"));
   if (!pageSize.success) redirect("/manga1004/settings?error=home-content#home-content");
   await updateHomeContentSettings({ homeManhwaEnabled: formData.get("homeManhwaEnabled") === "on", catalogPageSize: pageSize.data });
   redirect("/manga1004/settings?saved=home-content#home-content");

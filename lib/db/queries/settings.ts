@@ -202,7 +202,7 @@ function normalizePwaThreshold(value: number | undefined): 3 | 4 | 5 {
 }
 
 function normalizeRecommendationCount(value: number | undefined) { return Math.min(24, Math.max(0, Number.isInteger(value) ? value ?? 8 : 8)); }
-function normalizeCatalogPageSize(value: number | undefined) { return [24, 48, 60, 96, 120].includes(value ?? 0) ? value! : 60; }
+function normalizeCatalogPageSize(value: number | undefined) { return Number.isInteger(value) ? Math.min(1000, Math.max(1, value ?? 60)) : 60; }
 
 function normalizeAdLocaleModes(value: unknown): Record<Locale, "inherit" | "separate"> {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
