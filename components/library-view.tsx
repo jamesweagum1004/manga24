@@ -4,7 +4,7 @@ import { ContentImage as Image } from "@/components/content-image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/lib/i18n";
-import { LIBRARY_CHANGED_EVENT, READING_HISTORY_KEY, SAVED_TITLES_KEY, readStoredItems, removeStoredItem, type LibraryTitle, type ReadingHistoryItem } from "@/lib/library";
+import { LIBRARY_CHANGED_EVENT, READING_HISTORY_KEY, SAVED_TITLES_KEY, readStoredItems, removeReadingHistoryItem, removeStoredItem, type LibraryTitle, type ReadingHistoryItem } from "@/lib/library";
 
 const copy: Record<Locale, { saved: string; history: string; emptySaved: string; emptyHistory: string; browse: string; resume: string; remove: string; privacy: string }> = {
   en: { saved: "Saved titles", history: "Reading history", emptySaved: "Titles you save will appear here.", emptyHistory: "Start reading and your progress will appear here.", browse: "Browse latest", resume: "Resume", remove: "Remove", privacy: "Stored only in this browser" },
@@ -34,7 +34,7 @@ export function LibraryView({ locale }: { locale: Locale }) {
       {saved.map((item) => <LibraryCard key={item.titleSlug} item={item} actionHref={item.titleHref} actionLabel={text.browse} removeLabel={text.remove} onRemove={() => removeStoredItem(SAVED_TITLES_KEY, locale, item.titleSlug)} />)}
     </LibrarySection>
     <LibrarySection title={text.history} empty={text.emptyHistory} browse={text.browse} locale={locale}>
-      {history.map((item) => <LibraryCard key={item.titleSlug} item={item} actionHref={item.chapterHref} actionLabel={`${text.resume} · ${item.progress}%`} removeLabel={text.remove} onRemove={() => removeStoredItem(READING_HISTORY_KEY, locale, item.titleSlug)} />)}
+      {history.map((item) => <LibraryCard key={item.titleSlug} item={item} actionHref={item.chapterHref} actionLabel={`${text.resume} · ${item.progress}%`} removeLabel={text.remove} onRemove={() => removeReadingHistoryItem(locale, item.titleSlug)} />)}
     </LibrarySection>
   </div>;
 }

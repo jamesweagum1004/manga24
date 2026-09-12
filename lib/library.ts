@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { RECENT_READING_KEY, type RecentReading } from "@/lib/reading-progress";
 
 export const READING_HISTORY_KEY = "manga24:reading-history:v2";
 export const SAVED_TITLES_KEY = "manga24:saved-titles:v1";
@@ -42,4 +43,14 @@ export function removeStoredItem(key: string, locale: Locale, titleSlug: string)
   const items = readStoredItems<LibraryTitle>(key).filter((item) => item.locale !== locale || item.titleSlug !== titleSlug);
   window.localStorage.setItem(key, JSON.stringify(items));
   window.dispatchEvent(new CustomEvent(LIBRARY_CHANGED_EVENT));
+}
+
+export function removeReadingHistoryItem(locale: Locale, titleSlug: string) {
+  try {
+    const legacy = JSON.parse(window.localStorage.getItem(RECENT_READING_KEY) ?? "null") as RecentReading | null;
+    if (legacy?.locale === locale && legacy.titleSlug === titleSlug) window.localStorage.removeItem(RECENT_READING_KEY);
+  } catch {
+    window.localStorage.removeItem(RECENT_READING_KEY);
+  }
+  removeStoredItem(READING_HISTORY_KEY, locale, titleSlug);
 }

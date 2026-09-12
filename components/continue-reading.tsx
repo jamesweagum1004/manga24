@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import { RECENT_READING_KEY, type RecentReading } from "@/lib/reading-progress";
-import { LIBRARY_CHANGED_EVENT, READING_HISTORY_KEY, readStoredItems, removeStoredItem, upsertStoredItem, type ReadingHistoryItem } from "@/lib/library";
+import { LIBRARY_CHANGED_EVENT, READING_HISTORY_KEY, readStoredItems, removeReadingHistoryItem, upsertStoredItem, type ReadingHistoryItem } from "@/lib/library";
 
 const copy: Record<Locale, { eyebrow: string; heading: string; resume: string; library: string; complete: string; close: string }> = {
   en: { eyebrow: "Your library", heading: "Continue reading", resume: "Resume", library: "View library", complete: "complete", close: "Remove from history" },
@@ -50,7 +50,7 @@ export function ContinueReading({ locale }: { locale: Locale }) {
       {items.map((item) => <article key={`${item.locale}:${item.titleSlug}`} className="relative flex w-[280px] shrink-0 snap-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3">
         <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-[var(--surface-strong)]"><Image src={item.coverUrl} alt={item.coverAlt} fill sizes="64px" className="object-cover" /></div>
         <div className="min-w-0 flex-1 pr-4"><h3 className="line-clamp-2 text-sm font-black">{item.title}</h3><p className="mt-1 truncate text-xs font-bold text-[var(--muted)]">{item.chapter}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-strong)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(2, item.progress)}%` }} /></div><div className="mt-2 flex items-center justify-between"><span className="text-[10px] font-black text-[var(--muted)]">{item.progress}% {labels.complete}</span><Link href={item.chapterHref} className="text-xs font-black text-[var(--accent)]">{labels.resume} →</Link></div></div>
-        <button type="button" onClick={() => removeStoredItem(READING_HISTORY_KEY, locale, item.titleSlug)} aria-label={labels.close} className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface)] text-sm font-black text-[var(--muted)]">×</button>
+        <button type="button" onClick={() => removeReadingHistoryItem(locale, item.titleSlug)} aria-label={labels.close} className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface)] text-sm font-black text-[var(--muted)]">×</button>
       </article>)}
     </div>
   </section>;
