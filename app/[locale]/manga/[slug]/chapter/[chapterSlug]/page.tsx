@@ -108,6 +108,8 @@ export default async function ChapterReaderPage({ params }: PageProps) {
         locale={locale}
         titleSlug={result.title.slug}
         title={result.title.titles[locale]}
+        author={result.title.author}
+        tags={result.title.tags}
         chapter={result.chapter.titles[locale]}
         coverUrl={result.title.cover.src}
         coverAlt={result.title.cover.alt}

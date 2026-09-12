@@ -14,6 +14,7 @@ import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { authorPathKey } from "@/lib/authors";
+import { BookmarkButton } from "@/components/bookmark-button";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -161,12 +162,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
                   {t.startChapterOne}
                 </Link>
               ) : null}</> : null}
-              <button
-                type="button"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold"
-              >
-                {t.bookmark}
-              </button>
+              <BookmarkButton item={{ locale, titleSlug: title.slug, titleHref: localizedPath(locale, `/manga/${title.slug}`), title: title.titles[locale], author: title.author, tags: title.tags, coverUrl: title.cover.src, coverAlt: title.cover.alt }} />
             </div>
             <Link href={`/${locale}/report?type=title&key=${encodeURIComponent(title.slug)}&url=${encodeURIComponent(`/${locale}/manga/${title.slug}`)}`} className="inline-flex text-xs font-bold text-[var(--muted)] underline decoration-dotted underline-offset-4">Report this title</Link>
           </div>

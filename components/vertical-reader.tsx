@@ -13,6 +13,7 @@ import { RECENT_READING_KEY, type RecentReading } from "@/lib/reading-progress";
 import { AdStrip } from "./ad-unit";
 import type { AdKind, AdPosition, AdSurface } from "@/lib/db/queries/ads";
 import { ReaderRecommendations } from "./reader-recommendations";
+import { READING_HISTORY_KEY, upsertStoredItem } from "@/lib/library";
 
 type ReaderAd = { id: string; name: string; kind: AdKind; position: AdPosition; surface: AdSurface; imageUrl: string | null; clickUrl: string | null; altText: string | null; embedCode: string | null; width: number; height: number };
 
@@ -20,6 +21,8 @@ type VerticalReaderProps = {
   locale: Locale;
   titleSlug: string;
   title: string;
+  author: string;
+  tags: string[];
   chapter: string;
   coverUrl: string;
   coverAlt: string;
@@ -39,6 +42,8 @@ export function VerticalReader({
   locale,
   titleSlug,
   title,
+  author,
+  tags,
   chapter,
   coverUrl,
   coverAlt,
@@ -61,6 +66,7 @@ export function VerticalReader({
   const [canTrackProgress, setCanTrackProgress] = useState(false);
   const restored = useRef(false);
   const countedChapter = useRef(false);
+  const lastLibraryWrite = useRef(0);
 
   useEffect(() => {
     if (restored.current) {
@@ -115,6 +121,10 @@ export function VerticalReader({
           updatedAt: Date.now()
         };
         window.localStorage.setItem(RECENT_READING_KEY, JSON.stringify(recent));
+        if (Date.now() - lastLibraryWrite.current > 1_000) {
+          lastLibraryWrite.current = Date.now();
+          upsertStoredItem(READING_HISTORY_KEY, { ...recent, titleHref: `/${locale}/manga/${titleSlug}`, author, tags }, 30);
+        }
       }
       ticking = false;
     }
@@ -129,7 +139,7 @@ export function VerticalReader({
     updateProgress();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [canTrackProgress, chapter, chapterHref, coverAlt, coverUrl, locale, storageKey, title, titleSlug]);
+  }, [author, canTrackProgress, chapter, chapterHref, coverAlt, coverUrl, locale, storageKey, tags, title, titleSlug]);
 
   function markFailed(id: string) {
     setFailedImages((current) => new Set(current).add(id));

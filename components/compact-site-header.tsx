@@ -19,7 +19,9 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
   const links = [
     { href: localizedPath(locale, "/latest"), label: t.latest },
     { href: localizedPath(locale, "/popular"), label: t.popular },
-    { href: localizedPath(locale, "/tags"), label: t.tags }
+    { href: localizedPath(locale, "/tags"), label: t.tags },
+    { href: localizedPath(locale, "/discover"), label: { en: "Discover", es: "Descubrir", fr: "Découvrir", de: "Entdecken", pt: "Descobrir" }[locale] },
+    { href: localizedPath(locale, "/library"), label: { en: "Library", es: "Biblioteca", fr: "Bibliothèque", de: "Bibliothek", pt: "Biblioteca" }[locale] }
   ];
 
   return (
@@ -102,7 +104,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
 
       {open ? (
         <div className="border-t border-[var(--border)] bg-[var(--surface)] px-3 py-2 md:hidden">
-          <nav className="mx-auto grid max-w-[1320px] grid-cols-3 gap-2">
+          <nav className="mx-auto grid max-w-[1320px] grid-cols-2 gap-2">
             {links.map((link) => (
               <Link key={link.href} href={link.href} className="rounded-lg bg-[var(--surface-strong)] px-3 py-3 text-center text-sm font-bold">
                 {link.label}

@@ -14,7 +14,9 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const links = [
     { href: localizedPath(locale, "/latest"), label: t.latest },
     { href: localizedPath(locale, "/popular"), label: t.popular },
-    { href: localizedPath(locale, "/tags"), label: t.tags }
+    { href: localizedPath(locale, "/tags"), label: t.tags },
+    { href: localizedPath(locale, "/discover"), label: { en: "Discover", es: "Descubrir", fr: "Découvrir", de: "Entdecken", pt: "Descobrir" }[locale] },
+    { href: localizedPath(locale, "/library"), label: { en: "Library", es: "Biblioteca", fr: "Bibliothèque", de: "Bibliothek", pt: "Biblioteca" }[locale] }
   ];
 
   return (

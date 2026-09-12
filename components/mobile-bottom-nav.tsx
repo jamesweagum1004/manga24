@@ -7,9 +7,9 @@ import { localizedPath } from "@/lib/routes";
 
 const items = [
   { key: "home", path: "", label: { en: "Home", es: "Inicio", fr: "Accueil", de: "Start", pt: "Início" }, icon: HomeIcon },
-  { key: "latest", path: "/latest", label: { en: "Latest", es: "Nuevos", fr: "Nouveaux", de: "Neu", pt: "Recentes" }, icon: SparkIcon },
-  { key: "popular", path: "/popular", label: { en: "Popular", es: "Popular", fr: "Populaire", de: "Beliebt", pt: "Popular" }, icon: FlameIcon },
-  { key: "tags", path: "/tags", label: { en: "Genres", es: "Géneros", fr: "Genres", de: "Genres", pt: "Gêneros" }, icon: GridIcon }
+  { key: "discover", path: "/discover", label: { en: "Discover", es: "Descubrir", fr: "Découvrir", de: "Entdecken", pt: "Descobrir" }, icon: SparkIcon },
+  { key: "latest", path: "/latest", label: { en: "Latest", es: "Nuevos", fr: "Nouveaux", de: "Neu", pt: "Recentes" }, icon: FlameIcon },
+  { key: "library", path: "/library", label: { en: "Library", es: "Biblioteca", fr: "Bibliothèque", de: "Bibliothek", pt: "Biblioteca" }, icon: GridIcon }
 ] as const;
 
 export function MobileBottomNav({ locale }: { locale: Locale }) {
