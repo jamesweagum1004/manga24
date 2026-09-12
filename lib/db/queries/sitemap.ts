@@ -4,7 +4,7 @@ import { chapters, tags, titleTags, titles } from "@/db/schema";
 import { getDb } from "@/lib/db/client";
 
 export async function listSitemapTitles() {
-  return getDb().select({ id: titles.id, slug: titles.slug, displayLocales: titles.displayLocales, publishedAt: titles.publishedAt, updatedAt: titles.updatedAt })
+  return getDb().select({ id: titles.id, slug: titles.slug, authorName: titles.authorName, displayLocales: titles.displayLocales, publishedAt: titles.publishedAt, updatedAt: titles.updatedAt })
     .from(titles).where(isNotNull(titles.publishedAt));
 }
 

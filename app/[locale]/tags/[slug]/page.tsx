@@ -19,12 +19,12 @@ type PageProps = {
 
 export const dynamic = "force-dynamic";
 
-const tagPageCopy: Record<Locale, { allTags: string; result: string; results: string; empty: string }> = {
-  en: { allTags: "All tags", result: "title", results: "titles", empty: "No titles are available for this tag." },
-  es: { allTags: "Todas las etiquetas", result: "título", results: "títulos", empty: "No hay títulos disponibles para esta etiqueta." },
-  fr: { allTags: "Tous les tags", result: "titre", results: "titres", empty: "Aucun titre n’est disponible pour ce tag." },
-  de: { allTags: "Alle Tags", result: "Titel", results: "Titel", empty: "Für diesen Tag sind keine Titel verfügbar." },
-  pt: { allTags: "Todas as tags", result: "título", results: "títulos", empty: "Não há títulos disponíveis para esta tag." }
+const tagPageCopy: Record<Locale, { allTags: string; result: string; results: string; empty: string; related: string; relatedDescription: string }> = {
+  en: { allTags: "All tags", result: "title", results: "titles", empty: "No titles are available for this tag.", related: "Related tags", relatedDescription: "Themes often found in the same titles" },
+  es: { allTags: "Todas las etiquetas", result: "título", results: "títulos", empty: "No hay títulos disponibles para esta etiqueta.", related: "Etiquetas relacionadas", relatedDescription: "Temas que suelen aparecer en los mismos títulos" },
+  fr: { allTags: "Tous les tags", result: "titre", results: "titres", empty: "Aucun titre n’est disponible pour ce tag.", related: "Tags associés", relatedDescription: "Thèmes souvent présents dans les mêmes titres" },
+  de: { allTags: "Alle Tags", result: "Titel", results: "Titel", empty: "Für diesen Tag sind keine Titel verfügbar.", related: "Ähnliche Tags", relatedDescription: "Themen, die oft in denselben Titeln vorkommen" },
+  pt: { allTags: "Todas as tags", result: "título", results: "títulos", empty: "Não há títulos disponíveis para esta tag.", related: "Tags relacionadas", relatedDescription: "Temas encontrados frequentemente nos mesmos títulos" }
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -51,6 +51,9 @@ export default async function TagPage({ params, searchParams }: PageProps) {
     notFound();
   }
   const titles = (await getCatalogTitles(locale)).filter((title) => title.tags.includes(slug));
+  const relatedCounts = new Map<string, number>();
+  for (const title of titles) for (const relatedSlug of title.tags) if (relatedSlug !== slug) relatedCounts.set(relatedSlug, (relatedCounts.get(relatedSlug) ?? 0) + 1);
+  const relatedTags = tags.filter((item) => relatedCounts.has(item.slug)).sort((left, right) => (relatedCounts.get(right.slug) ?? 0) - (relatedCounts.get(left.slug) ?? 0) || right.titleCount - left.titleCount).slice(0, 10);
   const page = paginate(titles, query.page, settings.catalogPageSize);
   const copy = tagPageCopy[locale];
 
@@ -88,6 +91,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
           </div>
         )}
         <CatalogPagination currentPage={page.currentPage} totalPages={page.totalPages} href={(number) => `/${locale}/tags/${slug}?page=${number}`} />
+        {relatedTags.length > 0 ? <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6"><h2 className="text-xl font-black">{copy.related}</h2><p className="mt-1 text-sm font-semibold text-[var(--muted)]">{copy.relatedDescription}</p><div className="mt-4 flex flex-wrap gap-2">{relatedTags.map((related) => <Link key={related.slug} href={localizedPath(locale, `/tags/${related.slug}`)} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)] px-3.5 text-sm font-bold transition hover:border-[var(--accent)] hover:text-[var(--accent)]"><span>#</span>{related.label}<span className="text-[10px] text-[var(--muted)]">{relatedCounts.get(related.slug)}</span></Link>)}</div></section> : null}
       </main>
     </SiteShell>
   );

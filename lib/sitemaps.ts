@@ -3,6 +3,7 @@ import { locales, type Locale } from "@/lib/i18n";
 import { siteUrl } from "@/lib/metadata";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { listSitemapChapters, listSitemapTags, listSitemapTitles } from "@/lib/db/queries/sitemap";
+import { authorPathKey } from "@/lib/authors";
 
 export const sitemapPageSize = 50_000;
 export type SitemapKind = "manga" | "chapters";
@@ -17,6 +18,17 @@ export async function getSitemapEntries(locale: Locale, kind: SitemapKind) {
   }
   const rows = (await listSitemapTitles()).filter((row) => row.displayLocales.includes(locale));
   const entries: SitemapEntry[] = settings.sitemapIncludeTitles ? rows.map((row) => ({ url: siteUrl(`/${locale}/manga/${row.slug}`), lastModified: latestDate(row.updatedAt, row.publishedAt) })) : [];
+  if (settings.sitemapIncludeTitles) {
+    const authorDates = new Map<string, Date>();
+    for (const row of rows) {
+      if (!row.authorName.trim()) continue;
+      const key = authorPathKey(row.authorName);
+      const date = latestDate(row.updatedAt, row.publishedAt);
+      const previous = authorDates.get(key);
+      if (!previous || date > previous) authorDates.set(key, date);
+    }
+    entries.push(...[...authorDates].map(([key, lastModified]) => ({ url: siteUrl(`/${locale}/authors/${key}`), lastModified })));
+  }
   if (settings.sitemapIncludeStatic) entries.unshift(...["", "/latest", "/popular"].map((path) => ({ url: siteUrl(`/${locale}${path}`), lastModified: new Date() })));
   if (settings.sitemapIncludeTags) {
     const tagDates = new Map<string, Date>();

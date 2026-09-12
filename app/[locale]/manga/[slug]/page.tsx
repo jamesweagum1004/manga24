@@ -13,6 +13,7 @@ import { dictionary } from "@/lib/demo-data";
 import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 import { getSiteSettings } from "@/lib/db/queries/settings";
+import { authorPathKey } from "@/lib/authors";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -52,6 +53,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
   const firstChapter = title.chapters[0];
   const latestChapter = title.chapters.at(-1);
   const titleUrl = siteUrl(`/${locale}/manga/${title.slug}`);
+  const authorUrl = siteUrl(`/${locale}/authors/${authorPathKey(title.author)}`);
   const coverUrl = absoluteUrl(title.cover.src);
 
   return (
@@ -69,7 +71,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
               alternateName: title.originalTitle,
               description: title.descriptions[locale],
               image: coverUrl,
-              ...(settings.showAuthor ? { creator: title.author } : {}),
+              ...(settings.showAuthor ? { creator: { "@type": "Person", name: title.author, url: authorUrl } } : {}),
               inLanguage: locale,
               genre: translatedTags,
               contentRating: title.contentRating,
@@ -120,7 +122,7 @@ export default async function TitleDetailPage({ params }: PageProps) {
             </div>
 
             <dl className="grid grid-cols-2 gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-4">
-              {settings.showAuthor ? <Stat label={t.author} value={title.author} /> : null}
+              {settings.showAuthor ? <StatLink label={t.author} value={title.author} href={localizedPath(locale, `/authors/${authorPathKey(title.author)}`)} /> : null}
               <Stat label={t.status} value={title.publicationStatus} />
               <Stat label={t.language} value={title.originalLanguage} />
               {settings.showChapters ? <Stat label={t.chapterCount} value={String(title.chapters.length)} /> : null}
@@ -190,4 +192,8 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 text-sm font-black">{value}</dd>
     </div>
   );
+}
+
+function StatLink({ label, value, href }: { label: string; value: string; href: string }) {
+  return <div><dt className="text-xs font-bold uppercase text-[var(--muted)]">{label}</dt><dd className="mt-1 text-sm font-black"><Link href={href} className="text-[var(--accent)] underline decoration-[color-mix(in_srgb,var(--accent)_35%,transparent)] underline-offset-4 hover:decoration-[var(--accent)]">{value}</Link></dd></div>;
 }
