@@ -23,7 +23,7 @@ export function MobileBottomNav({ locale }: { locale: Locale }) {
             const href = localizedPath(locale, item.path);
             const active = item.path === "" ? pathname === href : pathname.startsWith(href);
             const Icon = item.icon;
-            return <Link key={item.key} href={href} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-black transition-colors ${active ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}><span className={`flex h-7 w-10 items-center justify-center rounded-full ${active ? "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]" : ""}`}><Icon /></span><span>{item.label[locale]}</span>{active ? <span className="absolute -top-2 h-0.5 w-7 rounded-full bg-[var(--accent)]" /> : null}</Link>;
+            return <Link key={item.key} href={href} aria-current={active ? "page" : undefined} className={`relative flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl border text-[10px] font-black transition-all active:scale-95 ${active ? "border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] text-[var(--accent)] shadow-[0_5px_16px_color-mix(in_srgb,var(--accent)_14%,transparent)]" : "border-transparent text-[var(--muted)]"}`}><span className={`flex h-7 w-10 items-center justify-center rounded-full transition-transform ${active ? "scale-105" : ""}`}><Icon /></span><span>{item.label[locale]}</span>{active ? <span className="absolute -top-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--surface)]" /> : null}</Link>;
           })}
         </div>
       </nav>

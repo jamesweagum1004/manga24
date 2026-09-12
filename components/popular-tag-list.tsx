@@ -12,15 +12,16 @@ export async function PopularTagList({ locale }: { locale: Locale }) {
   const copy = tagSectionCopy[locale];
 
   return (
-    <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] lg:rounded-2xl lg:shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-      <div className="border-b border-[var(--border)] bg-[linear-gradient(135deg,var(--surface)_0%,var(--surface-strong)_100%)] px-4 py-5 sm:px-5 lg:px-6">
+    <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_40px_rgba(15,23,42,0.05)] lg:rounded-3xl">
+      <div className="relative overflow-hidden border-b border-[var(--border)] bg-[linear-gradient(135deg,var(--surface)_0%,var(--surface-strong)_100%)] px-4 py-5 sm:px-5 lg:px-6">
+        <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] blur-3xl" />
         <div className="flex items-end justify-between gap-4">
-          <div>
+          <div className="relative">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">{copy.eyebrow}</p>
             <h2 className="mt-1 text-[21px] font-black leading-7 sm:text-2xl">{dictionary[locale].popularTags}</h2>
             <p className="mt-1 max-w-2xl text-sm font-semibold text-[var(--muted)]">{copy.description}</p>
           </div>
-          <Link href={localizedPath(locale, "/tags")} className="shrink-0 text-sm font-black text-[var(--accent)] hover:underline">
+          <Link href={localizedPath(locale, "/tags")} className="relative shrink-0 rounded-full border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--accent)_9%,transparent)] px-3 py-2 text-xs font-black text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] sm:text-sm">
             {copy.viewAll} →
           </Link>
         </div>
@@ -29,7 +30,8 @@ export async function PopularTagList({ locale }: { locale: Locale }) {
         {featured.length > 0 ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
             {featured.map((tag, index) => (
-              <Link key={tag.slug} href={localizedPath(locale, `/tags/${tag.slug}`)} className="group min-w-0 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md">
+              <Link key={tag.slug} href={localizedPath(locale, `/tags/${tag.slug}`)} className="group relative min-h-24 min-w-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3 transition hover:-translate-y-1 hover:border-[var(--accent)] hover:shadow-md">
+                <span className="absolute -right-1 -top-3 text-5xl font-black text-[color-mix(in_srgb,var(--accent)_7%,transparent)]">{String(index + 1).padStart(2, "0")}</span>
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-xs font-black text-[var(--accent)]">#{String(index + 1).padStart(2, "0")}</span>
                   <span className="rounded-full bg-[var(--surface-strong)] px-2 py-0.5 text-[10px] font-black text-[var(--muted)]">{tag.titleCount}</span>
