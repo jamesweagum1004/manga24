@@ -29,7 +29,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           <span className="truncate text-lg font-black">Manga24</span>
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-1 md:flex">
+        <nav className="ml-4 hidden items-center gap-1 lg:flex">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-strong)]">
               {link.label}
@@ -53,7 +53,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             aria-expanded={open}
             aria-label={t.menu}
             onClick={() => setOpen((value) => !value)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-sm font-bold md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-sm font-bold lg:hidden"
           >
             =
           </button>
@@ -61,7 +61,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
       </div>
 
       {open ? (
-        <div className="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+        <div className="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:hidden">
           <nav className="mx-auto grid max-w-7xl gap-2">
             {links.map((link) => (
               <Link key={link.href} href={link.href} className="rounded-xl px-4 py-3 text-base font-semibold hover:bg-[var(--surface-strong)]">

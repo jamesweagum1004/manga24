@@ -31,7 +31,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
           {logoUrl ? <img src={logoUrl} alt="Manga24" className="h-9 max-w-40 object-contain lg:h-11" /> : <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-[11px] font-black text-white shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)] lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">M24</span><span className="truncate text-xl font-black leading-none tracking-[-0.035em] lg:text-2xl lg:tracking-[-0.04em]">Manga24</span></>}
         </Link>
 
-        <nav className="ml-3 hidden items-center gap-1 md:flex lg:ml-8 lg:gap-2">
+        <nav className="ml-3 hidden items-center gap-1 lg:ml-8 lg:flex lg:gap-2">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className="rounded-full px-3 py-2 text-sm font-bold hover:bg-[var(--surface-strong)]">
               {link.label}
@@ -67,7 +67,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
             aria-expanded={open}
             aria-label={t.menu}
             onClick={() => setOpen((value) => !value)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] md:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] lg:hidden"
           >
             <MenuIcon />
           </button>
@@ -103,7 +103,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
       ) : null}
 
       {open ? (
-        <div className="border-t border-[var(--border)] bg-[var(--surface)] px-3 py-2 md:hidden">
+        <div className="border-t border-[var(--border)] bg-[var(--surface)] px-3 py-2 lg:hidden">
           <nav className="mx-auto grid max-w-[1320px] grid-cols-2 gap-2">
             {links.map((link) => (
               <Link key={link.href} href={link.href} className="rounded-lg bg-[var(--surface-strong)] px-3 py-3 text-center text-sm font-bold">
