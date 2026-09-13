@@ -26,6 +26,7 @@ export function CompactMangaCard({
             src={title.cover.src}
             alt={title.cover.alt}
             fill
+            mobileMaxWidth={160}
             sizes="(min-width: 1480px) 216px, (min-width: 1024px) calc((100vw - 172px) / 6), (min-width: 768px) 128px, (min-width: 415px) 112px, (min-width: 363px) 27vw, 98px"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.035]"
             priority={priority}

@@ -10,6 +10,7 @@ type Props = {
   priority?: boolean;
   sizes?: string;
   responsiveWidths?: number[];
+  mobileMaxWidth?: number;
   intrinsicWidth?: number;
   intrinsicHeight?: number;
 };
@@ -22,6 +23,7 @@ export function ContentImage({
   priority = false,
   sizes,
   responsiveWidths = [160, 320, 640],
+  mobileMaxWidth,
   intrinsicWidth = 320,
   intrinsicHeight = 427
 }: Props) {
@@ -30,26 +32,33 @@ export function ContentImage({
 
   return (
     // Real, cached thumbnails; the original remains available if generation fails.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      key={src}
-      src={optimizedImageUrl(src, fallbackWidth)}
-      alt={alt}
-      width={intrinsicWidth}
-      height={intrinsicHeight}
-      className={`${fill ? "absolute inset-0 h-full w-full" : ""} ${className}`.trim()}
-      loading={priority ? "eager" : "lazy"}
-      fetchPriority={priority ? "high" : "low"}
-      sizes={sizes}
-      srcSet={srcSet}
-      decoding="async"
-      onError={(event) => {
-        const image = event.currentTarget;
-        if (image.dataset.originalFallback) return;
-        image.dataset.originalFallback = "true";
-        image.removeAttribute("srcset");
-        image.src = src;
-      }}
-    />
+    <picture>
+      {mobileMaxWidth ? (
+        <source
+          media="(max-width: 767px)"
+          srcSet={optimizedImageUrl(src, mobileMaxWidth)}
+        />
+      ) : null}
+      <img
+        key={src}
+        src={optimizedImageUrl(src, fallbackWidth)}
+        alt={alt}
+        width={intrinsicWidth}
+        height={intrinsicHeight}
+        className={`${fill ? "absolute inset-0 h-full w-full" : ""} ${className}`.trim()}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "low"}
+        sizes={sizes}
+        srcSet={srcSet}
+        decoding="async"
+        onError={(event) => {
+          const image = event.currentTarget;
+          if (image.dataset.originalFallback) return;
+          image.dataset.originalFallback = "true";
+          image.removeAttribute("srcset");
+          image.src = src;
+        }}
+      />
+    </picture>
   );
 }

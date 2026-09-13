@@ -66,7 +66,7 @@ async function downloadCover(url: URL): Promise<Buffer> {
 export async function resizeCover(bytes: Buffer, width: number) {
   return sharp(bytes, { limitInputPixels: 40_000_000, animated: false })
     .rotate().resize({ width, height: width * 4, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 72, effort: 3 }).timeout({ seconds: 5 }).toBuffer();
+    .webp({ quality: 60, effort: 4, smartSubsample: true }).timeout({ seconds: 5 }).toBuffer();
 }
 
 async function cleanupCache() {
@@ -87,7 +87,7 @@ async function cleanupCache() {
 }
 
 export async function getThumbnail(source: URL, width: number, version: string) {
-  const key = createHash("sha256").update(`v1:${source.href}:${width}:${version}`).digest("hex");
+  const key = createHash("sha256").update(`v2:${source.href}:${width}:${version}`).digest("hex");
   const file = path.join(directory, `${key}.webp`);
   try {
     const info = await stat(file);
