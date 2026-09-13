@@ -24,7 +24,7 @@ const manifestSchema = z.object({
   title: z.object({
     canonicalSlug: slug,
     originalTitle: z.string().trim().min(1).max(240),
-    authorName: z.string().trim().min(1).max(160),
+    authorName: z.string().trim().min(1).max(4000),
     originalLanguage: z.string().trim().min(2).max(16),
     displayLocales: z.array(z.enum(["en", "es", "fr", "de", "pt"])).min(1).default(["en", "es", "fr", "de", "pt"]),
     format: z.enum(["manga", "manhwa"]),
@@ -181,5 +181,17 @@ function authorized(header: string | null) {
 
 function titleValues(input: z.infer<typeof manifestSchema>["title"]): TitleFormValues {
   const seo = input.seo;
-  return { canonicalSlug: input.canonicalSlug, originalTitle: input.originalTitle, authorName: input.authorName, originalLanguage: input.originalLanguage, displayLocales: displayLocalesForOriginalLanguage(input.originalLanguage, input.displayLocales), format: input.format, contentRating: input.contentRating, publicationStatus: input.publicationStatus, enTitle: input.enTitle, enSlug: input.enSlug ?? input.canonicalSlug, enDescription: input.enDescription, esTitle: input.esTitle, esSlug: input.esSlug ?? input.canonicalSlug, esDescription: input.esDescription, frTitle: input.frTitle ?? input.enTitle, frSlug: input.frSlug ?? input.canonicalSlug, frDescription: input.frDescription ?? input.enDescription, deTitle: input.deTitle ?? input.enTitle, deSlug: input.deSlug ?? input.canonicalSlug, deDescription: input.deDescription ?? input.enDescription, ptTitle: input.ptTitle ?? input.enTitle, ptSlug: input.ptSlug ?? input.canonicalSlug, ptDescription: input.ptDescription ?? input.enDescription, tags: input.tags.join(", "), enSeoTitle: seo?.enTitle ?? "", enSeoDescription: seo?.enDescription ?? "", enSeoKeywords: seo?.enKeywords.join(", ") ?? "", esSeoTitle: seo?.esTitle ?? "", esSeoDescription: seo?.esDescription ?? "", esSeoKeywords: seo?.esKeywords.join(", ") ?? "", frSeoTitle: seo?.frTitle ?? "", frSeoDescription: seo?.frDescription ?? "", frSeoKeywords: seo?.frKeywords?.join(", ") ?? "", deSeoTitle: seo?.deTitle ?? "", deSeoDescription: seo?.deDescription ?? "", deSeoKeywords: seo?.deKeywords?.join(", ") ?? "", ptSeoTitle: seo?.ptTitle ?? "", ptSeoDescription: seo?.ptDescription ?? "", ptSeoKeywords: seo?.ptKeywords?.join(", ") ?? "" };
+  return { canonicalSlug: input.canonicalSlug, originalTitle: input.originalTitle, authorName: normalizeAuthorName(input.authorName), originalLanguage: input.originalLanguage, displayLocales: displayLocalesForOriginalLanguage(input.originalLanguage, input.displayLocales), format: input.format, contentRating: input.contentRating, publicationStatus: input.publicationStatus, enTitle: input.enTitle, enSlug: input.enSlug ?? input.canonicalSlug, enDescription: input.enDescription, esTitle: input.esTitle, esSlug: input.esSlug ?? input.canonicalSlug, esDescription: input.esDescription, frTitle: input.frTitle ?? input.enTitle, frSlug: input.frSlug ?? input.canonicalSlug, frDescription: input.frDescription ?? input.enDescription, deTitle: input.deTitle ?? input.enTitle, deSlug: input.deSlug ?? input.canonicalSlug, deDescription: input.deDescription ?? input.enDescription, ptTitle: input.ptTitle ?? input.enTitle, ptSlug: input.ptSlug ?? input.canonicalSlug, ptDescription: input.ptDescription ?? input.enDescription, tags: input.tags.join(", "), enSeoTitle: seo?.enTitle ?? "", enSeoDescription: seo?.enDescription ?? "", enSeoKeywords: seo?.enKeywords.join(", ") ?? "", esSeoTitle: seo?.esTitle ?? "", esSeoDescription: seo?.esDescription ?? "", esSeoKeywords: seo?.esKeywords.join(", ") ?? "", frSeoTitle: seo?.frTitle ?? "", frSeoDescription: seo?.frDescription ?? "", frSeoKeywords: seo?.frKeywords?.join(", ") ?? "", deSeoTitle: seo?.deTitle ?? "", deSeoDescription: seo?.deDescription ?? "", deSeoKeywords: seo?.deKeywords?.join(", ") ?? "", ptSeoTitle: seo?.ptTitle ?? "", ptSeoDescription: seo?.ptDescription ?? "", ptSeoKeywords: seo?.ptKeywords?.join(", ") ?? "" };
+}
+
+function normalizeAuthorName(value: string) {
+  const normalized = value.replace(/\s+/gu, " ").trim();
+  if (normalized.length <= 160) return normalized;
+  const authors: string[] = [];
+  for (const author of normalized.split(",").map((item) => item.trim()).filter(Boolean)) {
+    const candidate = [...authors, author].join(", ");
+    if (candidate.length > 160) break;
+    authors.push(author);
+  }
+  return authors.length > 0 ? authors.join(", ") : Array.from(normalized).slice(0, 160).join("");
 }
