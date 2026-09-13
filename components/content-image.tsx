@@ -1,3 +1,7 @@
+"use client";
+
+import { optimizedImageUrl, responsiveImageSrcSet } from "@/lib/media/thumbnail-url";
+
 type Props = {
   src: string;
   alt: string;
@@ -25,9 +29,10 @@ export function ContentImage({
   const fallbackWidth = Math.min(640, Math.max(320, ...responsiveWidths));
 
   return (
-    // Keep the runtime CDN hostname while letting Bunny Optimizer resize by query string.
+    // Real, cached thumbnails; the original remains available if generation fails.
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      key={src}
       src={optimizedImageUrl(src, fallbackWidth)}
       alt={alt}
       width={intrinsicWidth}
@@ -38,27 +43,13 @@ export function ContentImage({
       sizes={sizes}
       srcSet={srcSet}
       decoding="async"
+      onError={(event) => {
+        const image = event.currentTarget;
+        if (image.dataset.originalFallback) return;
+        image.dataset.originalFallback = "true";
+        image.removeAttribute("srcset");
+        image.src = src;
+      }}
     />
   );
-}
-
-export function optimizedImageUrl(src: string, width: number) {
-  if (!/^https:\/\//u.test(src) || !Number.isFinite(width) || width <= 0) return src;
-  try {
-    const url = new URL(src);
-    url.searchParams.set("width", String(Math.round(width)));
-    url.searchParams.set("quality", "72");
-    url.searchParams.set("format", "webp");
-    return url.toString();
-  } catch {
-    return src;
-  }
-}
-
-function responsiveImageSrcSet(src: string, widths: number[]) {
-  if (!/^https:\/\//u.test(src)) return undefined;
-  const normalized = [...new Set(widths.map((width) => Math.round(width)).filter((width) => width > 0))].sort((a, b) => a - b);
-  return normalized.length > 0
-    ? normalized.map((width) => `${optimizedImageUrl(src, width)} ${width}w`).join(", ")
-    : undefined;
 }

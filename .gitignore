@@ -1,5 +1,6 @@
 node_modules
 .next
+.cache/thumbnails/
 out
 dist
 build
