@@ -12,6 +12,16 @@ let active = 0;
 const waiters: Array<() => void> = [];
 let lastCleanup = 0;
 
+export function coverRequestHeaders(siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://manga24.net") {
+  const site = new URL(siteUrl);
+  if (site.protocol !== "https:" && site.protocol !== "http:") throw new Error("Invalid site URL");
+  return {
+    Accept: "image/webp,image/jpeg,image/png,image/avif,image/gif",
+    // Use the configured site, never an incoming request's untrusted Host/Referer.
+    Referer: `${site.origin}/`
+  };
+}
+
 export function isPublicIPv4(address: string) {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
@@ -30,10 +40,12 @@ async function downloadCover(url: URL): Promise<Buffer> {
     const request = get(url, {
       family: 4,
       lookup: (_host, _options, callback) => callback(null, addresses[0].address, 4),
-      headers: { Accept: "image/webp,image/jpeg,image/png,image/avif,image/gif" }
+      headers: coverRequestHeaders()
     }, (response) => {
       if (response.statusCode !== 200 || !/^image\/(webp|jpeg|png|avif|gif)(;|$)/i.test(response.headers["content-type"] ?? "")) {
-        response.resume(); reject(new Error("Invalid cover response")); return;
+        response.resume();
+        reject(new Error(`Invalid cover response: HTTP ${response.statusCode}, Content-Type ${response.headers["content-type"] ?? "missing"}`));
+        return;
       }
       const chunks: Buffer[] = [];
       let bytes = 0;

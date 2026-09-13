@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import sharp from "sharp";
-import { isPublicIPv4, resizeCover } from "./thumbnail";
+import { coverRequestHeaders, isPublicIPv4, resizeCover } from "./thumbnail";
 import { optimizedImageUrl, responsiveImageSrcSet } from "./thumbnail-url";
+
+test("cover requests include the site's Referer without paths or secrets", () => {
+  assert.equal(coverRequestHeaders("https://manga24.net").Referer, "https://manga24.net/");
+  assert.equal(coverRequestHeaders("https://user:secret@example.org/path?token=secret").Referer, "https://example.org/");
+  assert.ok(coverRequestHeaders("https://example.org").Accept.includes("image/webp"));
+  assert.throws(() => coverRequestHeaders("file:///tmp/test"));
+});
 
 test("thumbnail URLs preserve original URL and limit available sizes", () => {
   const src = "https://images.example/manga/en/cover.webp";

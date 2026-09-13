@@ -8,6 +8,9 @@ changed. Unpublished/admin covers fall back to their original URL.
 The server verifies the cover object key, published title, and currently configured
 storage CDN URL before requesting an image. Only HTTPS, public IPv4 connections
 are accepted; redirects are not followed. Source download limit: 12 MiB / 12 seconds;
+Requests include the configured `NEXT_PUBLIC_SITE_URL` origin as `Referer` (default
+`https://manga24.net/`) to support the site's existing CDN hotlink protection.
+No incoming client Host/Referer is forwarded, and CDN security stays enabled.
 decode limit: 40 megapixels. Two conversions run at once, with at most 32 pending keys.
 On failure the verified original is returned via an uncached redirect.
 
