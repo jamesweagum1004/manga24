@@ -8,8 +8,9 @@ import { localeFlags, type Locale } from "@/lib/i18n";
 import { dictionary } from "@/lib/demo-data";
 import { localizedPath, switchLocalePath } from "@/lib/routes";
 import { ThemeToggle } from "./theme-toggle";
+import type { BrandingImage } from "@/lib/db/queries/settings";
 
-export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale: Locale; enabledLocales: Locale[]; logoUrl: string | null }) {
+export function CompactSiteHeader({ locale, enabledLocales, logo }: { locale: Locale; enabledLocales: Locale[]; logo: BrandingImage | null }) {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +29,7 @@ export function CompactSiteHeader({ locale, enabledLocales, logoUrl }: { locale:
     <header className="sticky top-0 z-40 border-b border-black/5 bg-[var(--surface)]/88 shadow-[0_6px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl md:border-[var(--border)] md:shadow-none">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center gap-2 px-3 sm:h-[58px] sm:px-4 lg:h-[72px] lg:px-6">
         <Link href={localizedPath(locale)} className="flex min-w-0 shrink items-center gap-2" aria-label="Manga24 home">
-          {logoUrl ? <img src={logoUrl} alt="Manga24" className="h-9 max-w-40 object-contain lg:h-11" /> : <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-[11px] font-black text-white shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)] lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">M24</span><span className="truncate text-xl font-black leading-none tracking-[-0.035em] lg:text-2xl lg:tracking-[-0.04em]">Manga24</span></>}
+          {logo ? <img src={logo.publicUrl} alt="Manga24" width={logo.width} height={logo.height} decoding="async" className="h-9 max-w-40 object-contain lg:h-11" /> : <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-[11px] font-black text-white shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)] lg:h-10 lg:w-10 lg:rounded-xl lg:text-xs">M24</span><span className="truncate text-xl font-black leading-none tracking-[-0.035em] lg:text-2xl lg:tracking-[-0.04em]">Manga24</span></>}
         </Link>
 
         <nav className="ml-3 hidden items-center gap-1 lg:ml-8 lg:flex lg:gap-2">

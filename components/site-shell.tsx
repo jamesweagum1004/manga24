@@ -9,7 +9,7 @@ export async function SiteShell({ locale, children }: { locale: Locale; children
   const [headerAds, settings] = await Promise.all([listActiveAds("header", locale), getSiteSettings()]);
   return (
     <>
-      <CompactSiteHeader locale={locale} enabledLocales={settings.enabledLocales} logoUrl={settings.logo?.publicUrl ?? null} />
+      <CompactSiteHeader locale={locale} enabledLocales={settings.enabledLocales} logo={settings.logo} />
       <AdStrip ads={headerAds} label="Top advertisements" pwaAdsEnabled={settings.pwaAdsEnabled} />
       {children}
       <MobileBottomNav locale={locale} />

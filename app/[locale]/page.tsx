@@ -12,6 +12,7 @@ import { getLocaleOrDefault } from "@/lib/i18n";
 import { listActiveAds } from "@/lib/db/queries/ads";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { homeSectionHref, localizedHomeSection, type HomeSection } from "@/lib/home-sections";
+import { optimizedImageUrl } from "@/components/content-image";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -50,6 +51,7 @@ export default async function HomePage({ params }: PageProps) {
   const featured = mangaLatest[0] ?? catalog.find((title) => title.format !== "manhwa") ?? catalog[0];
   const weeklyRanking = uniqueTitles([...weeklyManga, ...mangaPopular]).filter((title) => title.slug !== featured?.slug);
   const featuredImageOrigin = imageOrigin(featured?.cover.src);
+  const desktopFeaturedImage = featured ? optimizedImageUrl(featured.cover.src, 920) : null;
   const popularityHours = [...new Set(settings.homeSections.flatMap((section) => {
     if (section.source === "live") return [0.25];
     if (section.source !== "popular_period") return [];
@@ -64,6 +66,7 @@ export default async function HomePage({ params }: PageProps) {
   return (
     <>
       {featuredImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
+      {desktopFeaturedImage ? <link rel="preload" as="image" href={desktopFeaturedImage} media="(min-width: 1024px)" fetchPriority="high" /> : null}
       <SiteShell locale={locale}>
         <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
           <ContinueReading locale={locale} />
@@ -78,7 +81,7 @@ export default async function HomePage({ params }: PageProps) {
                 ranked={section.ranked}
                 cardVariant={section.cardVariant}
                 locale={locale}
-                priorityCount={0}
+                priorityCount={index === 0 ? 3 : 0}
               />
               <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
             </div>
