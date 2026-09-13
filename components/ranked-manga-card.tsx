@@ -10,12 +10,14 @@ export function RankedMangaCard({
   locale,
   rank,
   priority = false,
+  eager = false,
   badge
 }: {
   title: DemoTitle;
   locale: Locale;
   rank: number;
   priority?: boolean;
+  eager?: boolean;
   badge?: string;
 }) {
   const latestChapter = title.chapters.at(-1);
@@ -32,6 +34,7 @@ export function RankedMangaCard({
             sizes="(min-width: 1480px) 216px, (min-width: 1024px) calc((100vw - 172px) / 6), (min-width: 768px) 128px, (min-width: 415px) 112px, (min-width: 363px) 27vw, 98px"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.035]"
             priority={priority}
+            eager={eager}
           />
           <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/80 text-[11px] font-black text-white">
             {rank}

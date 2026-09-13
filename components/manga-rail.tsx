@@ -15,7 +15,8 @@ export function MangaRail({
   ranked = false,
   cardVariant = "standard",
   locale,
-  priorityCount = 0
+  priorityCount = 0,
+  eagerCount = 0
 }: {
   title: string;
   subtitle?: string;
@@ -25,6 +26,7 @@ export function MangaRail({
   cardVariant?: "standard" | "updates";
   locale: Locale;
   priorityCount?: number;
+  eagerCount?: number;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +65,7 @@ export function MangaRail({
               locale={locale}
               rank={index + 1}
               priority={index < priorityCount}
+              eager={index < eagerCount}
               badge={index < 3 ? "UP" : undefined}
             />
           ) : (
@@ -71,6 +74,7 @@ export function MangaRail({
               title={item}
               locale={locale}
               priority={index < priorityCount}
+              eager={index < eagerCount}
               badge={cardVariant === "updates" ? (index < 3 ? "NEW" : locale.toUpperCase()) : undefined}
             />
           )

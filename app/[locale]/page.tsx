@@ -81,7 +81,8 @@ export default async function HomePage({ params }: PageProps) {
                 ranked={section.ranked}
                 cardVariant={section.cardVariant}
                 locale={locale}
-                priorityCount={index < 2 ? 1 : 0}
+                priorityCount={index < 2 ? 4 : 0}
+                eagerCount={index < 2 ? 4 : 0}
               />
               <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
             </div>
