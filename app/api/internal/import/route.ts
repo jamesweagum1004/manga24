@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const cover = form.get("cover");
     if (cover instanceof File && cover.size > 0) {
       const [image] = await filesToImages([cover]);
-      const [uploaded] = await uploadImages(titleTarget.format, coverObjectPrefix(titleTarget.format, titleTarget.slug, titleTarget.createdAt), [image], { singleFileName: "cover" });
+      const [uploaded] = await uploadImages(titleTarget.format, coverObjectPrefix(titleTarget.format, titleTarget.originalLanguage, titleTarget.slug, titleTarget.createdAt), [image], { singleFileName: "cover" });
       await attachCover(titleId, uploaded, `${values.originalTitle} cover`);
     }
 
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       if (images) {
         const target = await getChapterMediaTarget(chapterId);
         if (!target) throw new Error("Unable to load imported chapter.");
-        const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.titleSlug, target.slug, target.titleCreatedAt), images);
+        const uploaded = await uploadImages(target.format, chapterObjectPrefix(target.format, target.originalLanguage, target.titleSlug, target.slug, target.titleCreatedAt), images);
         await replaceChapterPages(chapterId, target.chapterLocalizationId, uploaded, `${values.originalTitle} ${manifest.chapter.slug}`);
       }
       await updateDbChapter(chapterId, { ...chapterValues, publicationStatus: manifest.chapter.publicationStatus });

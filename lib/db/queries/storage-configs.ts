@@ -95,6 +95,33 @@ export async function getStorageCredentials(format: StorageFormat) {
   };
 }
 
+export function getStorageDeletionCredentials(format: StorageFormat, provider: "backblaze-b2"): Promise<{ provider: "backblaze-b2"; bucketName: string; keyId: string; applicationKey: string }>;
+export function getStorageDeletionCredentials(format: StorageFormat, provider: "bunny-storage"): Promise<{ provider: "bunny-storage"; storageZone: string; endpoint: string; accessKey: string }>;
+export async function getStorageDeletionCredentials(format: StorageFormat, provider: StorageProvider) {
+  const [config] = await getDb().select().from(storageConfigs).where(eq(storageConfigs.format, format)).limit(1);
+  if (!config) throw new Error(`${format} storage is not configured.`);
+  if (provider === "bunny-storage") {
+    if (!config.bunnyStorageZone || !config.bunnyEndpoint || !config.encryptedBunnyAccessKey) {
+      throw new Error(`${format} Bunny Storage deletion credentials are incomplete.`);
+    }
+    return {
+      provider,
+      storageZone: config.bunnyStorageZone,
+      endpoint: config.bunnyEndpoint,
+      accessKey: decryptStorageSecret(config.encryptedBunnyAccessKey)
+    };
+  }
+  if (!config.bucketName || !config.keyId || !config.encryptedApplicationKey) {
+    throw new Error(`${format} Backblaze deletion credentials are incomplete.`);
+  }
+  return {
+    provider,
+    bucketName: config.bucketName,
+    keyId: config.keyId,
+    applicationKey: decryptStorageSecret(config.encryptedApplicationKey)
+  };
+}
+
 export async function getStoragePublicUrls() {
   const rows = await getDb().select({ format: storageConfigs.format, bunnyPublicUrl: storageConfigs.bunnyPublicUrl }).from(storageConfigs);
   return {

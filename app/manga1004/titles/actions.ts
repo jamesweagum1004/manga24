@@ -6,11 +6,12 @@ import { z } from "zod";
 import { createDbTitle, deleteDbTitle, updateDbTitle, updateDbTitleGeneratedContent, updateDbTitlesDisplayLocales, updateDbTitlesPublicationStatus, type TitleFormValues } from "@/lib/db/queries/titles";
 import { databaseNotConfiguredMessage, getAdminTitleById, isDatabaseConfigured } from "@/lib/data/source";
 import { displayLocalesForOriginalLanguage, locales } from "@/lib/i18n";
-import { getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
+import { getTitleAssetsForDeletion, getTitlePublishingState, publishTitle, unpublishTitle } from "@/lib/db/queries/media";
 import { generateTitleContent } from "@/lib/deepseek/seo";
 import { getSiteSettings, updateAutoPublishSchedules } from "@/lib/db/queries/settings";
 import { publishDbChaptersWithPagesForTitles } from "@/lib/db/queries/chapters";
 import { getPublishedTitleUrls, submitIndexNow } from "@/lib/search-indexing";
+import { deleteStoredAssets } from "@/lib/media/delete";
 
 const slugSchema = z
   .string()
@@ -132,7 +133,11 @@ export async function updateTitleAction(
 export async function deleteTitleAction(id: string) {
   if (!isDatabaseConfigured()) redirect("/manga1004/titles");
   const removedUrls = await getPublishedTitleUrls([id]);
-  await deleteDbTitle(id);
+  try {
+    await deleteTitleAndMedia(id);
+  } catch (error) {
+    redirect(`/manga1004/titles/${id}?mediaError=${encodeURIComponent(deletionError(error))}`);
+  }
   revalidatePath("/sitemap.xml");
   revalidateTag("public-catalog");
   await submitIndexNow(removedUrls);
@@ -223,9 +228,17 @@ export async function bulkTitleAction(formData: FormData) {
       skipped += results.filter((result) => result.status === "rejected").length;
     }
   } else if (action === "delete") {
-    indexNowUrls = await getPublishedTitleUrls(ids);
-    for (const id of ids) await deleteDbTitle(id);
-    updated = ids.length;
+    for (const id of ids) {
+      try {
+        const removedUrls = await getPublishedTitleUrls([id]);
+        await deleteTitleAndMedia(id);
+        indexNowUrls.push(...removedUrls);
+        updated += 1;
+      } catch (error) {
+        console.error("Unable to delete title media.", { titleId: id, cause: deletionError(error) });
+        skipped += 1;
+      }
+    }
   } else {
     await updateDbTitlesPublicationStatus(ids, action);
     updated = ids.length;
@@ -237,6 +250,17 @@ export async function bulkTitleAction(formData: FormData) {
     await submitIndexNow(indexNowUrls);
   }
   redirect(`/manga1004/titles?bulk=${action}&changed=${updated}&skipped=${skipped}`);
+}
+
+async function deleteTitleAndMedia(id: string) {
+  const target = await getTitleAssetsForDeletion(id);
+  if (!target) throw new Error("Title not found.");
+  await deleteStoredAssets(target.format, target.assets);
+  await deleteDbTitle(id);
+}
+
+function deletionError(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 300) : "Unable to delete remote media.";
 }
 
 function parseTitleForm(formData: FormData) {

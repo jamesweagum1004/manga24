@@ -6,6 +6,8 @@ import { z } from "zod";
 import { createDbChapter, deleteDbChapter, setDbChapterPublicationStatus, updateDbChapter, type ChapterFormValues } from "@/lib/db/queries/chapters";
 import { getAdminChapterList } from "@/lib/data/source";
 import { getPublishedChapterUrls, submitIndexNow, uniqueUrls } from "@/lib/search-indexing";
+import { getChapterAssetsForDeletion } from "@/lib/db/queries/media";
+import { deleteStoredAssets } from "@/lib/media/delete";
 
 const schema = z.object({
   titleId: z.string().uuid("Choose a title."),
@@ -62,7 +64,11 @@ export async function setChapterPublicationAction(titleId: string, chapterId: st
 
 export async function deleteChapterAction(titleId: string, chapterId: string) {
   const removedUrls = await getPublishedChapterUrls([chapterId]);
-  await deleteDbChapter(chapterId);
+  try {
+    await deleteChapterAndMedia(chapterId);
+  } catch (error) {
+    redirect(`/manga1004/titles/${titleId}?mediaError=${encodeURIComponent(deletionError(error))}`);
+  }
   await updateChapterSearchDiscovery(removedUrls, []);
   redirect(`/manga1004/titles/${titleId}?deleted=chapter`);
 }
@@ -91,14 +97,34 @@ export async function bulkChapterAction(titleId: string, formData: FormData) {
       skipped += 1;
       continue;
     }
-    if (parsed.data.action === "delete") await deleteDbChapter(chapter.id);
-    else await setDbChapterPublicationStatus(chapter.id, parsed.data.action);
-    updated += 1;
+    if (parsed.data.action === "delete") {
+      try {
+        await deleteChapterAndMedia(chapter.id);
+        updated += 1;
+      } catch (error) {
+        console.error("Unable to delete chapter media.", { chapterId: chapter.id, cause: deletionError(error) });
+        skipped += 1;
+      }
+    } else {
+      await setDbChapterPublicationStatus(chapter.id, parsed.data.action);
+      updated += 1;
+    }
   }
 
   await updateChapterSearchDiscovery(previousUrls, parsed.data.action === "delete" ? [] : changedIds);
 
   redirect(`/manga1004/titles/${titleId}?bulk=${parsed.data.action}&changed=${updated}&skipped=${skipped}`);
+}
+
+async function deleteChapterAndMedia(id: string) {
+  const target = await getChapterAssetsForDeletion(id);
+  if (!target) throw new Error("Chapter not found.");
+  await deleteStoredAssets(target.format, target.assets);
+  await deleteDbChapter(id);
+}
+
+function deletionError(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 300) : "Unable to delete remote media.";
 }
 
 async function updateChapterSearchDiscovery(previousUrls: string[], currentChapterIds: string[]) {

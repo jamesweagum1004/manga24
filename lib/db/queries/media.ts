@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db/client";
 import type { UploadedMedia } from "@/lib/media/b2-upload";
 
 export async function getTitleMediaTarget(id: string) {
-  const [row] = await getDb().select({ id: titles.id, slug: titles.slug, format: titles.format, originalTitle: titles.originalTitle, coverAssetId: titles.coverAssetId, publishedAt: titles.publishedAt, createdAt: titles.createdAt }).from(titles).where(eq(titles.id, id)).limit(1);
+  const [row] = await getDb().select({ id: titles.id, slug: titles.slug, format: titles.format, originalTitle: titles.originalTitle, originalLanguage: titles.originalLanguage, coverAssetId: titles.coverAssetId, publishedAt: titles.publishedAt, createdAt: titles.createdAt }).from(titles).where(eq(titles.id, id)).limit(1);
   return row ?? null;
 }
 
@@ -29,10 +29,46 @@ export async function unpublishTitle(id: string) {
 }
 
 export async function getChapterMediaTarget(id: string) {
-  const [row] = await getDb().select({ id: chapters.id, titleId: chapters.titleId, slug: chapters.slug, titleSlug: titles.slug, title: titles.originalTitle, format: titles.format, titleCreatedAt: titles.createdAt, publicationStatus: chapters.publicationStatus }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
+  const [row] = await getDb().select({ id: chapters.id, titleId: chapters.titleId, slug: chapters.slug, titleSlug: titles.slug, title: titles.originalTitle, originalLanguage: titles.originalLanguage, format: titles.format, titleCreatedAt: titles.createdAt, publicationStatus: chapters.publicationStatus }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
   if (!row) return null;
   const [localization] = await getDb().select({ id: chapterLocalizations.id }).from(chapterLocalizations).where(eq(chapterLocalizations.chapterId, id)).orderBy(asc(chapterLocalizations.locale)).limit(1);
   return localization ? { ...row, chapterLocalizationId: localization.id } : null;
+}
+
+export type StoredAsset = {
+  provider: string;
+  bucket: string | null;
+  objectKey: string;
+};
+
+export async function getTitleAssetsForDeletion(id: string) {
+  const [title] = await getDb().select({ format: titles.format, coverAssetId: titles.coverAssetId }).from(titles).where(eq(titles.id, id)).limit(1);
+  if (!title) return null;
+  const cover = title.coverAssetId
+    ? await getDb().select({ provider: assets.provider, bucket: assets.bucket, objectKey: assets.objectKey }).from(assets).where(eq(assets.id, title.coverAssetId))
+    : [];
+  const pages = await getDb()
+    .select({ provider: assets.provider, bucket: assets.bucket, objectKey: assets.objectKey })
+    .from(chapterPages)
+    .innerJoin(chapters, eq(chapterPages.chapterId, chapters.id))
+    .innerJoin(assets, eq(chapterPages.assetId, assets.id))
+    .where(eq(chapters.titleId, id));
+  return { format: title.format, assets: uniqueStoredAssets([...cover, ...pages]) };
+}
+
+export async function getChapterAssetsForDeletion(id: string) {
+  const [chapter] = await getDb().select({ format: titles.format }).from(chapters).innerJoin(titles, eq(chapters.titleId, titles.id)).where(eq(chapters.id, id)).limit(1);
+  if (!chapter) return null;
+  const pages = await getDb()
+    .select({ provider: assets.provider, bucket: assets.bucket, objectKey: assets.objectKey })
+    .from(chapterPages)
+    .innerJoin(assets, eq(chapterPages.assetId, assets.id))
+    .where(eq(chapterPages.chapterId, id));
+  return { format: chapter.format, assets: uniqueStoredAssets(pages) };
+}
+
+function uniqueStoredAssets(rows: StoredAsset[]) {
+  return [...new Map(rows.map((asset) => [`${asset.provider}:${asset.bucket ?? ""}:${asset.objectKey}`, asset])).values()];
 }
 
 export async function getChapterIdForImport(titleId: string, slug: string) {
