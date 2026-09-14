@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import type { DemoAsset, DemoTitle } from "@/lib/demo-data";
@@ -67,6 +67,17 @@ export function VerticalReader({
   const restored = useRef(false);
   const countedChapter = useRef(false);
   const lastLibraryWrite = useRef(0);
+
+  useLayoutEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, [chapterHref]);
 
   useEffect(() => {
     if (restored.current) {
@@ -167,8 +178,8 @@ export function VerticalReader({
           </div>
         </div>
       ) : null}
-      <div className="mx-auto max-w-[840px] pt-14">
-        <div onClick={(event) => event.stopPropagation()}><AdStrip ads={topAds} label="Advertisements before chapter" pwaAdsEnabled={pwaAdsEnabled} /></div>
+      <div className="mx-auto max-w-[840px] pt-[116px]">
+        <div className="relative z-10 bg-black" onClick={(event) => event.stopPropagation()}><AdStrip ads={topAds} label="Advertisements before chapter" pwaAdsEnabled={pwaAdsEnabled} /></div>
         {pages.length === 0 ? (
           <div className="px-4 py-20 text-center text-white/65">No pages are available for this chapter.</div>
         ) : (
