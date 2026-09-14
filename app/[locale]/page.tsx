@@ -62,11 +62,15 @@ export default async function HomePage({ params }: PageProps) {
     .filter((section) => section.enabled && (section.source !== "manhwa" || settings.homeManhwaEnabled))
     .map((section) => buildHomeSection(section, { catalog, mangaPopular, mangaLatest, timeRankings }, locale))
     .filter((section) => section.items.length > 0);
+  const mobileLcpCandidates = [...new Set(railSections.slice(0, 2)
+    .map((section) => section.items[2]?.cover.src)
+    .filter((src): src is string => Boolean(src)))];
 
   return (
     <>
       {featuredImageOrigin ? <link rel="preconnect" href={featuredImageOrigin} crossOrigin="anonymous" /> : null}
       {desktopFeaturedImage && featured ? <link rel="preload" as="image" href={desktopFeaturedImage} imageSrcSet={responsiveImageSrcSet(featured.cover.src, [640, 920, 1280])} imageSizes="(min-width: 1280px) 920px, 65vw" media="(min-width: 1024px)" fetchPriority="high" /> : null}
+      {mobileLcpCandidates.map((src) => <link key={src} rel="preload" as="image" href={optimizedImageUrl(src, 160)} media="(max-width: 767px)" fetchPriority="high" />)}
       <SiteShell locale={locale}>
         <main className="mx-auto max-w-[1480px] space-y-2 px-0 pb-3 pt-0 sm:px-3 sm:pt-3 md:space-y-4 md:px-5 lg:space-y-5 lg:px-6 lg:py-6">
           <ContinueReading locale={locale} />
@@ -81,7 +85,7 @@ export default async function HomePage({ params }: PageProps) {
                 ranked={section.ranked}
                 cardVariant={section.cardVariant}
                 locale={locale}
-                priorityCount={index < 2 ? 4 : 0}
+                priorityIndex={index < 2 ? 2 : -1}
                 eagerCount={index < 2 ? 4 : 0}
               />
               <AdStrip ads={contentAds.filter((ad) => ad.insertAfter === index + 1)} label={`Advertisements after ${section.title}`} pwaAdsEnabled={settings.pwaAdsEnabled} />
