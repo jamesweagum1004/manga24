@@ -130,6 +130,10 @@ export async function POST(request: Request) {
     await submitIndexNow(uniqueUrls([...previousUrls, ...currentUrls]));
     return NextResponse.json({ ok: true, titleId, chapterId, published });
   } catch (error) {
+    console.error("Manga24 internal import failed.", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json({ error: error instanceof Error ? error.message : "Import failed" }, { status: 500 });
   }
 }

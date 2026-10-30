@@ -9,6 +9,12 @@ type Authorization = {
   apiInfo: { storageApi: { apiUrl: string; allowed: { buckets: Array<{ id: string; name: string | null }>; capabilities: string[] } } };
 };
 
+type BackblazeCredentials = Extract<Awaited<ReturnType<typeof getStorageCredentials>>, { provider: "backblaze-b2" }>;
+type BackblazeSession = { authorization: Authorization; bucketId: string };
+type B2ErrorDetails = { status: number; statusText: string; code: string | null; message: string | null; body: unknown };
+
+const backblazeUploadAttempts = 3;
+
 export type UploadedMedia = {
   provider: "backblaze-b2" | "bunny-storage";
   bucket: string;
@@ -26,22 +32,7 @@ export async function uploadImages(format: StorageFormat, prefix: string, images
   if (credentials.provider === "bunny-storage") {
     return uploadToBunnyStorage(credentials, prefix, images, imageCdnBaseUrl, options);
   }
-  const authResponse = await fetch("https://api.backblazeb2.com/b2api/v4/b2_authorize_account", {
-    headers: { Authorization: `Basic ${Buffer.from(`${credentials.keyId}:${credentials.applicationKey}`).toString("base64")}` },
-    cache: "no-store"
-  });
-  if (!authResponse.ok) throw new Error("Backblaze authorization failed. Check the configured key.");
-  const authorization = await authResponse.json() as Authorization;
-  const storageApi = authorization.apiInfo.storageApi;
-  if (!storageApi.allowed.capabilities.includes("writeFiles")) throw new Error("Backblaze key requires writeFiles permission.");
-  const bucket = storageApi.allowed.buckets.find((item) => item.name === credentials.bucketName);
-  if (!bucket) throw new Error(`Backblaze key is not restricted to ${credentials.bucketName}.`);
-  const uploadTargetResponse = await fetch(`${storageApi.apiUrl}/b2api/v4/b2_get_upload_url?bucketId=${encodeURIComponent(bucket.id)}`, {
-    headers: { Authorization: authorization.authorizationToken },
-    cache: "no-store"
-  });
-  if (!uploadTargetResponse.ok) throw new Error("Unable to obtain a Backblaze upload URL.");
-  const uploadTarget = await uploadTargetResponse.json() as { uploadUrl: string; authorizationToken: string };
+  let session = await authorizeBackblaze(credentials);
 
   const uploaded: UploadedMedia[] = [];
   for (const [index, image] of images.entries()) {
@@ -50,21 +41,163 @@ export async function uploadImages(format: StorageFormat, prefix: string, images
     const objectKey = `${prefix}/${filename}`;
     const metadata = imageDimensions(image.bytes, image.contentType);
     if (!metadata) throw new Error(`${image.name} has an invalid or mismatched image header.`);
-    const response = await fetch(uploadTarget.uploadUrl, {
-      method: "POST",
-      headers: {
-        Authorization: uploadTarget.authorizationToken,
-        "X-Bz-File-Name": encodeB2Name(objectKey),
-        "Content-Type": image.contentType,
-        "Content-Length": String(image.bytes.length),
-        "X-Bz-Content-Sha1": createHash("sha1").update(image.bytes).digest("hex")
-      },
-      body: new Uint8Array(image.bytes)
-    });
-    if (!response.ok) throw new Error(`Backblaze rejected ${image.name}.`);
+    let completed = false;
+    for (let attempt = 1; attempt <= backblazeUploadAttempts; attempt += 1) {
+      try {
+        // B2 upload URLs are deliberately single-use here. Every file and every
+        // retry obtains a fresh URL/token pair before sending any bytes.
+        const targetResponse = await requestBackblazeUploadTarget(session);
+        if (!targetResponse.ok) {
+          const details = await b2ErrorDetails(targetResponse);
+          logB2Failure("get_upload_url", image.name, objectKey, attempt, details);
+          if (!isRetryableB2Failure(details) || attempt === backblazeUploadAttempts) {
+            throw reportedB2Error(b2FailureMessage(`Unable to obtain an upload URL for ${image.name}`, details));
+          }
+          if (details.status === 401) session = await authorizeBackblaze(credentials);
+          await waitForB2Retry(attempt, targetResponse.headers.get("retry-after"));
+          continue;
+        }
+
+        const uploadTarget = await readUploadTarget(targetResponse, image.name);
+        const response = await fetch(uploadTarget.uploadUrl, {
+          method: "POST",
+          headers: {
+            Authorization: uploadTarget.authorizationToken,
+            "X-Bz-File-Name": encodeB2Name(objectKey),
+            "Content-Type": image.contentType,
+            "Content-Length": String(image.bytes.length),
+            "X-Bz-Content-Sha1": createHash("sha1").update(image.bytes).digest("hex")
+          },
+          body: new Uint8Array(image.bytes)
+        });
+        if (response.ok) {
+          completed = true;
+          break;
+        }
+
+        const details = await b2ErrorDetails(response);
+        logB2Failure("upload", image.name, objectKey, attempt, details);
+        if (!isRetryableB2Failure(details) || attempt === backblazeUploadAttempts) {
+          throw reportedB2Error(b2FailureMessage(`Backblaze rejected ${image.name}`, details));
+        }
+        if (details.status === 401) session = await authorizeBackblaze(credentials);
+        await waitForB2Retry(attempt, response.headers.get("retry-after"));
+      } catch (error) {
+        if (isReportedB2Error(error)) throw error;
+        console.error("Backblaze B2 request failed before receiving a response.", {
+          operation: "upload",
+          file: image.name,
+          objectKey,
+          attempt,
+          maxAttempts: backblazeUploadAttempts,
+          cause: error instanceof Error ? error.message : String(error)
+        });
+        if (attempt === backblazeUploadAttempts) throw new Error(`Backblaze upload failed for ${image.name} after ${backblazeUploadAttempts} attempts.`, { cause: error });
+        await waitForB2Retry(attempt, null);
+      }
+    }
+    if (!completed) throw new Error(`Backblaze upload failed for ${image.name}.`);
     uploaded.push({ provider: "backblaze-b2", bucket: credentials.bucketName, objectKey, publicUrl: imageCdnUrl(objectKey, imageCdnBaseUrl), width: metadata.width, height: metadata.height, contentType: image.contentType, fileSize: image.bytes.length });
   }
   return uploaded;
+}
+
+async function authorizeBackblaze(credentials: BackblazeCredentials): Promise<BackblazeSession> {
+  const response = await fetch("https://api.backblazeb2.com/b2api/v4/b2_authorize_account", {
+    headers: { Authorization: `Basic ${Buffer.from(`${credentials.keyId}:${credentials.applicationKey}`).toString("base64")}` },
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    const details = await b2ErrorDetails(response);
+    logB2Failure("authorize_account", null, null, 1, details);
+    throw new Error(b2FailureMessage("Backblaze authorization failed", details));
+  }
+  const authorization = await response.json() as Authorization;
+  const storageApi = authorization.apiInfo.storageApi;
+  if (!storageApi.allowed.capabilities.includes("writeFiles")) throw new Error("Backblaze key requires writeFiles permission.");
+  const bucket = storageApi.allowed.buckets.find((item) => item.name === credentials.bucketName);
+  if (!bucket) throw new Error(`Backblaze key is not restricted to ${credentials.bucketName}.`);
+  return { authorization, bucketId: bucket.id };
+}
+
+function requestBackblazeUploadTarget(session: BackblazeSession) {
+  const storageApi = session.authorization.apiInfo.storageApi;
+  return fetch(`${storageApi.apiUrl}/b2api/v4/b2_get_upload_url?bucketId=${encodeURIComponent(session.bucketId)}`, {
+    headers: { Authorization: session.authorization.authorizationToken },
+    cache: "no-store"
+  });
+}
+
+async function readUploadTarget(response: Response, fileName: string) {
+  const target = await response.json() as { uploadUrl?: unknown; authorizationToken?: unknown };
+  if (typeof target.uploadUrl !== "string" || typeof target.authorizationToken !== "string") {
+    console.error("Backblaze B2 returned an invalid upload target.", { file: fileName, status: response.status, responseBody: target });
+    throw reportedB2Error(`Backblaze returned an invalid upload target for ${fileName}.`);
+  }
+  return { uploadUrl: target.uploadUrl, authorizationToken: target.authorizationToken };
+}
+
+async function b2ErrorDetails(response: Response): Promise<B2ErrorDetails> {
+  const text = await response.text();
+  let body: unknown = text;
+  try { body = text ? JSON.parse(text) : null; } catch { /* Preserve a non-JSON response for diagnostics. */ }
+  const record = body && typeof body === "object" ? body as Record<string, unknown> : null;
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    code: typeof record?.code === "string" ? record.code : null,
+    message: typeof record?.message === "string" ? record.message : null,
+    body
+  };
+}
+
+function isRetryableB2Failure(details: B2ErrorDetails) {
+  return details.status === 429 || details.status === 503 || (details.status === 401 && (details.code === "bad_auth_token" || details.code === "expired_auth_token"));
+}
+
+function logB2Failure(operation: string, file: string | null, objectKey: string | null, attempt: number, details: B2ErrorDetails) {
+  console.error("Backblaze B2 request rejected.", {
+    operation,
+    file,
+    objectKey,
+    attempt,
+    maxAttempts: backblazeUploadAttempts,
+    httpStatus: details.status,
+    httpStatusText: details.statusText,
+    b2ErrorCode: details.code,
+    b2ErrorMessage: details.message,
+    responseBody: details.body
+  });
+}
+
+function b2FailureMessage(prefix: string, details: B2ErrorDetails) {
+  const code = details.code ? ` ${details.code}` : "";
+  const message = details.message ? `: ${details.message}` : "";
+  return `${prefix} (HTTP ${details.status}${code}${message}).`;
+}
+
+function reportedB2Error(message: string) {
+  const error = new Error(message) as Error & { reportedB2Error: true };
+  error.reportedB2Error = true;
+  return error;
+}
+
+function isReportedB2Error(error: unknown): error is Error & { reportedB2Error: true } {
+  return error instanceof Error && "reportedB2Error" in error;
+}
+
+async function waitForB2Retry(attempt: number, retryAfter: string | null) {
+  const retryAfterMs = parseRetryAfter(retryAfter);
+  const delayMs = retryAfterMs ?? 300 * (2 ** (attempt - 1));
+  await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 10_000)));
+}
+
+function parseRetryAfter(value: string | null) {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const date = Date.parse(value);
+  return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
 }
 
 async function uploadToBunnyStorage(
