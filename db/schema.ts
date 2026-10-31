@@ -57,7 +57,7 @@ export const siteSettings = pgTable("site_settings", {
   showAuthor: boolean("show_author").default(true).notNull(),
   showChapters: boolean("show_chapters").default(true).notNull(),
   readerRecommendationCount: integer("reader_recommendation_count").default(8).notNull(),
-  homeSections: jsonb("home_sections").$type<Array<{ id: string; title: string; subtitle: string; source: "popular" | "live" | "random" | "popular_period" | "latest" | "adult" | "tag" | "manhwa"; tag: string; itemCount: number; enabled: boolean; popularityPeriod: "hourly" | "custom" | "daily"; customHours: number }>>(),
+  homeSections: jsonb("home_sections").$type<Array<{ id: string; title: string; subtitle: string; source: "popular" | "live" | "random" | "popular_period" | "latest" | "adult" | "tag" | "manhwa" | "rediscovery"; tag: string; itemCount: number; enabled: boolean; popularityPeriod: "hourly" | "custom" | "daily"; customHours: number; localizations?: Partial<Record<"en" | "es" | "fr" | "de" | "pt", { title: string; subtitle: string }>> }>>(),
   adLocaleModes: jsonb("ad_locale_modes").$type<Record<string, "inherit" | "separate">>().default({ en: "inherit", es: "inherit", fr: "inherit", de: "inherit", pt: "inherit" }).notNull(),
   googleAnalyticsEnabled: boolean("google_analytics_enabled").default(false).notNull(),
   googleAnalyticsMeasurementId: varchar("google_analytics_measurement_id", { length: 32 }),

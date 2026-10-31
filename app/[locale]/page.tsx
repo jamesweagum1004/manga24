@@ -61,9 +61,13 @@ export default async function HomePage({ params }: PageProps) {
     return [section.popularityPeriod === "daily" ? 24 : section.popularityPeriod === "custom" ? section.customHours : 1];
   }))];
   const timeRankings = new Map(await Promise.all(popularityHours.map(async (hours) => [hours, (await getRecentPopularCatalogTitles(locale, hours)).filter((title) => title.format !== "manhwa")] as const)));
+  const homeSectionData = { catalog, mangaPopular, mangaLatest, timeRankings };
+  const alreadyDisplayed = new Set(settings.homeSections
+    .filter((section) => section.enabled && section.source !== "rediscovery" && (section.source !== "manhwa" || settings.homeManhwaEnabled))
+    .flatMap((section) => buildHomeSection(section, homeSectionData, locale).items.map((title) => title.slug)));
   const railSections = settings.homeSections
     .filter((section) => section.enabled && (section.source !== "manhwa" || settings.homeManhwaEnabled))
-    .map((section) => buildHomeSection(section, { catalog, mangaPopular, mangaLatest, timeRankings }, locale))
+    .map((section) => buildHomeSection(section, homeSectionData, locale, alreadyDisplayed))
     .filter((section) => section.items.length > 0);
   const mobileLcpCandidates = [...new Set(railSections.slice(0, 2)
     .map((section) => section.items[2]?.cover.src)
@@ -110,7 +114,7 @@ function imageOrigin(value: string | undefined) {
   }
 }
 
-function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[]; timeRankings: Map<number, DemoTitle[]> }, locale: Parameters<typeof homeSectionHref>[0]) {
+function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; mangaPopular: DemoTitle[]; mangaLatest: DemoTitle[]; timeRankings: Map<number, DemoTitle[]> }, locale: Parameters<typeof homeSectionHref>[0], excludedSlugs = new Set<string>()) {
   const labels = localizedHomeSection(section, locale);
   let items: DemoTitle[];
   if (section.source === "popular") items = data.mangaPopular;
@@ -123,6 +127,13 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
   else if (section.source === "adult") items = data.mangaPopular.filter((title) => title.contentRating !== "Safe");
   else if (section.source === "tag") items = data.mangaLatest.filter((title) => title.tags.includes(section.tag));
   else if (section.source === "manhwa") items = data.catalog.filter((title) => title.format === "manhwa");
+  else if (section.source === "rediscovery") {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const day = new Date().toISOString().slice(0, 10);
+    items = data.catalog
+      .filter((title) => title.chapters.length > 0 && !excludedSlugs.has(title.slug) && Date.parse(`${title.publishedAt}T00:00:00Z`) < cutoff)
+      .sort((left, right) => left.viewCount - right.viewCount || dailyRank(left.slug, locale, day) - dailyRank(right.slug, locale, day));
+  }
   else items = data.mangaLatest;
   return {
     title: labels.title,
@@ -132,6 +143,12 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
     ranked: section.source === "popular" || section.source === "live" || section.source === "popular_period" || section.source === "adult",
     cardVariant: section.source === "latest" ? "updates" as const : undefined
   };
+}
+
+function dailyRank(slug: string, locale: Parameters<typeof homeSectionHref>[0], day: string) {
+  let hash = 2166136261;
+  for (const char of `${day}:${locale}:${slug}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  return hash >>> 0;
 }
 
 function shuffle<T>(values: T[]) {

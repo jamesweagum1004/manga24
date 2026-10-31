@@ -1,6 +1,6 @@
 import type { Locale } from "@/lib/i18n";
 
-export const homeSectionSources = ["popular", "live", "random", "popular_period", "latest", "adult", "tag", "manhwa"] as const;
+export const homeSectionSources = ["popular", "live", "random", "popular_period", "latest", "adult", "tag", "manhwa", "rediscovery"] as const;
 export const popularityPeriods = ["hourly", "custom", "daily"] as const;
 export type HomeSectionSource = (typeof homeSectionSources)[number];
 export type PopularityPeriod = (typeof popularityPeriods)[number];
@@ -24,6 +24,13 @@ export const defaultHomeSections: HomeSection[] = [
   { id: "romance", title: "Romance", subtitle: "Updated", source: "tag", tag: "romance", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
   { id: "fantasy", title: "Fantasy", subtitle: "New arcs", source: "tag", tag: "fantasy", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
   { id: "latest-updates", title: "Latest Updates", subtitle: "Last 6 hours", source: "latest", tag: "", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
+  { id: "rediscovery", title: "Rediscover", subtitle: "From the archive", source: "rediscovery", tag: "", itemCount: 6, enabled: true, popularityPeriod: "hourly", customHours: 6, localizations: {
+    en: { title: "Rediscover", subtitle: "From the archive" },
+    es: { title: "Redescubre", subtitle: "Del archivo" },
+    fr: { title: "À redécouvrir", subtitle: "Dans les archives" },
+    de: { title: "Wiederentdecken", subtitle: "Aus dem Archiv" },
+    pt: { title: "Redescubra", subtitle: "Do arquivo" }
+  } },
   { id: "popular-week", title: "Popular Today", subtitle: "Daily", source: "popular_period", tag: "", itemCount: 12, enabled: true, popularityPeriod: "daily", customHours: 24 },
   { id: "new-releases", title: "New Releases", subtitle: "Fresh", source: "latest", tag: "", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
   { id: "manhwa-spotlight", title: "Manhwa Spotlight", subtitle: "Korean comics", source: "manhwa", tag: "", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 }
@@ -31,7 +38,7 @@ export const defaultHomeSections: HomeSection[] = [
 
 export function normalizeHomeSections(value: unknown): HomeSection[] {
   if (!Array.isArray(value)) return defaultHomeSections;
-  const sections = value.flatMap((item, index) => {
+  const sections: HomeSection[] = value.flatMap((item, index) => {
     if (!item || typeof item !== "object") return [];
     const input = item as Record<string, unknown>;
     const source = homeSectionSources.includes(input.source as HomeSectionSource) ? input.source as HomeSectionSource : "latest";
@@ -50,7 +57,14 @@ export function normalizeHomeSections(value: unknown): HomeSection[] {
       ,localizations: normalizeLocalizations(input.localizations, title, typeof input.subtitle === "string" ? input.subtitle.trim().slice(0, 80) : "")
     } satisfies HomeSection];
   });
-  return sections.length > 0 ? sections.slice(0, 30) : defaultHomeSections;
+  if (sections.length === 0) return defaultHomeSections;
+  // Existing installs have a saved home-section list. Add Rediscover once so
+  // they receive the feature, while a saved disabled Rediscover remains disabled.
+  if (!sections.some((section) => section.source === "rediscovery")) {
+    const defaultSection = defaultHomeSections.find((section) => section.source === "rediscovery");
+    if (defaultSection && sections.length < 30) sections.splice(Math.min(5, sections.length), 0, defaultSection);
+  }
+  return sections.slice(0, 30);
 }
 
 function normalizeLocalizations(value: unknown, title: string, subtitle: string) {
@@ -69,6 +83,7 @@ export function localizedHomeSection(section: HomeSection, locale: Locale) {
 }
 
 export function homeSectionHref(locale: Locale, section: HomeSection) {
+  if (section.source === "rediscovery") return `/${locale}/discover`;
   if (section.source === "tag" && section.tag) return `/${locale}/tags/${section.tag}`;
   if (section.source === "latest") return `/${locale}/latest`;
   return `/${locale}/popular`;

@@ -12,6 +12,7 @@ export async function createHomeSectionAction(formData: FormData) {
   const parsed = parse(formData);
   if (!parsed.success) redirect("/manga1004/home-sections?error=fields");
   const settings = await getSiteSettings();
+  if (parsed.data.source === "rediscovery" && settings.homeSections.some((section) => section.source === "rediscovery")) redirect("/manga1004/home-sections?error=rediscovery-exists");
   const id = `${slugify(parsed.data.title) || "section"}-${Date.now().toString(36)}`;
   const localizations = await translate(parsed.data.title, parsed.data.subtitle, settings.deepseekModel);
   await updateHomeSections([...settings.homeSections, { id, ...parsed.data, localizations }]);
@@ -22,6 +23,7 @@ export async function updateHomeSectionAction(id: string, formData: FormData) {
   const parsed = parse(formData);
   if (!parsed.success) redirect("/manga1004/home-sections?error=fields");
   const settings = await getSiteSettings();
+  if (parsed.data.source === "rediscovery" && settings.homeSections.some((section) => section.source === "rediscovery" && section.id !== id)) redirect("/manga1004/home-sections?error=rediscovery-exists");
   const localizations = await translate(parsed.data.title, parsed.data.subtitle, settings.deepseekModel);
   await updateHomeSections(settings.homeSections.map((section) => section.id === id ? { id, ...parsed.data, localizations } : section));
   redirect("/manga1004/home-sections?saved=updated");
@@ -29,6 +31,11 @@ export async function updateHomeSectionAction(id: string, formData: FormData) {
 
 export async function deleteHomeSectionAction(id: string) {
   const settings = await getSiteSettings();
+  const target = settings.homeSections.find((section) => section.id === id);
+  if (target?.source === "rediscovery") {
+    await updateHomeSections(settings.homeSections.map((section) => section.id === id ? { ...section, enabled: false } : section));
+    redirect("/manga1004/home-sections?saved=disabled");
+  }
   const remaining = settings.homeSections.filter((section) => section.id !== id);
   if (remaining.length === 0) redirect("/manga1004/home-sections?error=last-section");
   await updateHomeSections(remaining);
