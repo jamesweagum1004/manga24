@@ -64,7 +64,7 @@ curl -I https://dev.manga24.net/en
 
 ### Nginx upload limits
 
-The chapter uploader accepts ZIP files up to 120 MB. Production Nginx is configured with a 512 MB request ceiling and
+The chapter uploader accepts ZIP files up to 500 MB. Production Nginx is configured with a 512 MB request ceiling and
 15-minute client/proxy timeouts so multipart overhead and slow connections do not interrupt valid uploads. Install or
 refresh the settings from the repository, then validate and reload Nginx:
 

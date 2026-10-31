@@ -32,7 +32,7 @@ export default async function AdminChapterPage({ params, searchParams }: { param
         {query.mediaError ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{query.mediaError}</p> : null}
         <form action={uploadChapterPagesAction.bind(null, chapter.id)} className="mt-5 grid gap-4">
           {setup ? <input type="hidden" name="setup" value="1" /> : null}
-          <label className="grid gap-1.5 text-sm font-black"><span>ZIP archive · max 120 MB</span><input type="file" name="zip" accept=".zip,application/zip" className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-sm" /></label>
+          <label className="grid gap-1.5 text-sm font-black"><span>ZIP archive · max 500 MB</span><input type="file" name="zip" accept=".zip,application/zip" className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-sm" /></label>
           <div className="text-center text-xs font-black uppercase text-[var(--muted)]">or</div>
           <label className="grid gap-1.5 text-sm font-black"><span>Multiple page images · JPG, PNG, WebP or AVIF</span><input type="file" name="pages" accept="image/jpeg,image/png,image/webp,image/avif" multiple className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-sm" /></label>
           <p className="text-xs leading-5 text-[var(--muted)]">Files are ordered naturally by filename: 1, 2, 3 … 10. Use zero-padded names such as 001.jpg for predictable imports.</p>

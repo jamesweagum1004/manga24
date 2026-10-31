@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 900;
 
-const maxImportBodyBytes = 160 * 1024 * 1024;
+const maxImportBodyBytes = 512 * 1024 * 1024;
 
 const slug = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u).max(180);
 const manifestSchema = z.object({
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   }
   const contentLength = parseContentLength(request.headers.get("content-length"));
   if (contentLength !== null && contentLength > maxImportBodyBytes) {
-    return NextResponse.json({ error: "Import request must be 160 MB or smaller." }, { status: 413 });
+    return NextResponse.json({ error: "Import request must be 512 MB or smaller." }, { status: 413 });
   }
 
   let form: FormData;
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       cause: error instanceof Error ? error.message : String(error)
     });
     return NextResponse.json(
-      { error: "Unable to parse multipart upload. Confirm the boundary and keep the complete request under 160 MB." },
+      { error: "Unable to parse multipart upload. Confirm the boundary and keep the complete request under 512 MB." },
       { status: 400 }
     );
   }
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (typeof manifestRaw !== "string") return NextResponse.json({ error: "manifest is required" }, { status: 400 });
     const chapterZip = form.get("chapterZip");
     if (chapterZip instanceof File && chapterZip.size > maxChapterZipBytes) {
-      return NextResponse.json({ error: "Chapter ZIP exceeds the 120 MB limit. Reduce image dimensions or WebP quality before creating the ZIP.", maxBytes: maxChapterZipBytes }, { status: 413 });
+      return NextResponse.json({ error: "Chapter ZIP exceeds the 500 MB limit.", maxBytes: maxChapterZipBytes }, { status: 413 });
     }
     let manifestInput: unknown;
     try {

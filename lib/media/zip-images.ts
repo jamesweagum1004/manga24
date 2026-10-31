@@ -5,12 +5,12 @@ const EOCD = 0x06054b50;
 const CENTRAL = 0x02014b50;
 const LOCAL = 0x04034b50;
 const imagePattern = /\.(?:jpe?g|png|webp|avif)$/iu;
-export const maxChapterZipBytes = 120 * 1024 * 1024;
+export const maxChapterZipBytes = 500 * 1024 * 1024;
 
 export type UploadImage = { name: string; bytes: Buffer; contentType: string };
 
 export function extractZipImages(input: Buffer): UploadImage[] {
-  if (input.length > maxChapterZipBytes) throw new Error("Chapter ZIP exceeds the 120 MB limit. Reduce image dimensions or WebP quality before creating the ZIP.");
+  if (input.length > maxChapterZipBytes) throw new Error("Chapter ZIP exceeds the 500 MB limit.");
   const eocdOffset = findSignature(input, EOCD, Math.max(0, input.length - 65_557));
   if (eocdOffset < 0) throw new Error("Invalid ZIP archive.");
   const count = input.readUInt16LE(eocdOffset + 10);
@@ -34,13 +34,15 @@ export function extractZipImages(input: Buffer): UploadImage[] {
     if (!imagePattern.test(name) || name.startsWith("__MACOSX/") || name.split("/").some((part) => part === "..")) continue;
     if (size > 25 * 1024 * 1024) throw new Error(`${name} is larger than 25 MB.`);
     totalSize += size;
-    if (totalSize > 350 * 1024 * 1024) throw new Error("Uncompressed ZIP content is too large.");
+    if (totalSize > 700 * 1024 * 1024) throw new Error("Uncompressed ZIP content exceeds the 700 MB limit.");
     if (input.readUInt32LE(localOffset) !== LOCAL) throw new Error("Invalid ZIP file entry.");
     const localNameLength = input.readUInt16LE(localOffset + 26);
     const localExtraLength = input.readUInt16LE(localOffset + 28);
     const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
     const compressed = input.subarray(dataOffset, dataOffset + compressedSize);
-    const bytes = method === 0 ? Buffer.from(compressed) : method === 8 ? inflateRawSync(compressed) : null;
+    // WebP pages are usually stored without ZIP compression. Keep a view into
+    // the request buffer instead of copying each image, which matters for large imports.
+    const bytes = method === 0 ? compressed : method === 8 ? inflateRawSync(compressed) : null;
     if (!bytes || bytes.length !== size) throw new Error(`${name} uses an unsupported ZIP compression method.`);
     images.push({ name: basename(name), bytes, contentType: contentTypeFor(name) });
   }
