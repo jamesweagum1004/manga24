@@ -129,10 +129,13 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
   else if (section.source === "manhwa") items = data.catalog.filter((title) => title.format === "manhwa");
   else if (section.source === "rediscovery") {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const day = new Date().toISOString().slice(0, 10);
+    const refreshHours = section.popularityPeriod === "daily" ? 24 : section.popularityPeriod === "custom" ? section.customHours : 1;
+    const rotationBucket = Math.floor(Date.now() / (refreshHours * 60 * 60 * 1000));
     items = data.catalog
       .filter((title) => title.chapters.length > 0 && !excludedSlugs.has(title.slug) && Date.parse(`${title.publishedAt}T00:00:00Z`) < cutoff)
-      .sort((left, right) => left.viewCount - right.viewCount || dailyRank(left.slug, locale, day) - dailyRank(right.slug, locale, day));
+      // Keep low-view titles favored, but rotate within view tiers so the rail
+      // does not pin the same set when the admin chooses an hourly cadence.
+      .sort((left, right) => viewTier(left.viewCount) - viewTier(right.viewCount) || rotationRank(left.slug, locale, rotationBucket) - rotationRank(right.slug, locale, rotationBucket));
   }
   else items = data.mangaLatest;
   return {
@@ -145,9 +148,13 @@ function buildHomeSection(section: HomeSection, data: { catalog: DemoTitle[]; ma
   };
 }
 
-function dailyRank(slug: string, locale: Parameters<typeof homeSectionHref>[0], day: string) {
+function viewTier(viewCount: number) {
+  return Math.floor(Math.log2(Math.max(0, viewCount) + 1));
+}
+
+function rotationRank(slug: string, locale: Parameters<typeof homeSectionHref>[0], bucket: number) {
   let hash = 2166136261;
-  for (const char of `${day}:${locale}:${slug}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  for (const char of `${bucket}:${locale}:${slug}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   return hash >>> 0;
 }
 
