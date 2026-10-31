@@ -13,7 +13,9 @@ type BackblazeCredentials = Extract<Awaited<ReturnType<typeof getStorageCredenti
 type BackblazeSession = { authorization: Authorization; bucketId: string };
 type B2ErrorDetails = { status: number; statusText: string; code: string | null; message: string | null; body: unknown };
 
-const backblazeUploadAttempts = 3;
+// B2 can temporarily run out of upload workers during bursts. Allow a few
+// minutes of recovery across the complete batch without reusing upload tokens.
+const backblazeUploadAttempts = 5;
 
 export type UploadedMedia = {
   provider: "backblaze-b2" | "bunny-storage";
@@ -188,8 +190,8 @@ function isReportedB2Error(error: unknown): error is Error & { reportedB2Error: 
 
 async function waitForB2Retry(attempt: number, retryAfter: string | null) {
   const retryAfterMs = parseRetryAfter(retryAfter);
-  const delayMs = retryAfterMs ?? 300 * (2 ** (attempt - 1));
-  await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 10_000)));
+  const delayMs = retryAfterMs ?? 1_000 * (2 ** (attempt - 1));
+  await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 30_000)));
 }
 
 function parseRetryAfter(value: string | null) {
