@@ -24,7 +24,7 @@ export const defaultHomeSections: HomeSection[] = [
   { id: "romance", title: "Romance", subtitle: "Updated", source: "tag", tag: "romance", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
   { id: "fantasy", title: "Fantasy", subtitle: "New arcs", source: "tag", tag: "fantasy", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
   { id: "latest-updates", title: "Latest Updates", subtitle: "Last 6 hours", source: "latest", tag: "", itemCount: 12, enabled: true, popularityPeriod: "hourly", customHours: 6 },
-  { id: "rediscovery", title: "Rediscover", subtitle: "From the archive", source: "rediscovery", tag: "", itemCount: 6, enabled: true, popularityPeriod: "hourly", customHours: 6, localizations: {
+  { id: "rediscovery", title: "Rediscover", subtitle: "From the archive", source: "rediscovery", tag: "", itemCount: 30, enabled: true, popularityPeriod: "hourly", customHours: 6, localizations: {
     en: { title: "Rediscover", subtitle: "From the archive" },
     es: { title: "Redescubre", subtitle: "Del archivo" },
     fr: { title: "À redécouvrir", subtitle: "Dans les archives" },
