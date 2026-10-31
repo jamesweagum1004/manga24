@@ -5,11 +5,12 @@ const EOCD = 0x06054b50;
 const CENTRAL = 0x02014b50;
 const LOCAL = 0x04034b50;
 const imagePattern = /\.(?:jpe?g|png|webp|avif)$/iu;
+export const maxChapterZipBytes = 120 * 1024 * 1024;
 
 export type UploadImage = { name: string; bytes: Buffer; contentType: string };
 
 export function extractZipImages(input: Buffer): UploadImage[] {
-  if (input.length > 120 * 1024 * 1024) throw new Error("ZIP files must be 120 MB or smaller.");
+  if (input.length > maxChapterZipBytes) throw new Error("Chapter ZIP exceeds the 120 MB limit. Reduce image dimensions or WebP quality before creating the ZIP.");
   const eocdOffset = findSignature(input, EOCD, Math.max(0, input.length - 65_557));
   if (eocdOffset < 0) throw new Error("Invalid ZIP archive.");
   const count = input.readUInt16LE(eocdOffset + 10);

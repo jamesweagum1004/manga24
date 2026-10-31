@@ -8,7 +8,7 @@ import { createDbTitle, getDbTitleForAdmin, updateDbTitle, type TitleFormValues 
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { generateTitleSeo, type GeneratedTitleSeo } from "@/lib/deepseek/seo";
 import { uploadImages } from "@/lib/media/b2-upload";
-import { extractZipImages, filesToImages, type UploadImage } from "@/lib/media/zip-images";
+import { extractZipImages, filesToImages, maxChapterZipBytes, type UploadImage } from "@/lib/media/zip-images";
 import { chapterObjectPrefix, coverObjectPrefix } from "@/lib/media/object-key";
 import { displayLocalesForOriginalLanguage } from "@/lib/i18n";
 import { getPublishedTitleUrls, submitIndexNow, uniqueUrls } from "@/lib/search-indexing";
@@ -24,7 +24,9 @@ const manifestSchema = z.object({
   title: z.object({
     canonicalSlug: slug,
     originalTitle: z.string().trim().min(1).max(240),
-    authorName: z.string().trim().min(1).max(4000),
+    // Scrapers can send very long comma-separated contributor lists. Normalize
+    // before the final length check so one oversized list does not reject an import.
+    authorName: z.string().trim().min(1).transform(normalizeAuthorName).pipe(z.string().min(1).max(160)),
     originalLanguage: z.string().trim().min(2).max(16),
     displayLocales: z.array(z.enum(["en", "es", "fr", "de", "pt"])).min(1).default(["en", "es", "fr", "de", "pt"]),
     format: z.enum(["manga", "manhwa"]),
@@ -76,8 +78,23 @@ export async function POST(request: Request) {
   try {
     const manifestRaw = form.get("manifest");
     if (typeof manifestRaw !== "string") return NextResponse.json({ error: "manifest is required" }, { status: 400 });
-    const parsed = manifestSchema.safeParse(JSON.parse(manifestRaw));
-    if (!parsed.success) return NextResponse.json({ error: "Invalid manifest", issues: parsed.error.issues }, { status: 400 });
+    const chapterZip = form.get("chapterZip");
+    if (chapterZip instanceof File && chapterZip.size > maxChapterZipBytes) {
+      return NextResponse.json({ error: "Chapter ZIP exceeds the 120 MB limit. Reduce image dimensions or WebP quality before creating the ZIP.", maxBytes: maxChapterZipBytes }, { status: 413 });
+    }
+    let manifestInput: unknown;
+    try {
+      manifestInput = JSON.parse(manifestRaw);
+    } catch {
+      return NextResponse.json({ error: "Invalid manifest JSON. Send the manifest field as valid JSON text." }, { status: 400 });
+    }
+    const parsed = manifestSchema.safeParse(manifestInput);
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      const issuePath = firstIssue?.path.map(String).join(".");
+      const detail = firstIssue ? `${issuePath ? `${issuePath}: ` : ""}${firstIssue.message}` : "Check the manifest fields.";
+      return NextResponse.json({ error: `Invalid manifest: ${detail}`, issues: parsed.error.issues }, { status: 400 });
+    }
     const manifest = parsed.data;
     let values = titleValues(manifest.title);
     if (!manifest.title.seo && manifest.title.generateSeo) {
