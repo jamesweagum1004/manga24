@@ -59,6 +59,29 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 
+button,
+a,
+[role="button"] {
+  transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+button:active,
+a:active,
+[role="button"]:active,
+[data-click-feedback="active"] {
+  filter: brightness(0.92);
+  transform: translateY(1px) scale(0.985);
+}
+
+[data-click-feedback="active"] {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
