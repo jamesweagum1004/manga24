@@ -108,6 +108,26 @@ export async function getRecentPopularCatalogTitles(locale: Locale, hours: numbe
   });
 }
 
+export async function getTodayPopularCatalogTitles(locale: Locale) {
+  const catalog = await getCatalogTitles(locale);
+  if (!isDatabaseConfigured()) return [...catalog].sort((a, b) => b.viewCount - a.viewCount);
+
+  // Popular Today is a calendar-day ranking in the site's operating timezone,
+  // Asia/Seoul (UTC+9), so the list resets at local midnight.
+  const seoulNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const startOfToday = new Date(Date.UTC(
+    seoulNow.getUTCFullYear(),
+    seoulNow.getUTCMonth(),
+    seoulNow.getUTCDate()
+  ) - 9 * 60 * 60 * 1000);
+  const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const rows = await listDbRecentTitleViews(startOfToday, startOfTomorrow);
+  const todayViews = new Map(rows.map((row) => [row.slug, row.views]));
+  return catalog
+    .filter((title) => (todayViews.get(title.slug) ?? 0) > 0)
+    .sort((left, right) => (todayViews.get(right.slug) ?? 0) - (todayViews.get(left.slug) ?? 0));
+}
+
 export async function getCatalogTitleBySlug(slug: string, locale?: Locale) {
   if (isDatabaseConfigured()) {
     const title = await getDbTitleBySlug(slug);

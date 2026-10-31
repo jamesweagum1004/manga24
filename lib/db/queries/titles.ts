@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import {
   assets,
   chapterLocalizations,
@@ -163,7 +163,10 @@ export async function listDbTitles() {
   return hydrateTitleRows(rows, false);
 }
 
-export async function listDbRecentTitleViews(since: Date) {
+export async function listDbRecentTitleViews(since: Date, until?: Date) {
+  const dateFilter = until
+    ? and(gte(titleViewEvents.viewedAt, since), lt(titleViewEvents.viewedAt, until))
+    : gte(titleViewEvents.viewedAt, since);
   return getDb()
     .select({
       slug: titles.slug,
@@ -171,7 +174,7 @@ export async function listDbRecentTitleViews(since: Date) {
     })
     .from(titleViewEvents)
     .innerJoin(titles, eq(titleViewEvents.titleId, titles.id))
-    .where(gte(titleViewEvents.viewedAt, since))
+    .where(dateFilter)
     .groupBy(titles.slug)
     .orderBy(desc(sql`count(*)`));
 }
