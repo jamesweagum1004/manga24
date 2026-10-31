@@ -154,7 +154,10 @@ async function b2ErrorDetails(response: Response): Promise<B2ErrorDetails> {
 }
 
 function isRetryableB2Failure(details: B2ErrorDetails) {
-  return details.status === 429 || details.status === 503 || (details.status === 401 && (details.code === "bad_auth_token" || details.code === "expired_auth_token"));
+  // B2 occasionally returns transient internal_error (500) responses while
+  // processing uploads. Retry these with a newly issued upload URL just like
+  // throttling and temporary service-unavailable responses.
+  return [429, 500, 502, 503, 504].includes(details.status) || (details.status === 401 && (details.code === "bad_auth_token" || details.code === "expired_auth_token"));
 }
 
 function logB2Failure(operation: string, file: string | null, objectKey: string | null, attempt: number, details: B2ErrorDetails) {
