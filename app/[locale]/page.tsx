@@ -13,6 +13,8 @@ import { listActiveAds } from "@/lib/db/queries/ads";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { homeSectionHref, localizedHomeSection, type HomeSection } from "@/lib/home-sections";
 import { optimizedImageUrl, responsiveImageSrcSet } from "@/lib/media/thumbnail-url";
+import { headers } from "next/headers";
+import { getCountryCode } from "@/lib/analytics/country";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -37,12 +39,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function HomePage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = getLocaleOrDefault(rawLocale);
+  const country = getCountryCode(await headers());
   const [catalog, latest, popular, weekly, contentAds, settings] = await Promise.all([
     getCatalogTitles(locale),
     getLatestCatalogTitles(locale),
     getPopularCatalogTitles(locale),
     getRecentPopularCatalogTitles(locale, 24 * 7),
-    listActiveAds("content", locale),
+    listActiveAds("content", locale, country),
     getSiteSettings()
   ]);
   const mangaPopular = popular.filter((title) => title.format !== "manhwa");

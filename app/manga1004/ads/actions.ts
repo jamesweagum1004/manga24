@@ -19,6 +19,7 @@ const baseSchema = z.object({
   position: z.enum(["header", "content", "reader_top", "reader_bottom"]),
   surface: z.enum(["both", "web", "pwa"]),
   locale: z.union([z.literal(""), z.enum(locales)]),
+  targetCountries: z.array(z.string().regex(/^[A-Z]{2}$/u)).max(250).default([]),
   clickUrl: optionalUrl,
   altText: z.string().trim().max(240),
   embedCode: z.string().trim().max(20000),
@@ -78,6 +79,7 @@ function parseForm(formData: FormData) {
     position: formData.get("position"),
     surface: formData.get("surface"),
     locale: formData.get("locale"),
+    targetCountries: formData.getAll("targetCountries"),
     clickUrl: formData.get("clickUrl"),
     altText: formData.get("altText"),
     embedCode: formData.get("embedCode"),
@@ -93,6 +95,7 @@ function makeValues(data: z.infer<typeof baseSchema>, imageUrl: string | null): 
   return {
     ...data,
     locale: data.locale && isLocale(data.locale) ? data.locale : null,
+    targetCountries: data.targetCountries,
     imageUrl: data.kind === "static" ? imageUrl : null,
     clickUrl: data.clickUrl || null,
     altText: data.altText || null,

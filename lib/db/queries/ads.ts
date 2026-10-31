@@ -16,6 +16,7 @@ export type AdValues = {
   position: AdPosition;
   surface: AdSurface;
   locale: Locale | null;
+  targetCountries: string[];
   imageUrl: string | null;
   clickUrl: string | null;
   altText: string | null;
@@ -33,16 +34,16 @@ export const listAds = cache(async () => {
   return db.select().from(ads).orderBy(asc(ads.position), asc(ads.insertAfter), asc(ads.sortOrder));
 });
 
-export async function listActiveAds(position: AdPosition, locale: Locale) {
+export async function listActiveAds(position: AdPosition, locale: Locale, countryCode?: string | null) {
   const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
   const selectedLocale = settings.adLocaleModes[locale] === "separate" ? locale : null;
-  return rows.filter((ad) => ad.isActive && ad.position === position && ad.locale === selectedLocale);
+  return rows.filter((ad) => ad.isActive && ad.position === position && ad.locale === selectedLocale && (!ad.targetCountries?.length || Boolean(countryCode && ad.targetCountries.includes(countryCode))));
 }
 
-export async function listReaderAds(locale: Locale) {
+export async function listReaderAds(locale: Locale, countryCode?: string | null) {
   const [rows, settings] = await Promise.all([listAds(), getSiteSettings()]);
   const selectedLocale = settings.adLocaleModes[locale] === "separate" ? locale : null;
-  const eligible = rows.filter((ad) => ad.isActive && ad.locale === selectedLocale);
+  const eligible = rows.filter((ad) => ad.isActive && ad.locale === selectedLocale && (!ad.targetCountries?.length || Boolean(countryCode && ad.targetCountries.includes(countryCode))));
   return {
     top: eligible.filter((ad) => ad.position === "reader_top"),
     bottom: eligible.filter((ad) => ad.position === "reader_bottom"),

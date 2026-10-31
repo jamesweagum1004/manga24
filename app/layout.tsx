@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { env } from "@/lib/env";
 import { getSiteSettings } from "@/lib/db/queries/settings";
 import { PwaManager } from "@/components/pwa-manager";
+import { SiteVisitTracker } from "@/components/site-visit-tracker";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,7 +35,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const locale = ["en", "es", "fr", "de", "pt"].includes(rawLocale) ? rawLocale : "en";
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body>{children}<PwaManager locale={locale as "en" | "es" | "fr" | "de" | "pt"} enabled={settings.pwaEnabled && !settings.maintenanceEnabled} promptEnabled={settings.pwaPromptEnabled} threshold={settings.pwaPromptThreshold} /></body>
+      <body>{children}<SiteVisitTracker /><PwaManager locale={locale as "en" | "es" | "fr" | "de" | "pt"} enabled={settings.pwaEnabled && !settings.maintenanceEnabled} promptEnabled={settings.pwaPromptEnabled} threshold={settings.pwaPromptThreshold} /></body>
     </html>
   );
 }

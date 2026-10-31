@@ -107,6 +107,7 @@ export const ads = pgTable(
     position: adPositionEnum("position").notNull(),
     surface: varchar("surface", { length: 16 }).$type<"both" | "web" | "pwa">().default("both").notNull(),
     locale: varchar("locale", { length: 8 }).$type<"en" | "es" | "fr" | "de" | "pt">(),
+    targetCountries: jsonb("target_countries").$type<string[]>().default([]).notNull(),
     imageUrl: text("image_url"),
     clickUrl: text("click_url"),
     altText: varchar("alt_text", { length: 240 }),
@@ -179,6 +180,10 @@ export const titleViewEvents = pgTable(
     titleViewedAtIdx: index("title_view_events_title_viewed_at_idx").on(table.titleId, table.viewedAt)
   })
 );
+
+export const siteVisitEvents = pgTable("site_visit_events", {
+  id: serial("id").primaryKey(), visitorKey: varchar("visitor_key", { length: 64 }).notNull(), countryCode: varchar("country_code", { length: 2 }), pathname: varchar("pathname", { length: 500 }).notNull(), visitedAt: timestamp("visited_at", { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({ visitedAtIdx: index("site_visit_events_visited_at_idx").on(table.visitedAt), countryVisitedAtIdx: index("site_visit_events_country_visited_at_idx").on(table.countryCode, table.visitedAt), visitorVisitedAtIdx: index("site_visit_events_visitor_visited_at_idx").on(table.visitorKey, table.visitedAt) }));
 
 export const titleLocalizations = pgTable(
   "title_localizations",

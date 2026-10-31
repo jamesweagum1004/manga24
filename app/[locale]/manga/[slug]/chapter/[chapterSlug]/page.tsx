@@ -9,6 +9,8 @@ import { getLocaleOrDefault } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 import { listReaderAds } from "@/lib/db/queries/ads";
 import { TitleViewTracker } from "@/components/title-view-tracker";
+import { headers } from "next/headers";
+import { getCountryCode } from "@/lib/analytics/country";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string; chapterSlug: string }>;
@@ -42,7 +44,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ChapterReaderPage({ params }: PageProps) {
   const { locale: rawLocale, slug, chapterSlug } = await params;
   const locale = getLocaleOrDefault(rawLocale);
-  const [result, readerAds] = await Promise.all([getCatalogChapterBySlug(slug, chapterSlug, locale), listReaderAds(locale)]);
+  const requestHeaders = await headers();
+  const [result, readerAds] = await Promise.all([getCatalogChapterBySlug(slug, chapterSlug, locale), listReaderAds(locale, getCountryCode(requestHeaders))]);
   if (!result) {
     notFound();
   }
