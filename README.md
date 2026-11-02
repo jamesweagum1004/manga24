@@ -77,6 +77,13 @@ The installer writes `/etc/nginx/conf.d/manga24-upload.conf`, runs `nginx -t`, r
 validation fails, and only reloads Nginx after successful validation. `proxy_request_buffering off` streams request
 bodies to Next.js instead of making Nginx buffer the complete upload first.
 
+### Origin-side anti-scraping limits
+
+See [`ops/NGINX_ANTI_SCRAPING.md`](ops/NGINX_ANTI_SCRAPING.md) for the Nginx request-limiting rollout. It starts in
+monitor-only mode and must not enforce limits until the effective visitor IP is confirmed in the Bunny-to-origin
+configuration; otherwise requests may be grouped under Bunny edge IPs. The policy excludes sitemap/robots, static
+assets, admin routes, and internal import automation.
+
 Deployment note: the dev domain may be blocked from Korea because the domain is already warning-blocked domestically. The deployment can still be healthy and reachable through VPN or non-Korean networks.
 
 Server ownership should stay with the HestiaCP user:
