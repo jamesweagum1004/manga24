@@ -23,20 +23,40 @@ cd /srv/manga24/app
 sudo ./ops/install-nginx-antibot.sh monitor
 ```
 
-Review Nginx error logs over a normal traffic window and confirm what address
-Nginx is using as the client IP. When Manga24 is behind Bunny, `$binary_remote_addr`
-may be a Bunny edge address unless trusted-proxy real-IP handling is configured.
-Do not switch to enforcement until the effective address is the visitor IP; do not
-trust a client-supplied `X-Forwarded-For` value. Nginx's real-IP module only trusts
-forwarded addresses from explicitly configured proxy networks.
+Monitor mode does not block requests. Because the site is behind Bunny,
+`$binary_remote_addr` can represent a CDN edge instead of the visitor. The
+enforcement configuration below uses a Bunny-injected visitor-IP header and a
+private origin key; it does not trust a browser-supplied `X-Forwarded-For` value.
 
-Once the address is verified and monitor logs show no normal visitor or crawler
-bursts would be rejected, enable enforcement:
+For the public hostnames served through Bunny, enforcement also installs an
+origin gate. This prevents bypassing Bunny by connecting directly to the VPS and
+sending `Host: manga24.net`. Before enabling it, add two Bunny Edge Rules on the
+Pull Zone that serves the site, both using **Set Request Header / overwrite**:
+
+| Header | Value |
+| --- | --- |
+| `X-Manga24-Client-IP` | `%{User.IP}` |
+| `X-Manga24-Origin-Key` | A private random value of 43–128 URL-safe characters |
+
+Use the same private key when the installer prompts. Do not use the site API
+token. The installer stores the rendered key only in `/etc/nginx/conf.d/` with
+root-only permissions, and strips both headers before proxying to Next.js.
+Requests to `direct.manga24.net` are handled by a separate virtual host and are
+not changed, so n8n imports continue to use their existing authentication.
+
+After the Bunny rules are active, enable enforcement interactively:
 
 ```bash
 cd /srv/manga24/app
-sudo env MANGA24_CLIENT_IP_VERIFIED=1 ./ops/install-nginx-antibot.sh enforce
+sudo ./ops/install-nginx-antibot.sh enforce
 ```
+
+This enables the per-visitor limiter and returns 403 for public-host requests
+that do not carry Bunny's injected origin key. Requests using an unrecognized
+Host header or direct IP on port 80 are closed, while the exact `direct.manga24.net`
+host remains on its existing vhost. It does not block by country or User-Agent.
+Keep a separate terminal ready to revert immediately by reinstalling monitor
+mode if Bunny reports an origin error or browser pages fail.
 
 To return to monitor mode, run the first install command again. The installer
 validates with `nginx -t`, reloads instead of restarting Nginx, and restores the
